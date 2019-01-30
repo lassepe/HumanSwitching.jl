@@ -1,2 +1,9 @@
+name = "POMotionPlanning"
+
 [deps]
+Cairo = "159f3aea-2a34-519c-b102-8c37f9878175"
+Graphics = "a2bd30eb-e257-5431-a919-1863eab51364"
+Gtk = "4c0ca9eb-093a-5379-98c5-f87ac0bbbf44"
+Parameters = "d96e819e-fc66-5662-9728-84c9c7592b0a"
+Revise = "295af30f-e4ad-537b-8983-00126c2a3abe"
 Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
