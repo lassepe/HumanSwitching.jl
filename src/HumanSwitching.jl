@@ -1,19 +1,16 @@
 module HumanSwitching
 
 using Parameters
-
-using Gtk
-using Cairo
-
-export
-  Rectangle,
-  transform_coords,
-  transform_scale
-include("rendering_utils.jl")
+using Compose
+using StaticArrays
 
 export
-  Room,
-  render
+  AgentState,
+  RoomRep
 include("environment.jl")
+
+export
+  render_scene
+include("visualize.jl")
 
 end # module

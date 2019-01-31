@@ -11,33 +11,26 @@ using Revise
 using HumanSwitching
 using Printf
 
-using Gtk, Cairo, Graphics
-
-function visualize_test()
-  # create  a test room
-  rect1 = Rectangle(top_left=[0.0, 0.0], width=30.0, height=30.0)
-  rect2 = Rectangle(top_left=[0.0, 0.0], width=20.0, height=20.0)
-  rect3 = Rectangle(top_left=[0.0, 0.0], width=10.0, height=10.0)
-  # create a GTK window and a canvas to render things on:
-  canvas = @GtkCanvas
-  window = GtkWindow(canvas, "Room")
-
-  @guarded draw(canvas) do widget
-    ctx = getgc(canvas)
-    h = height(canvas)
-    w = width(canvas)
-
-    set_source_rgb(ctx, 0, 0, 0)
-    render(ctx, rect1, rgb_color=(1, 0, 0))
-    render(ctx, rect2, rgb_color=(0, 1, 0))
-    render(ctx, rect3, rgb_color=(0, 0, 1))
-
-    # show some information for debugging
-    move_to(ctx, 6/8*w, 1/8*h)
-    show_text(ctx, "test")
-    stroke(ctx)
-  end
-  show(canvas)
+function random_agent_state(range_x::Array{Float64}=[0., 10.], range_y::Array{Float64}=[0., 10.])::AgentState
+  x = (rand() * (range_x[2] - range_x[1])) - range_x[1]
+  y = (rand() * (range_y[2] - range_y[1])) - range_y[1]
+  phi = rand() * pi
+  return AgentState(xy=[x, y], phi=phi)
 end
 
-visualize_test()
+function rendering_test()
+  room = RoomRep(width=10, height=10)
+  robot_state = random_agent_state()
+
+  human_states = [random_agent_state() for i in 1:5]
+
+  composition = render_scene(room, robot_state, human_states)
+  composition |> SVG("display.svg", 14cm, 14cm)
+
+  introspection = introspect(composition)
+  introspection |> SVG("introspection.svg", 14cm, 14cm)
+
+  return composition
+end
+
+rendering_test()
