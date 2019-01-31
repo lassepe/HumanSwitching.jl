@@ -1,6 +1,6 @@
 using Pkg
 
-if !haskey(Pkg.installed(), "POMotionPlanning")
+if !haskey(Pkg.installed(), "HumanSwitching")
   # load the environment if not yet done
   jenv = joinpath(dirname(@__FILE__()), "../.")
   Pkg.activate(jenv)
@@ -8,7 +8,7 @@ if !haskey(Pkg.installed(), "POMotionPlanning")
 end
 
 using Revise
-using POMotionPlanning
+using HumanSwitching
 using Printf
 
 using Gtk, Cairo, Graphics
