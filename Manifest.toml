@@ -196,6 +196,12 @@ git-tree-sha1 = "b6c91fc0ab970c0563cbbe69af18d741a49ce551"
 uuid = "90014a1f-27ba-587c-ab20-58faa44d9150"
 version = "0.9.6"
 
+[[POMDPs]]
+deps = ["Distributions", "LibGit2", "Pkg", "Random", "Statistics", "Test"]
+git-tree-sha1 = "4214e0a48a4c746ecde390eed7bc0e2205dc40a0"
+uuid = "a93abf59-7444-517b-a68a-c42f96afdd7d"
+version = "0.7.2"
+
 [[Parameters]]
 deps = ["Markdown", "OrderedCollections", "REPL", "Test"]
 git-tree-sha1 = "70bdbfb2bceabb15345c0b54be4544813b3444e4"

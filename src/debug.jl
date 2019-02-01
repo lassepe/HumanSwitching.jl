@@ -11,6 +11,8 @@ using Revise
 using HumanSwitching
 using Printf
 
+using Compose
+
 function random_agent_state(range_x::Array{Float64}=[0., 10.], range_y::Array{Float64}=[0., 10.])::AgentState
   x = (rand() * (range_x[2] - range_x[1])) - range_x[1]
   y = (rand() * (range_y[2] - range_y[1])) - range_y[1]

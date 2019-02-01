@@ -5,14 +5,18 @@ using Compose
 using StaticArrays
 
 using POMDPs
+using Random
+using LinearAlgebra
 
 export
   AgentState,
   RoomRep
-include("environment.jl")
+include("pomdp_formulation.jl")
 
 export
   render_scene
 include("visualize.jl")
+
+include("utils.jl")
 
 end # module
