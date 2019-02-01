@@ -4,6 +4,8 @@ using Parameters
 using Compose
 using StaticArrays
 
+using POMDPs
+
 export
   AgentState,
   RoomRep
