@@ -30,6 +30,7 @@ function rand_astate(r::RoomRep)::AgentState
   phi = rand() * pi
   return AgentState(xy=[x, y], phi=phi)
 end
+rand_astate(m::HSModel)::AgentState = rand_astate(room(m))
 
 function isinroom(as::AgentState, r::RoomRep)
   return  0 <= as.xy[1] <= r.width && 0 <= as.xy[2] <= r.height

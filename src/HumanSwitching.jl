@@ -19,7 +19,12 @@ export
   HSMDP,
   HSPOMDP,
   HSModel,
-  room
+  room,
+  generate_s,
+  generate_o,
+  initialstate,
+  reward,
+  discount
 include("pomdp_formulation.jl")
 
 export

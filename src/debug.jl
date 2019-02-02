@@ -9,9 +9,10 @@ end
 
 using Revise
 using HumanSwitching
+const HS = HumanSwitching
 using Printf
-
 using Compose
+using Random
 
 function render_node_test()
   room = RoomRep(width=10, height=10)
@@ -28,7 +29,19 @@ function render_node_test()
   return composition
 end
 
-for i in 1:1
-  render_node_test()
+function render_state_test()
+  # create some test problem
+  hs_pomdp_noisy = HS.HSPOMDP(HS.NoisyPositionSensor([0.1,0.1,0.01]))
+  a = HS.HSAction()
+  rng = MersenneTwister(42)
+  s = initialstate(hs_pomdp_noisy, rng)
+
+  composition = render_scene(hs_pomdp_noisy, s)
+  composition |> SVG("display.svg", 14cm, 14cm)
+end
+
+
+for i = 1:100
+  render_state_test()
   sleep(1)
 end

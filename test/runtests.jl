@@ -7,13 +7,6 @@ using Random
 using LinearAlgebra
 using Statistics
 
-function random_agent_state(range_x::Array{Float64}=[0., 10.], range_y::Array{Float64}=[0., 10.])::AgentState
-  x = (rand() * (range_x[2] - range_x[1])) - range_x[1]
-  y = (rand() * (range_y[2] - range_y[1])) - range_y[1]
-  phi = rand() * pi
-  return AgentState(xy=[x, y], phi=phi)
-end
-
 @testset "normalized_angle_diff" begin
   @test isapprox(HS.normalized_angle_diff(pi/2), pi/2)
   @test isapprox(HS.normalized_angle_diff(-pi/2), -pi/2)
