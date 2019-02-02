@@ -75,7 +75,8 @@ function render_scene(m::HSModel, s::HSState)
   at = s.human_target
   r = 0.5
   c1 = [(as.xy[1]+cos(as.phi)*r*2, as.xy[2]+sin(as.phi)*r*2)]
-  c2 = [(at.xy[1]-cos(at.phi)*r*2, at.xy[2]-sin(at.phi)*r*2)]
+  c1a = (as.xy + at.xy) / 2
+  c2 = [(c1a[1], c1a[2])]
   line_to_target = compose(context(), fill("black"), stroke("black"), curve(p_start, c1, c2, p_end))
 
   composition = compose(mirror, (base_scale, human_pose_viz, human_target_viz, line_to_target, room_viz))

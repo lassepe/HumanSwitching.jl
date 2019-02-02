@@ -128,16 +128,18 @@ function POMDPs.generate_s(p::HSModel, s::HSState, a::HSAction, rng::AbstractRNG
   # TODO: For now the human simply has a P controller that drives him to the
   # goal with a constant velocity. On a long run one can implement different
   # models for the human (e.g. Bolzmann)
-  human_velocity = 1 #m/s
+  human_velocity = min(0.6, human_dist_to_target(s)) #m/s
   vec2target = human_vec_to_target(s)
-  walking_direction = normalize(vec2target)
+  target_direction = normalize(vec2target)
+  current_walk_direction = @SVector [cos(s.human_pose.phi), sin(s.human_pose.phi)]
+  walk_direction = (target_direction + current_walk_direction)/2
   # new position:
-  if any(isnan(i) for i in walking_direction)
+  if any(isnan(i) for i in target_direction)
     xy_p = s.human_pose.xy
     phi_p = s.human_pose.phi
   else
-    xy_p = s.human_pose.xy + walking_direction * human_velocity
-    phi_p = human_angle_to_target(s)
+    xy_p = s.human_pose.xy +  walk_direction * human_velocity
+    phi_p = atan(walk_direction[2], walk_direction[1])
   end
   return HSState(human_pose=AgentState(xy=xy_p, phi=phi_p), human_target=s.human_target)
 end

@@ -13,6 +13,7 @@ const HS = HumanSwitching
 using Printf
 using Compose
 using Random
+using ProgressMeter
 
 function render_node_test()
   room = RoomRep(width=10, height=10)
@@ -29,19 +30,35 @@ function render_node_test()
   return composition
 end
 
-function render_state_test()
+function get_test_problem()
   # create some test problem
   hs_pomdp_noisy = HS.HSPOMDP(HS.NoisyPositionSensor([0.1,0.1,0.01]))
   a = HS.HSAction()
   rng = MersenneTwister(42)
   s = initialstate(hs_pomdp_noisy, rng)
 
+  return hs_pomdp_noisy, a, s, rng
+end
+
+function render_state_test()
+  hs_pomdp_noisy, a, s, rng = get_test_problem()
+
   composition = render_scene(hs_pomdp_noisy, s)
   composition |> SVG("display.svg", 14cm, 14cm)
 end
 
-
-for i = 1:100
-  render_state_test()
-  sleep(1)
+function simulate_state_trajectory()
+  hs_pomdp_noisy, a, s, rng = get_test_problem()
+  # simulate a simple state trajectory
+  @showprogress for i in 1:10
+    s = initialstate(hs_pomdp_noisy, rng)
+    while HS.human_dist_to_target(s) > 0.1
+      s = HS.generate_s(hs_pomdp_noisy, s, a, rng)
+      composition = render_scene(hs_pomdp_noisy, s)
+      composition |> SVG("display.svg", 14cm, 14cm)
+      sleep(1)
+    end
+  end
 end
+
+simulate_state_trajectory()
