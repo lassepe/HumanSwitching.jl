@@ -13,13 +13,21 @@ using POMDPs
 
 export
   AgentState,
-  RoomRep
+  RoomRep,
+  HSState,
+  HSAction,
+  HSMDP,
+  HSPOMDP,
+  HSModel,
+  room
 include("pomdp_formulation.jl")
 
 export
   render_scene
 include("visualize.jl")
 
+export
+  rand_astate
 include("utils.jl")
 
 end # module

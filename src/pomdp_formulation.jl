@@ -167,7 +167,6 @@ end
 initialstate
 
 Draw an initial state and a target state for the human agent.
-
 """
 # TODO: Figure out how to use the RNG here to make it reproducable random
 # TODO: Later this will also include the start and goal of the robot agent

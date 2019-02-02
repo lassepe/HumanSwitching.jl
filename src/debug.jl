@@ -13,7 +13,7 @@ using Printf
 
 using Compose
 
-function rendering_test()
+function render_node_test()
   room = RoomRep(width=10, height=10)
   robot_state = rand_astate(room)
 
@@ -28,7 +28,7 @@ function rendering_test()
   return composition
 end
 
-for i in 1:100
-  rendering_test()
+for i in 1:1
+  render_node_test()
   sleep(1)
 end
