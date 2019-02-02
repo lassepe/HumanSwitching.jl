@@ -13,18 +13,11 @@ using Printf
 
 using Compose
 
-function random_agent_state(range_x::Array{Float64}=[0., 10.], range_y::Array{Float64}=[0., 10.])::AgentState
-  x = (rand() * (range_x[2] - range_x[1])) - range_x[1]
-  y = (rand() * (range_y[2] - range_y[1])) - range_y[1]
-  phi = rand() * pi
-  return AgentState(xy=[x, y], phi=phi)
-end
-
 function rendering_test()
   room = RoomRep(width=10, height=10)
-  robot_state = random_agent_state()
+  robot_state = rand_astate(room)
 
-  human_states = [random_agent_state() for i in 1:5]
+  human_states = [rand_astate(room) for i in 1:5]
 
   composition = render_scene(room, robot_state, human_states)
   composition |> SVG("display.svg", 14cm, 14cm)
@@ -35,4 +28,7 @@ function rendering_test()
   return composition
 end
 
-rendering_test()
+for i in 1:100
+  rendering_test()
+  sleep(1)
+end

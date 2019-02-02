@@ -4,9 +4,12 @@ using Parameters
 using Compose
 using StaticArrays
 
-using POMDPs
 using Random
+using Distributions
+using Statistics
 using LinearAlgebra
+
+using POMDPs
 
 export
   AgentState,
