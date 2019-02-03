@@ -26,6 +26,8 @@ export
   discount
 include("pomdp_formulation.jl")
 
+include("policies.jl")
+
 export
   render_scene_compose,
   render_scene_svg,
