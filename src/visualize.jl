@@ -38,23 +38,6 @@ function target_node(ts::AgentState; size=0.15, fill_color="deepskyblue", stroke
           circle(ts.xy[1], ts.xy[ 2], size/2))
 end
 
-
-# TODO: Reduce code duplication!
-# TODO: Maybe remove, this was onlye the first test
-function render_scene_compose(room::RoomRep, robot_state::AgentState, human_states::Array{AgentState})::Context
-  # place mirror all children along the middle axis of the unit contexnet
-  mirror = context(mirror=Mirror(0, 0.5, 0.5))
-  # scale all children to fit into the mirrored unit context
-  base_scale = context(0, 0, 1/room.width, 1/room.height)
-
-  room_viz = room_node(room)
-  human_vizs = [agent_node(h, fill_color="tomato") for h in human_states]
-  robot_viz = agent_node(robot_state, fill_color="light blue")
-
-  composition = compose(mirror, (base_scale, human_vizs..., target_viz, robot_viz, room_viz))
-  return composition
-end
-
 """
 render_scene_compose
 
