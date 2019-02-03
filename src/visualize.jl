@@ -40,7 +40,8 @@ end
 
 
 # TODO: Reduce code duplication!
-function render_scene(room::RoomRep, robot_state::AgentState, human_states::Array{AgentState})
+# TODO: Maybe remove, this was onlye the first test
+function render_scene_compose(room::RoomRep, robot_state::AgentState, human_states::Array{AgentState})::Context
   # place mirror all children along the middle axis of the unit contexnet
   mirror = context(mirror=Mirror(0, 0.5, 0.5))
   # scale all children to fit into the mirrored unit context
@@ -51,11 +52,25 @@ function render_scene(room::RoomRep, robot_state::AgentState, human_states::Arra
   robot_viz = agent_node(robot_state, fill_color="light blue")
 
   composition = compose(mirror, (base_scale, human_vizs..., target_viz, robot_viz, room_viz))
-  composition |> SVG("display.svg", 14cm, 14cm)
   return composition
 end
 
-function render_scene(m::HSModel, s::HSState)
+"""
+render_scene_compose
+
+Renders the whole scene based on the HumanSwitching model and a coresponding
+POMDP state.
+
+This returns a Compose.Context that can be rendered to a variety of displays.
+(e.g. SVG  or Blink)
+
+Fields:
+
+- `m` the model/problem to be rendered (to extact the room size)
+- `s` the state to be rendered (not agent state but whole POMDP state representation)
+
+"""
+function render_scene_compose(m::HSModel, s::HSState)::Context
   # extract the room prepresentation from the problem
   room_rep::RoomRep = room(m)
   # place mirror all children along the middle axis of the unit context
@@ -70,7 +85,7 @@ function render_scene(m::HSModel, s::HSState)
   p_start = [Tuple(s.human_pose.xy)]
   p_end = [Tuple(s.human_target.xy)]
 
-  # TODO MOVE!
+  # TODO MOVE! This is really ugly!
   as = s.human_pose
   at = s.human_target
   r = 0.5
@@ -78,8 +93,35 @@ function render_scene(m::HSModel, s::HSState)
   c1a = (as.xy + at.xy) / 2
   c2 = [(c1a[1], c1a[2])]
   line_to_target = compose(context(), fill("black"), stroke("black"), curve(p_start, c1, c2, p_end))
-
   composition = compose(mirror, (base_scale, human_pose_viz, human_target_viz, line_to_target, room_viz))
-  composition |> SVG("display.svg", 14cm, 14cm)
   return composition
 end
+
+"""
+Same as above but rendering directly to an svg
+"""
+render_scene_svg(m::HSModel, s::HSState, filename::String) = render_scene_compose(m, s) |> SVG(filename, 14cm, 14cm)
+"""
+Same as above but rendering directly to a (potentially provided) blink window.
+"""
+render_scene_blink(m::HSModel, s::HSState, win::Blink.Window) = blink!(render_scene_compose(m, s), win)
+render_scene_blink(m::HSModel, s::HSState) = blink!(render_scene_compose(m, s))
+
+"""
+blink!
+
+Is a workaround to render Compose.jl context to blink windows by:
+
+- first drawing the composition to an SVG object
+- then rendering this object in blink
+"""
+function blink!(c::Context, win::Blink.Window)
+  s = SVG(600px, 600px, false)
+  draw(s, c)
+  # make sure that blink is used with options async=true and
+  # fade=false to make a better animation
+  body!(win, s, async=true, fade=false)
+end
+blink!(c::Context) = blink!(c, Blink.Window())
+
+

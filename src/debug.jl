@@ -11,24 +11,11 @@ using Revise
 using HumanSwitching
 const HS = HumanSwitching
 using Printf
+using Blink
 using Compose
 using Random
 using ProgressMeter
 
-function render_node_test()
-  room = RoomRep(width=10, height=10)
-  robot_state = rand_astate(room)
-
-  human_states = [rand_astate(room) for i in 1:5]
-
-  composition = render_scene(room, robot_state, human_states)
-  composition |> SVG("display.svg", 14cm, 14cm)
-
-  introspection = introspect(composition)
-  introspection |> SVG("introspection.svg", 14cm, 14cm)
-
-  return composition
-end
 
 function get_test_problem()
   # create some test problem
@@ -47,18 +34,17 @@ function render_state_test()
   composition |> SVG("display.svg", 14cm, 14cm)
 end
 
-function simulate_state_trajectory()
+function simulate_state_trajectories(n_traj::Int64=5)
   hs_pomdp_noisy, a, s, rng = get_test_problem()
+  win = Blink.Window()
   # simulate a simple state trajectory
-  @showprogress for i in 1:10
+  @showprogress for i in 1:n_traj
     s = initialstate(hs_pomdp_noisy, rng)
     while HS.human_dist_to_target(s) > 0.1
       s = HS.generate_s(hs_pomdp_noisy, s, a, rng)
-      composition = render_scene(hs_pomdp_noisy, s)
-      composition |> SVG("display.svg", 14cm, 14cm)
+      composition = render_scene_blink(hs_pomdp_noisy, s, win)
       sleep(1)
     end
   end
+  close(win)
 end
-
-simulate_state_trajectory()
