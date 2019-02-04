@@ -17,19 +17,14 @@ end;
 
 @testset "POMDP interface" begin
   # checking whether we can actually succesfully construct all those types
-  h_start = random_agent_state()
-  h_goal = random_agent_state()
-  s = HS.HSState(human_pose=h_start, human_target=h_goal)
-  a = HS.HSAction()
+  rng = MersenneTwister(42)
   hs_pomdp_exact = HS.HSPOMDP(HS.ExactPositionSensor())
   hs_pomdp_noisy = HS.HSPOMDP(HS.NoisyPositionSensor([0.1,0.1,0.01]))
-  rng = MersenneTwister(42)
-
-  # Transition model:
-  # check whether the current implementation of the human walks in a straight line towards the goal
+  s = initialstate(hs_pomdp_exact, rng)
+  a = HS.HSAction()
+  # Transition model, simply checking whether the call is successfull
   sp = HS.generate_s(hs_pomdp_exact, s, a, rng)
-  @test isapprox(HS.human_angle_to_target(s), HS.human_angle_to_target(sp))
-  @test norm(HS.human_vec_to_target(sp)) <= norm(HS.human_vec_to_target(s))
+  ## TODO: check reproducabiliy (same result with same initial state and same rng)
 
   # Obsevation model:
   # the deterministic observation model
