@@ -9,7 +9,9 @@ using LinearAlgebra
 using Statistics
 
 using BeliefUpdaters
+using POMDPs
 using POMDPPolicies
+using POMDPSimulators
 using POMDPGifs
 
 @testset "normalized_angle_diff" begin
@@ -43,6 +45,16 @@ end;
   test_inits_data = [HS.initialstate(hs_pomdp_exact, rng) for i in 1:10000]
   r = HS.room(hs_pomdp_exact)
   @test all(HS.isinroom(td.human_pose, r) && HS.isinroom(td.human_target, r) for td in test_inits_data)
+
+  # check whether the simulation terminates in finite time if we only observe
+  s = initialstate(hs_pomdp_noisy, rng)
+  policy = FunctionPolicy(x->HSAction())
+  belief_updater = NothingUpdater()
+  history = simulate(HistoryRecorder(max_steps=500), hs_pomdp_noisy, policy, belief_updater)
+  # note that only sp is terminal, not s! (you never take an action from the
+  # terminal state)
+  last_s = last(collect(sp for sp in eachstep(history, "sp")))
+  @test isterminal(hs_pomdp_noisy, last_s)
 end;
 
 @testset "POMDP visualzation" begin
@@ -53,5 +65,4 @@ end;
   # this only checks wether the calls work without error (@test_nowarn doesn't
   # work due to progressbar I assume)
   makegif(pomdp, policy, belief_updater, filename=joinpath(@__DIR__, "test_renderings", "makegif_test.gif"), rng=rng, max_steps=100, show_progress=false)
-
 end;
