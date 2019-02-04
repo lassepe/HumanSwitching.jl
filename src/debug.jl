@@ -67,28 +67,3 @@ function simulate_with_policy()
   end
   close(win)
 end
-
-function simulate_with_makegif()
-  belief_updater = NothingUpdater()
-  pomdp, rng = get_test_problem()
-  policy = observe_only
-
-  makegif(pomdp, policy, belief_updater, filename="out.gif", rng=rng, max_steps=100, show_progress=true)
-end
-
-function test_render_to_png()
-  belief_updater = NothingUpdater()
-  pomdp, rng = get_test_problem()
-  policy = observe_only
-  history = simulate(HistoryRecorder(max_steps=100), pomdp, policy, belief_updater)
-
-  for step in eachstep(history)
-    global the_step = step
-  end
-
-  print(the_step)
-
-  open("step_render_test.png", "w") do f
-    show(f, MIME("image/png"), render(pomdp, the_step))
-  end
-end

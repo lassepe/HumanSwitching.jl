@@ -334,9 +334,9 @@ version = "0.8.2"
 
 [[Images]]
 deps = ["AxisArrays", "Base64", "ColorTypes", "ColorVectorSpace", "Colors", "FileIO", "FixedPointNumbers", "Graphics", "ImageAxes", "ImageCore", "ImageDistances", "ImageFiltering", "ImageMetadata", "ImageMorphology", "ImageShow", "ImageTransformations", "IndirectArrays", "LinearAlgebra", "MappedArrays", "OffsetArrays", "Random", "Reexport", "SIUnits", "SparseArrays", "StaticArrays", "Statistics", "StatsBase", "Test", "TiledIteration"]
-git-tree-sha1 = "cd938e28e4186b877851eb323231ad81d9d3534b"
+git-tree-sha1 = "127aeb2659d97d8f0489ca5cf291cca7fdd3f1f2"
 uuid = "916415d5-f1e6-5110-898d-aaa5f9f070e0"
-version = "0.17.1"
+version = "0.17.2"
 
 [[IndirectArrays]]
 deps = ["Compat", "Test"]
@@ -708,6 +708,12 @@ version = "0.7.1"
 [[SuiteSparse]]
 deps = ["Libdl", "LinearAlgebra", "SparseArrays"]
 uuid = "4607b0f0-06f3-5cda-b6b1-a6196a1729e9"
+
+[[Suppressor]]
+deps = ["Compat"]
+git-tree-sha1 = "a39342763981e766a72938b59032dc02a2d74da5"
+uuid = "fd094767-a336-5f1f-9728-57cf17d0bbfb"
+version = "0.1.1"
 
 [[TableTraits]]
 deps = ["IteratorInterfaceExtensions", "Test"]

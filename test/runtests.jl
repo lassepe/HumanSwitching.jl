@@ -1,4 +1,5 @@
 using Test
+using Suppressor
 
 using HumanSwitching
 const HS = HumanSwitching
@@ -6,6 +7,10 @@ const HS = HumanSwitching
 using Random
 using LinearAlgebra
 using Statistics
+
+using BeliefUpdaters
+using POMDPPolicies
+using POMDPGifs
 
 @testset "normalized_angle_diff" begin
   @test isapprox(HS.normalized_angle_diff(pi/2), pi/2)
@@ -38,4 +43,15 @@ end;
   test_inits_data = [HS.initialstate(hs_pomdp_exact, rng) for i in 1:10000]
   r = HS.room(hs_pomdp_exact)
   @test all(HS.isinroom(td.human_pose, r) && HS.isinroom(td.human_target, r) for td in test_inits_data)
+end;
+
+@testset "POMDP visualzation" begin
+  pomdp = HS.HSPOMDP(HS.NoisyPositionSensor([0.1,0.1,0.01]))
+  rng = MersenneTwister(42)
+  belief_updater = NothingUpdater()
+  policy = FunctionPolicy(x->HSAction())
+  # this only checks wether the calls work without error (@test_nowarn doesn't
+  # work due to progressbar I assume)
+  makegif(pomdp, policy, belief_updater, filename=joinpath(@__DIR__, "test_renderings", "makegif_test.gif"), rng=rng, max_steps=100, show_progress=false)
+
 end;
