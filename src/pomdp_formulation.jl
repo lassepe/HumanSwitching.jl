@@ -10,6 +10,10 @@ end
   phi::Float64 = 0 # the orientation of the human
 end
 
+function Base.isequal(a::AgentState, b::AgentState)
+  return isequal(a.xy, b.xy) && isequal(a.phi, b.phi)
+end
+
 """
 A sensor that gives the exact position (simply extracting the corresponding
 portion from the state representation)
@@ -44,6 +48,10 @@ orientation) as well as its target.
 @with_kw struct HSState
   human_pose::AgentState
   human_target::AgentState
+end
+
+function Base.isequal(a::HSState, b::HSState)
+  isequal(a.human_pose, b.human_pose) && isequal(a.human_target, b.human_target)
 end
 
 """
@@ -157,11 +165,10 @@ function POMDPs.generate_o(p::HSPOMDP{ExactPositionSensor, AgentState}, s::HSSta
 end
 # In this version the observation is a **noisy** extraction of the observable part of the state
 function POMDPs.generate_o(p::HSPOMDP{NoisyPositionSensor, AgentState}, s::HSState, a::HSAction, sp::HSState, rng::AbstractRNG)::AgentState
-  # TODO: how to use the rng here?
   pose_vec = [sp.human_pose.xy..., sp.human_pose.phi]
   # NOTE: this distribution is **already** centered around the state sp
   o_distribution = MvNormal(pose_vec, p.sensor.measurement_cov)
-  o_vec = rand(o_distribution)
+  o_vec = rand(rng, o_distribution)
   return AgentState(xy=o_vec[1:2], phi=o_vec[3])
 end
 
@@ -181,12 +188,11 @@ initialstate
 
 Draw an initial state and a target state for the human agent.
 """
-# TODO: Figure out how to use the RNG here to make it reproducable random
 # TODO: Later this will also include the start and goal of the robot agent
 function POMDPs.initialstate(p::HSModel, rng::AbstractRNG)::HSState
   # generate an initial position and a goal for the human
-  human_init_state = rand_astate(room(p))
-  human_target_state = rand_astate(room(p))
+  human_init_state = rand_astate(room(p), rng=rng)
+  human_target_state = rand_astate(room(p), rng=rng)
   return HSState(human_pose=human_init_state, human_target=human_target_state)
 end
 

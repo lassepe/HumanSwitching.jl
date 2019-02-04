@@ -508,7 +508,7 @@ version = "0.9.6"
 
 [[POMDPGifs]]
 deps = ["POMDPModelTools", "POMDPPolicies", "POMDPSimulators", "POMDPs", "Parameters", "ProgressMeter", "Random", "Reel"]
-git-tree-sha1 = "1f55bfc754afff05be80b0894c31c45831bdc59b"
+path = "/home/lassepe/.julia/dev/POMDPGifs"
 uuid = "7f35509c-0cb9-11e9-0708-2928828cdbb7"
 version = "0.1.0"
 
@@ -701,9 +701,9 @@ version = "0.27.0"
 
 [[StatsFuns]]
 deps = ["Rmath", "SpecialFunctions", "Test"]
-git-tree-sha1 = "7e7658a6adf28c91db1290c84483e07cc59ea3a4"
+git-tree-sha1 = "b3a4e86aa13c732b8a8c0ba0c3d3264f55e6bb3e"
 uuid = "4c63d2b9-4356-54db-8cca-17b64c39e42c"
-version = "0.7.1"
+version = "0.8.0"
 
 [[SuiteSparse]]
 deps = ["Libdl", "LinearAlgebra", "SparseArrays"]

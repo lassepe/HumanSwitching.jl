@@ -31,7 +31,6 @@ end;
   a = HS.HSAction()
   # Transition model, simply checking whether the call is successfull
   sp = HS.generate_s(hs_pomdp_exact, s, a, rng)
-  ## TODO: check reproducabiliy (same result with same initial state and same rng)
 
   # Obsevation model:
   # the deterministic observation model
@@ -57,12 +56,39 @@ end;
   @test isterminal(hs_pomdp_noisy, last_s)
 end;
 
-@testset "POMDP visualzation" begin
+# this test set checks whether everything is implemented to be pseudo-random.
+# Meaning that with the same rng we should get the same result!
+@testset "POMDP deterministic checks" begin
+  pomdp = HS.HSPOMDP(sensor=HS.NoisyPositionSensor())
+  a = HS.HSAction()
+
+  # ORDER of everything matters (rng1 and rng2 must undergoe the same
+  # "transitions")
+  rng1 = MersenneTwister(42)
+  rng2 = MersenneTwister(42)
+
+  # Initial states:
+  s1 = initialstate(pomdp, rng1)
+  s2 = initialstate(pomdp, rng2)
+  @test isequal(s1, s2)
+
+  # Transitions
+  sp1 = generate_s(pomdp, s1, a, rng1)
+  sp2 = generate_s(pomdp, s2, a, rng2)
+  @test isequal(sp1, sp2)
+
+  # Observation
+  o1 = generate_o(pomdp, s1, a, sp1, rng1)
+  o2 = generate_o(pomdp, s2, a, sp2, rng2)
+  @test isequal(o1, o2)
+end;
+
+@testset "POMDP visualization" begin
   pomdp = HS.HSPOMDP(HS.NoisyPositionSensor([0.1,0.1,0.01]))
   rng = MersenneTwister(42)
   belief_updater = NothingUpdater()
   policy = FunctionPolicy(x->HSAction())
   # this only checks wether the calls work without error (@test_nowarn doesn't
   # work due to progressbar I assume)
-  makegif(pomdp, policy, belief_updater, filename=joinpath(@__DIR__, "test_renderings", "makegif_test.gif"), rng=rng, max_steps=100, show_progress=false)
+  @test_nowarn makegif(pomdp, policy, belief_updater, filename=joinpath(@__DIR__, "test_renderings", "makegif_test.gif"), rng=rng, max_steps=100, show_progress=false)
 end;
