@@ -1,19 +1,22 @@
 module HumanSwitching
 
-using Blink
-import Cairo
-import Fontconfig
-using Compose
-
 using Parameters
 using StaticArrays
+using LinearAlgebra
 using Random
 using Distributions
 using Statistics
-using LinearAlgebra
+
+# visualization
+using Blink
+using Cairo:
+  CairoRGBSurface,
+  write_to_png
+using Compose
+
+# POMDP libraries
 using POMDPs
 using POMDPPolicies
-
 import POMDPModelTools: render
 
 export
