@@ -9,7 +9,9 @@ end
 
 using POMDPs
 using POMDPSimulators
+using POMDPGifs
 using BeliefUpdaters
+
 using Blink
 using Revise
 using HumanSwitching
@@ -64,4 +66,12 @@ function simulate_with_policy()
     sleep(1)
   end
   close(win)
+end
+
+function simulate_with_makegif()
+  belief_updater = NothingUpdater()
+  pomdp, rng = get_test_problem()
+  policy = observe_only
+
+  makegif(pomdp, policy, belief_updater, filename="out.gif ", rng=rng, max_steps=100, show_progress=true)
 end

@@ -108,3 +108,24 @@ end
 blink!(c::Context) = blink!(c, Blink.Window())
 
 
+# Some interface code to use the POMDPGifs package. This basically needs to im
+struct HSViz
+  m::HSModel
+  step::NamedTuple
+end
+
+render(m::HSModel, step::NamedTuple) = HSViz(m, step)
+
+function Base.show(io::IO, mime::Union{MIME"text/html", MIME"image/svg+xml"}, v::HSViz)
+  c = render_scene_compose(v.m, v.step[:s])
+  surface = Cairo.CairoSVGSurface(io, 800, 800)
+  draw(SVG(surface), c)
+  finish(surface)
+end
+
+function Base.show(io::IO, mime::MIME"image/png", v::HSViz)
+  c = render_scene_compose(v.m, v.step[:s])
+  surface = Cairo.CairoRGBSurface(800, 800)
+  draw(PNG(surface), c)
+  Cairo.write_to_png(surface, io)
+end

@@ -1,7 +1,10 @@
 module HumanSwitching
 
 using Blink
+import Cairo
+import Fontconfig
 using Compose
+
 using Parameters
 using StaticArrays
 using Random
@@ -10,6 +13,8 @@ using Statistics
 using LinearAlgebra
 using POMDPs
 using POMDPPolicies
+
+import POMDPModelTools: render
 
 export
   AgentState,
@@ -34,8 +39,8 @@ include("policies.jl")
 export
   render_scene_compose,
   render_scene_svg,
-  render_scene_blink
-
+  render_scene_blink,
+  render
 include("visualize.jl")
 
 export
