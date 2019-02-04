@@ -63,4 +63,5 @@ function simulate_with_policy()
     render_scene_blink(pomdp, s, win)
     sleep(1)
   end
+  close(win)
 end

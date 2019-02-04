@@ -166,6 +166,17 @@ function POMDPs.generate_o(p::HSPOMDP{NoisyPositionSensor, AgentState}, s::HSSta
 end
 
 """
+isterminal
+
+checks if the state is a terminal state
+
+TODO: For now the problem terminates if the human reached it's goal. This
+should be done differently as soon as the agent is doing more than just
+observing the scene
+"""
+POMDPs.isterminal(m::HSModel, s::HSState) = human_dist_to_target(s) < 0.1
+
+"""
 initialstate
 
 Draw an initial state and a target state for the human agent.
@@ -189,12 +200,14 @@ rand
 Defines how to sample from a HSInitialDistribution
 """
 POMDPs.rand(rng::AbstractRNG, d::HSInitialDistribution) = initialstate(d.m, rng)
+
 """
 initialstate_distribution
 
 defines the initial state distribution on this
 problem set which can be passed to rand """
 POMDPs.initialstate_distribution(m::HSModel) = HSInitialDistribution(m)
+
 """
 reward
 
