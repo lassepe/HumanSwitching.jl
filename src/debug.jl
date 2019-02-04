@@ -7,18 +7,17 @@ if !haskey(Pkg.installed(), "HumanSwitching")
   @info("Activated Environment")
 end
 
+using POMDPs
+using POMDPSimulators
+using BeliefUpdaters
+using Blink
 using Revise
 using HumanSwitching
 const HS = HumanSwitching
 using Printf
-using Blink
 using Compose
 using Random
 using ProgressMeter
-
-using POMDPs
-using POMDPSimulators
-using BeliefUpdaters
 
 
 function get_test_problem()
