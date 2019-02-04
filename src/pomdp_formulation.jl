@@ -179,6 +179,22 @@ function POMDPs.initialstate(p::HSModel, rng::AbstractRNG)::HSState
   return HSState(human_pose=human_init_state, human_target=human_target_state)
 end
 
+struct HSInitialDistribution{ModelType<:HSModel}
+  m::ModelType
+end
+
+"""
+rand
+
+Defines how to sample from a HSInitialDistribution
+"""
+POMDPs.rand(rng::AbstractRNG, d::HSInitialDistribution) = initialstate(d.m, rng)
+"""
+initialstate_distribution
+
+defines the initial state distribution on this
+problem set which can be passed to rand """
+POMDPs.initialstate_distribution(m::HSModel) = HSInitialDistribution(m)
 """
 reward
 

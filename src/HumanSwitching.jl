@@ -9,6 +9,7 @@ using Distributions
 using Statistics
 using LinearAlgebra
 using POMDPs
+using POMDPPolicies
 
 export
   AgentState,
@@ -26,6 +27,8 @@ export
   discount
 include("pomdp_formulation.jl")
 
+export
+  observe_only
 include("policies.jl")
 
 export
