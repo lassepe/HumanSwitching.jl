@@ -13,13 +13,3 @@ struct HSParticleFilter <: POMDPs.Updater
   sensor::Union{ExactPositionSensor, NoisyPositionSensor}
   lvr::LowVarianceResampler
 end
-
-struct HSPositionSensorResampler
-  n::Int64 # number of particles to be maintained
-end
-
-# TODO: reason about whether we could even get rid of the custom resampler here
-# if it only forwards anyway
-ParticleFilters.resample(rs::HSPositionSensorResampler, b::AbstractParticleBelief, rng::AbstractRNG) = resample(  rs.lvr, b, rng)
-
-function POMDPs.update()

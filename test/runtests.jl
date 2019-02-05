@@ -26,7 +26,7 @@ end;
   # checking whether we can actually succesfully construct all those types
   rng = MersenneTwister(42)
   hs_pomdp_exact = HS.HSPOMDP(HS.ExactPositionSensor())
-  hs_pomdp_noisy = HS.HSPOMDP(HS.NoisyPositionSensor([0.1,0.1,0.01]))
+  hs_pomdp_noisy = HS.HSPOMDP(HS.NoisyPositionSensor([0.001,0.001,0.01]))
   s = initialstate(hs_pomdp_exact, rng)
   a = HS.HSAction()
   # Transition model, simply checking whether the call is successfull
@@ -36,8 +36,8 @@ end;
   # the deterministic observation model
   @test HS.generate_o(hs_pomdp_exact, s, a, sp, rng) == sp.human_pose
   # the noisy obsevation model
-  test_obs_data = collect(HS.generate_o(hs_pomdp_noisy, s, a, sp, rng).xy for i in 1:10000)
-  dist = norm(mean(test_obs_data) - sp.human_pose.xy)
+  test_obs_data = collect(HS.generate_o(hs_pomdp_noisy, s, a, sp, rng) for i in 1:5)
+  dist = norm(mean(test_obs_data) - sp.human_pose)
   @test 0 <= dist <= 0.1
 
   # Initial state generation

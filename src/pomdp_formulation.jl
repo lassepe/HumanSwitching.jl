@@ -4,16 +4,13 @@
   height::Float64 = 15
 end
 
-corner_states(r::RoomRep) = [AgentState(xy=[x, y], phi=0) for x in [0.1r.width, 0.9r.width], y in [0.1r.height, 0.9r.height]]
+corner_states(r::RoomRep) = [AgentState(x, y, 0) for x in [0.1r.width, 0.9r.width], y in [0.1r.height, 0.9r.height]]
 
 # the physical representation of an agent
-@with_kw struct AgentState
-  xy::Array{Float64, 1} = [0, 0]# the x- and y-position
+@with_kw struct AgentState <: FieldVector{3, Float64}
+  x::Float64 = 0   # horizontal position
+  y::Float64 = 0   # vertical position
   phi::Float64 = 0 # the orientation of the human
-end
-
-function Base.isequal(a::AgentState, b::AgentState)
-  return isequal(a.xy, b.xy) && isequal(a.phi, b.phi)
 end
 
 """
@@ -144,14 +141,14 @@ function POMDPs.generate_s(p::HSModel, s::HSState, a::HSAction, rng::AbstractRNG
   current_walk_direction = @SVector [cos(s.human_pose.phi), sin(s.human_pose.phi)]
   walk_direction = (target_direction + current_walk_direction)/2
   # new position:
-  if any(isnan(i) for i in target_direction)
-    xy_p = s.human_pose.xy
-    phi_p = s.human_pose.phi
-  else
-    xy_p = s.human_pose.xy +  walk_direction * human_velocity
+  sp::HSState = deepcopy(s)
+  if !any(isnan(i) for i in target_direction)
+    xy_p = s.human_pose[1:2] + walk_direction * human_velocity
     phi_p = atan(walk_direction[2], walk_direction[1])
+    human_pose::AgentState = [xy_p..., phi_p]
+    sp = HSState(human_pose, s.human_target)
   end
-  return HSState(human_pose=AgentState(xy=xy_p, phi=phi_p), human_target=s.human_target)
+  return sp
 end
 """
 generate_o
@@ -168,11 +165,9 @@ end
 
 # In this version the observation is a **noisy** extraction of the observable part of the state
 function POMDPs.generate_o(p::HSPOMDP{NoisyPositionSensor, AgentState}, s::HSState, a::HSAction, sp::HSState, rng::AbstractRNG)::AgentState
-  pose_vec = [sp.human_pose.xy..., sp.human_pose.phi]
   # NOTE: this distribution is **already** centered around the state sp
-  o_distribution = MvNormal(pose_vec, p.sensor.measurement_cov)
-  o_vec = rand(rng, o_distribution)
-  return AgentState(xy=o_vec[1:2], phi=o_vec[3])
+  o_distribution = MvNormal(convert(Array, sp.human_pose), p.sensor.measurement_cov)
+  return rand(rng, o_distribution)
 end
 
 # TODO: Think about this
@@ -181,13 +176,8 @@ end
 # this distribution etc.  Implementing a custom update might make more sense
 # (and is neccessary for other reasons anyway)
 #
-# struct HSObservationDistribution
-#   m::HSModel
-#   s::HSState
+# function POMDPs.observation(m::HSModel, s::HSState)
 # end
-#
-# POMDPs.observation(m::HSModel, s::HSState) = HSObservationDistribution(m, s)
-# POMDPs.rand(rng::AbstractRNG, d::HSObservationDistribution) = generate_o(d.m, d.s, HSAction(), HSState(), rng)
 
 """
 isterminal

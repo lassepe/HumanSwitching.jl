@@ -21,8 +21,8 @@ Fields:
 """
 function agent_node(as::AgentState; r=0.15, fill_color="tomato", stroke_color="black")::Context
   compose(context(), fill(fill_color), stroke(stroke_color),
-          (context(), circle(as.xy[1], as.xy[2], r)),
-          (context(), line([(as.xy[1], as.xy[2]), (as.xy[1]+cos(as.phi)*r*2, as.xy[2]+sin(as.phi)*r*2)]), linewidth(1)))
+          (context(), circle(as.x, as.y, r)),
+          (context(), line([(as.x, as.y), (as.x+cos(as.phi)*r*2, as.y+sin(as.phi)*r*2)]), linewidth(1)))
 end
 
 """
@@ -33,9 +33,9 @@ Composes a target node (states that agents want to reach) for the visualization 
 Fields:
 - `ts` the target state to be visualized
 """
-function target_node(ts::AgentState; size=0.15, fill_color="deepskyblue", stroke_color="black")::Context
+function target_node(as::AgentState; size=0.15, fill_color="deepskyblue", stroke_color="black")::Context
   compose(context(), fill(fill_color), stroke(stroke_color),
-          circle(ts.xy[1], ts.xy[ 2], size/2))
+          circle(as.x, as.y, size/2))
 end
 
 """
@@ -50,13 +50,13 @@ Fields:
 """
 function start_target_curve_node(start_pose::AgentState, target::AgentState; r=0.5, stroke_color="black")::Context
   # the start and end anchor point for the bezier curve
-  p_start = [Tuple(start_pose.xy)]
-  p_end = [Tuple(target.xy)]
+  p_start = [Tuple(start_pose[1:2])]
+  p_end = [Tuple(target[1:2])]
   # control point at the tip of the agents facing direction
-  c1 = [(start_pose.xy[1]+cos(start_pose.phi)*r*2, start_pose.xy[2]+sin(start_pose.phi)*r*2)]
+  c1 = [(start_pose.x+cos(start_pose.phi)*r*2, start_pose.y+sin(start_pose.phi)*r*2)]
 
   # control point half way way between the agent and the target
-  c2_help = (start_pose.xy + target.xy) / 2
+  c2_help = (start_pose[1:2] + target[1:2]) / 2
   c2 = [(c2_help[1], c2_help[2])]
 
   compose(context(), fill("black"), stroke("black"), curve(p_start, c1, c2, p_end))

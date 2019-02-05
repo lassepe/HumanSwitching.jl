@@ -16,7 +16,7 @@ function normalized_angle_diff(angle_diff::Float64)::Float64
   end
 end
 
-human_vec_to_target(s::HSState)::SVector{2} = s.human_target.xy - s.human_pose.xy
+human_vec_to_target(s::HSState)::SVector{2} = s.human_target[1:2] - s.human_pose[1:2]
 human_dist_to_target(s::HSState)::Float64 = norm(human_vec_to_target(s))
 
 function human_angle_to_target(s::HSState)::Float64
@@ -28,10 +28,10 @@ function rand_astate(r::RoomRep; rng::AbstractRNG=Random.GLOBAL_RNG)::AgentState
   x = rand(rng) * r.width
   y = rand(rng) * r.height
   phi = rand(rng) * pi
-  return AgentState(xy=[x, y], phi=phi)
+  return AgentState(x, y, phi)
 end
 rand_astate(m::HSModel; rng::AbstractRNG=Random.GLOBAL_RNG)::AgentState = rand_astate(room(m); rng=rng)
 
 function isinroom(as::AgentState, r::RoomRep)
-  return  0 <= as.xy[1] <= r.width && 0 <= as.xy[2] <= r.height
+  return  0 <= as.x <= r.width && 0 <= as.y <= r.height
 end
