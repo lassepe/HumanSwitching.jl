@@ -57,5 +57,5 @@ function test_belief_updater()
   belief_updater = SIRParticleFilter(pomdp, 1000, rng=rng)
   policy = FunctionPolicy(x->HSAction())
 
-  makegif(pomdp, policy, belief_updater, filename="out.gif", rng=rng, max_steps=100, show_progress=true)
+  makegif(pomdp, policy, belief_updater, filename=joinpath(@__DIR__, "../renderings/out.gif"), rng=rng, max_steps=100, show_progress=true)
 end
