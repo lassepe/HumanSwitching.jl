@@ -17,7 +17,10 @@ using Compose
 # POMDP libraries
 using POMDPs
 using POMDPPolicies
-import POMDPModelTools: render
+
+# packages that are extended by this module
+import POMDPs # modified in filtering.jl
+import POMDPModelTools: render # modified in visualization.jl
 
 export
   AgentState,
