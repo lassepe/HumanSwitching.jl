@@ -548,6 +548,12 @@ git-tree-sha1 = "70bdbfb2bceabb15345c0b54be4544813b3444e4"
 uuid = "d96e819e-fc66-5662-9728-84c9c7592b0a"
 version = "0.10.3"
 
+[[ParticleFilters]]
+deps = ["LinearAlgebra", "POMDPModelTools", "POMDPPolicies", "POMDPs", "Random", "Statistics", "StatsBase", "Test"]
+git-tree-sha1 = "150c382fe8785b9f06b6f6d86f16d6f70e2df6e2"
+uuid = "c8b314e2-9260-5cf8-ae76-3be7461ca6d0"
+version = "0.3.2"
+
 [[Pidfile]]
 deps = ["FileWatching", "Test"]
 git-tree-sha1 = "1ffd82728498b5071cde851bbb7abd780d4445f3"

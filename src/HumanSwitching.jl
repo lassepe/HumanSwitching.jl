@@ -22,6 +22,7 @@ import POMDPModelTools: render
 export
   AgentState,
   RoomRep,
+  corner_states,
   HSState,
   HSAction,
   HSMDP,
@@ -34,10 +35,6 @@ export
   reward,
   discount
 include("pomdp_formulation.jl")
-
-export
-  observe_only
-include("policies.jl")
 
 export
   render_scene_compose,

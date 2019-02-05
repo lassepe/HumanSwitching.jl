@@ -7,7 +7,9 @@ if !haskey(Pkg.installed(), "HumanSwitching")
   @info("Activated Environment")
 end
 
+using ParticleFilters
 using POMDPs
+using POMDPPolicies
 using POMDPSimulators
 using POMDPGifs
 using BeliefUpdaters
@@ -32,16 +34,28 @@ function get_test_problem()
   return hs_pomdp_noisy, rng, a, s
 end
 
-function simulate_with_policy()
+function simulate_with_policy(n_runs=1)
   belief_updater = NothingUpdater()
   pomdp, rng = get_test_problem()
-  policy = observe_only
-  history = simulate(HistoryRecorder(max_steps=100), pomdp, policy, belief_updater)
+  policy = FunctionPolicy(x->HSAction())
   # now step over the history and render to blink using the usual method
   win = Blink.Window()
-  @showprogress for s in eachstep(history, "s")
-    render_scene_blink(pomdp, s, win)
-    sleep(1)
+
+  @showprogress for i in 1:n_runs
+    history = simulate(HistoryRecorder(max_steps=100), pomdp, policy, belief_updater)
+    for s in eachstep(history, "s")
+      render_scene_blink(pomdp, s, win)
+      sleep(0.2)
+    end
   end
+
   close(win)
+end
+
+function test_belief_updater()
+  pomdp, rng = get_test_problem()
+  belief_updater = SIRParticleFilter(pomdp, 1000, rng=rng)
+  policy = FunctionPolicy(x->HSAction())
+
+  makegif(pomdp, policy, belief_updater, filename="out.gif", rng=rng, max_steps=100, show_progress=true)
 end

@@ -4,6 +4,8 @@
   height::Float64 = 15
 end
 
+corner_states(r::RoomRep) = [AgentState(xy=[x, y], phi=0) for x in [0.1r.width, 0.9r.width], y in [0.1r.height, 0.9r.height]]
+
 # the physical representation of an agent
 @with_kw struct AgentState
   xy::Array{Float64, 1} = [0, 0]# the x- and y-position
@@ -192,7 +194,8 @@ Draw an initial state and a target state for the human agent.
 function POMDPs.initialstate(p::HSModel, rng::AbstractRNG)::HSState
   # generate an initial position and a goal for the human
   human_init_state = rand_astate(room(p), rng=rng)
-  human_target_state = rand_astate(room(p), rng=rng)
+  # for now the target is one of the 4 corners of the room
+  human_target_state = rand(rng, corner_states(room(p)))
   return HSState(human_pose=human_init_state, human_target=human_target_state)
 end
 
