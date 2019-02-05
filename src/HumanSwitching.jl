@@ -17,6 +17,7 @@ using Compose
 # POMDP libraries
 using POMDPs
 using POMDPPolicies
+using ParticleFilters
 
 # packages that are extended by this module
 import POMDPs # modified in filtering.jl
@@ -31,6 +32,12 @@ export
   HSMDP,
   HSPOMDP,
   HSModel,
+  HSSensor,
+  ExactPositionSensor,
+  NoisyPositionSensor,
+  HSTransitionModel,
+  DeterministicPControlledHumanTransition,
+  NoisyPControlledHumanTransition,
   room,
   generate_s,
   generate_o,
@@ -40,9 +47,9 @@ export
 include("pomdp_formulation.jl")
 
 export
-  render_scene_compose,
-  render_scene_svg,
-  render_scene_blink,
+  render_step_compose,
+  render_step_svg,
+  render_step_blink,
   render
 include("visualize.jl")
 

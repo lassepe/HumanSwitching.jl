@@ -13,28 +13,38 @@ corner_states(r::RoomRep) = [AgentState(x, y, 0) for x in [0.1r.width, 0.9r.widt
   phi::Float64 = 0 # the orientation of the human
 end
 
+# defining some sensor/observation models
+abstract type HSSensor end
 """
 A sensor that gives the exact position (simply extracting the corresponding
 portion from the state representation)
 """
-
-struct ExactPositionSensor end
+struct ExactPositionSensor <: HSSensor end
 """
 A sensor that gives a noisy reading to the agents positions
 """
-@with_kw struct NoisyPositionSensor
+@with_kw struct NoisyPositionSensor <: HSSensor
   # the diagonal of the measurement covariance matrix
   measurement_cov::Array{Float64, 1} = [0.1,
                                         0.1,
                                         0.01]
 end
-
-# Some convenient aliases
-const HSSensor = Union{ExactPositionSensor,
-                       NoisyPositionSensor}
-
 POMDPs.obstype(::ExactPositionSensor) = AgentState
 POMDPs.obstype(::NoisyPositionSensor) = AgentState
+
+# defining some transition models
+abstract type HSTransitionModel end
+"""
+PIDHumanTransition
+
+a deterministic human transition model where the human follows a simiple
+proportional controller towards a fixed target
+"""
+struct DeterministicPControlledHumanTransition <: HSTransitionModel end
+@with_kw struct NoisyPControlledHumanTransition <: HSTransitionModel
+  " the diagonal of the transition AWGN covariance matrix"
+  transition_cov::Array{Float64, 1} = [0.1, 0.1, 0.01]
+end
 
 """
 The state representation of the whole HumanSwitching POMDP
@@ -106,24 +116,30 @@ Fields:
 """
 @with_kw struct HSPOMDP{TS, O} <: POMDP{HSState, HSAction, O}
   sensor::TS = ExactPositionSensor()
+  transition_model::HSTransitionModel = DeterministicPControlledHumanTransition()
   mdp::HSMDP = HSMDP()
 end
-# TODO: maybe internalize
 
+# TODO: this is rather ugly but works for now:
+# add the transition noise
+sample_transition_awgn(tm::DeterministicPControlledHumanTransition, ::AbstractRNG)::AgentState = [0, 0, 0]
+sample_transition_awgn(tm::NoisyPControlledHumanTransition, rng::AbstractRNG)::AgentState = rand(rng, MvNormal([0, 0, 0], tm.transition_cov))
 
+# TODO: maybe move to struct field
 POMDPs.discount(HSModel) = 0.99
 const HSModel = Union{HSMDP, HSPOMDP}
 
 # Some convenient constructors
-HSPOMDP(sensor::Union{ExactPositionSensor, NoisyPositionSensor}) = HSPOMDP{typeof(sensor), obstype(sensor)}(sensor, HSMDP())
-HSPOMDP(sensor::Union{ExactPositionSensor, NoisyPositionSensor}, mdp::HSMDP) = HSPOMDP{typeof(sensor), obstype(sensor)}(sensor, mdp)
+HSPOMDP(sensor::HSSensor, transition_model::HSTransitionModel) = HSPOMDP{typeof(sensor), obstype(sensor)}(sensor, transition_model, HSMDP())
+HSPOMDP(sensor::HSSensor, transition_model::HSTransitionModel, mdp::HSMDP) = HSPOMDP{typeof(sensor), obstype(sensor)}(sensor, transition_model, mdp)
 
 mdp(m::HSMDP) = m
 mdp(m::HSPOMDP) = m.mdp
 room(m::HSModel) = mdp(m).room
 
-POMDPs.actions(m::HSModel) = mdp(m).aspace
-POMDPs.n_actions(m::HSModel) = length(mdp(m).aspace)
+# TODO: remove, not really used
+# POMDPs.actions(m::HSModel) = mdp(m).aspace
+# POMDPs.n_actions(m::HSModel) = length(mdp(m).aspace)
 
 # Implementing the main API of the generative interface
 """
@@ -145,9 +161,10 @@ function POMDPs.generate_s(m::HSModel, s::HSState, a::HSAction, rng::AbstractRNG
   if !any(isnan(i) for i in target_direction)
     xy_p = s.human_pose[1:2] + walk_direction * human_velocity
     phi_p = atan(walk_direction[2], walk_direction[1])
-    human_pose::AgentState = [xy_p..., phi_p]
+    human_pose::AgentState = [xy_p..., phi_p] + sample_transition_awgn(m.transition_model, rng)
     sp = HSState(human_pose, s.human_target)
   end
+
   return sp
 end
 """
@@ -168,6 +185,7 @@ function POMDPs.generate_o(m::HSPOMDP{NoisyPositionSensor, AgentState}, s::HSSta
   # NOTE: this distribution is **already** centered around the state sp
   o_distribution = MvNormal(convert(Array, sp.human_pose), m.sensor.measurement_cov)
   return rand(rng, o_distribution)
+
 end
 
 # TODO: Think about this

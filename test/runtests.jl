@@ -25,41 +25,41 @@ end;
 @testset "POMDP interface" begin
   # checking whether we can actually succesfully construct all those types
   rng = MersenneTwister(42)
-  hs_pomdp_exact = HS.HSPOMDP(HS.ExactPositionSensor())
-  hs_pomdp_noisy = HS.HSPOMDP(HS.NoisyPositionSensor([0.001,0.001,0.01]))
-  s = initialstate(hs_pomdp_exact, rng)
+  hs_pomdp_exact_o = HSPOMDP(ExactPositionSensor(), DeterministicPControlledHumanTransition())
+  hs_pomdp_noisy_o = HSPOMDP(NoisyPositionSensor([0.001,0.001,0.01]), DeterministicPControlledHumanTransition())
+  s = initialstate(hs_pomdp_exact_o, rng)
   a = HS.HSAction()
   # Transition model, simply checking whether the call is successfull
-  sp = HS.generate_s(hs_pomdp_exact, s, a, rng)
+  sp = HS.generate_s(hs_pomdp_exact_o, s, a, rng)
 
   # Obsevation model:
   # the deterministic observation model
-  @test HS.generate_o(hs_pomdp_exact, s, a, sp, rng) == sp.human_pose
+  @test HS.generate_o(hs_pomdp_exact_o, s, a, sp, rng) == sp.human_pose
   # the noisy obsevation model
-  test_obs_data = collect(HS.generate_o(hs_pomdp_noisy, s, a, sp, rng) for i in 1:5)
+  test_obs_data = collect(HS.generate_o(hs_pomdp_noisy_o, s, a, sp, rng) for i in 1:5)
   dist = norm(mean(test_obs_data) - sp.human_pose)
   @test 0 <= dist <= 0.1
 
   # Initial state generation
-  test_inits_data = [HS.initialstate(hs_pomdp_exact, rng) for i in 1:10000]
-  r = HS.room(hs_pomdp_exact)
+  test_inits_data = [HS.initialstate(hs_pomdp_exact_o, rng) for i in 1:10000]
+  r = HS.room(hs_pomdp_exact_o)
   @test all(HS.isinroom(td.human_pose, r) && HS.isinroom(td.human_target, r) for td in test_inits_data)
 
   # check whether the simulation terminates in finite time if we only observe
-  s = initialstate(hs_pomdp_noisy, rng)
+  s = initialstate(hs_pomdp_noisy_o, rng)
   policy = FunctionPolicy(x->HSAction())
   belief_updater = NothingUpdater()
-  history = simulate(HistoryRecorder(max_steps=500), hs_pomdp_noisy, policy, belief_updater)
+  history = simulate(HistoryRecorder(max_steps=500), hs_pomdp_noisy_o, policy, belief_updater)
   # note that only sp is terminal, not s! (you never take an action from the
   # terminal state)
   last_s = last(collect(sp for sp in eachstep(history, "sp")))
-  @test isterminal(hs_pomdp_noisy, last_s)
+  @test isterminal(hs_pomdp_noisy_o, last_s)
 end;
 
 # this test set checks whether everything is implemented to be pseudo-random.
 # Meaning that with the same rng we should get the same result!
 @testset "POMDP deterministic checks" begin
-  pomdp = HS.HSPOMDP(sensor=HS.NoisyPositionSensor())
+  pomdp = HSPOMDP(NoisyPositionSensor(), NoisyPControlledHumanTransition())
   a = HS.HSAction()
 
   # ORDER of everything matters (rng1 and rng2 must undergoe the same
@@ -84,7 +84,7 @@ end;
 end;
 
 @testset "POMDP visualization" begin
-  pomdp = HS.HSPOMDP(HS.NoisyPositionSensor([0.1,0.1,0.01]))
+  pomdp = HSPOMDP(HS.NoisyPositionSensor([0.1,0.1,0.01]), DeterministicPControlledHumanTransition())
   rng = MersenneTwister(42)
   belief_updater = NothingUpdater()
   policy = FunctionPolicy(x->HSAction())
