@@ -141,9 +141,9 @@ version = "0.2.0"
 
 [[DataFrames]]
 deps = ["CategoricalArrays", "CodecZlib", "Compat", "DataStreams", "Dates", "InteractiveUtils", "IteratorInterfaceExtensions", "LinearAlgebra", "Missings", "Printf", "Random", "Reexport", "SortingAlgorithms", "Statistics", "StatsBase", "TableTraits", "Tables", "Test", "TranscodingStreams", "Unicode", "WeakRefStrings"]
-git-tree-sha1 = "af5c8a233b838076947ef0c8f882f732ad578112"
+git-tree-sha1 = "9cfed75401d25d281076eb5d82de148ac2933f9e"
 uuid = "a93c6f00-e57d-5684-b7b6-d8193f3e46c0"
-version = "0.17.0"
+version = "0.17.1"
 
 [[DataStreams]]
 deps = ["Dates", "Missings", "Test", "WeakRefStrings"]
@@ -508,7 +508,9 @@ version = "0.9.6"
 
 [[POMDPGifs]]
 deps = ["POMDPModelTools", "POMDPPolicies", "POMDPSimulators", "POMDPs", "Parameters", "ProgressMeter", "Random", "Reel"]
-path = "/home/lassepe/.julia/dev/POMDPGifs"
+git-tree-sha1 = "56bb8c159253ad45434168b3ffa7bcc6742fd16f"
+repo-rev = "master"
+repo-url = "https://github.com/JuliaPOMDP/POMDPGifs.jl"
 uuid = "7f35509c-0cb9-11e9-0708-2928828cdbb7"
 version = "0.1.0"
 
