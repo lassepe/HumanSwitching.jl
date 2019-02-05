@@ -39,6 +39,30 @@ function target_node(ts::AgentState; size=0.15, fill_color="deepskyblue", stroke
 end
 
 """
+start_target_curve_node
+
+Composes a line from a given start to a given target to associate an agent with it's target
+
+Fields:
+- `start_pose` the pose from where the curve starts (defining position and slope of the curve)
+- `target` the target position towards which the curve points (end anchor point, only for position)
+- `r` the visual radius of the agent
+"""
+function start_target_curve_node(start_pose::AgentState, target::AgentState; r=0.5, stroke_color="black")::Context
+  # the start and end anchor point for the bezier curve
+  p_start = [Tuple(start_pose.xy)]
+  p_end = [Tuple(target.xy)]
+  # control point at the tip of the agents facing direction
+  c1 = [(start_pose.xy[1]+cos(start_pose.phi)*r*2, start_pose.xy[2]+sin(start_pose.phi)*r*2)]
+
+  # control point half way way between the agent and the target
+  c2_help = (start_pose.xy + target.xy) / 2
+  c2 = [(c2_help[1], c2_help[2])]
+
+  compose(context(), fill("black"), stroke("black"), curve(p_start, c1, c2, p_end))
+end
+
+"""
 render_scene_compose
 
 Renders the whole scene based on the HumanSwitching model and a coresponding
@@ -61,22 +85,19 @@ function render_scene_compose(m::HSModel, s::HSState)::Context
   # scale all children to fit into the mirrored unit context
   base_scale = context(0, 0, 1/room_rep.width, 1/room_rep.height)
 
+  # the room background
   room_viz = room_node(room_rep)
+  # all targets where humans might go
+  potential_targets = corner_states(room_rep)
+  potential_targets_viz = [target_node(pt) for pt in potential_targets]
+  # the actual target of the human
+  current_taret_viz = target_node(s.human_target, size=0.2, fill_color="light green")
+  # the current pose of the human
   human_pose_viz = agent_node(s.human_pose, fill_color="tomato")
-  human_target_viz = target_node(s.human_target)
+  # a connection line between the human and the target
+  target_curve_viz = start_target_curve_node(s.human_pose, s.human_target)
 
-  p_start = [Tuple(s.human_pose.xy)]
-  p_end = [Tuple(s.human_target.xy)]
-
-  # TODO MOVE! This is really ugly!
-  as = s.human_pose
-  at = s.human_target
-  r = 0.5
-  c1 = [(as.xy[1]+cos(as.phi)*r*2, as.xy[2]+sin(as.phi)*r*2)]
-  c1a = (as.xy + at.xy) / 2
-  c2 = [(c1a[1], c1a[2])]
-  line_to_target = compose(context(), fill("black"), stroke("black"), curve(p_start, c1, c2, p_end))
-  composition = compose(mirror, (base_scale, human_pose_viz, human_target_viz, line_to_target, room_viz))
+  composition = compose(mirror, (base_scale, human_pose_viz, current_taret_viz, potential_targets_viz..., target_curve_viz, room_viz))
   return composition
 end
 
@@ -107,7 +128,6 @@ function blink!(c::Context, win::Blink.Window)
   body!(win, s, async=true, fade=false)
 end
 blink!(c::Context) = blink!(c, Blink.Window())
-
 
 # Some interface code to use the POMDPGifs package. This basically needs to im
 struct HSViz
