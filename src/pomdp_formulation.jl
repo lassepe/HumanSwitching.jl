@@ -165,6 +165,7 @@ Generates an observation for an observed transition
 function POMDPs.generate_o(p::HSPOMDP{ExactPositionSensor, AgentState}, s::HSState, a::HSAction, sp::HSState, rng::AbstractRNG)::AgentState
   return sp.human_pose
 end
+
 # In this version the observation is a **noisy** extraction of the observable part of the state
 function POMDPs.generate_o(p::HSPOMDP{NoisyPositionSensor, AgentState}, s::HSState, a::HSAction, sp::HSState, rng::AbstractRNG)::AgentState
   pose_vec = [sp.human_pose.xy..., sp.human_pose.phi]
@@ -173,6 +174,20 @@ function POMDPs.generate_o(p::HSPOMDP{NoisyPositionSensor, AgentState}, s::HSSta
   o_vec = rand(rng, o_distribution)
   return AgentState(xy=o_vec[1:2], phi=o_vec[3])
 end
+
+# TODO: Think about this
+#
+# This needs a lot of boiler plate code since we also need to know the pdf on
+# this distribution etc.  Implementing a custom update might make more sense
+# (and is neccessary for other reasons anyway)
+#
+# struct HSObservationDistribution
+#   m::HSModel
+#   s::HSState
+# end
+#
+# POMDPs.observation(m::HSModel, s::HSState) = HSObservationDistribution(m, s)
+# POMDPs.rand(rng::AbstractRNG, d::HSObservationDistribution) = generate_o(d.m, d.s, HSAction(), HSState(), rng)
 
 """
 isterminal
