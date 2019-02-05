@@ -131,7 +131,7 @@ generate_s
 
 Generates the next state given the last state and the taken action
 """
-function POMDPs.generate_s(p::HSModel, s::HSState, a::HSAction, rng::AbstractRNG)::HSState
+function POMDPs.generate_s(m::HSModel, s::HSState, a::HSAction, rng::AbstractRNG)::HSState
   # TODO: For now the human simply has a P controller that drives him to the
   # goal with a constant velocity. On a long run one can implement different
   # models for the human (e.g. Bolzmann)
@@ -159,14 +159,14 @@ Generates an observation for an observed transition
 # observable. `AgentState` should probably be renamed.
 
 # In this version the observation is a **deterministic** extraction of the observable part of the state
-function POMDPs.generate_o(p::HSPOMDP{ExactPositionSensor, AgentState}, s::HSState, a::HSAction, sp::HSState, rng::AbstractRNG)::AgentState
+function POMDPs.generate_o(m::HSPOMDP{ExactPositionSensor, AgentState}, s::HSState, a::HSAction, sp::HSState, rng::AbstractRNG)::AgentState
   return sp.human_pose
 end
 
 # In this version the observation is a **noisy** extraction of the observable part of the state
-function POMDPs.generate_o(p::HSPOMDP{NoisyPositionSensor, AgentState}, s::HSState, a::HSAction, sp::HSState, rng::AbstractRNG)::AgentState
+function POMDPs.generate_o(m::HSPOMDP{NoisyPositionSensor, AgentState}, s::HSState, a::HSAction, sp::HSState, rng::AbstractRNG)::AgentState
   # NOTE: this distribution is **already** centered around the state sp
-  o_distribution = MvNormal(convert(Array, sp.human_pose), p.sensor.measurement_cov)
+  o_distribution = MvNormal(convert(Array, sp.human_pose), m.sensor.measurement_cov)
   return rand(rng, o_distribution)
 end
 
@@ -176,8 +176,9 @@ end
 # this distribution etc.  Implementing a custom update might make more sense
 # (and is neccessary for other reasons anyway)
 #
-# function POMDPs.observation(m::HSModel, s::HSState)
-# end
+function POMDPs.observation(m::HSModel, s::HSState)
+  return MvNormal(convert(Array, s.human_pose), m.sensor.measurement_cov)
+end
 
 """
 isterminal
@@ -196,11 +197,11 @@ initialstate
 Draw an initial state and a target state for the human agent.
 """
 # TODO: Later this will also include the start and goal of the robot agent
-function POMDPs.initialstate(p::HSModel, rng::AbstractRNG)::HSState
+function POMDPs.initialstate(m::HSModel, rng::AbstractRNG)::HSState
   # generate an initial position and a goal for the human
-  human_init_state = rand_astate(room(p), rng=rng)
+  human_init_state = rand_astate(room(m), rng=rng)
   # for now the target is one of the 4 corners of the room
-  human_target_state = rand(rng, corner_states(room(p)))
+  human_target_state = rand(rng, corner_states(room(m)))
   return HSState(human_pose=human_init_state, human_target=human_target_state)
 end
 
@@ -229,6 +230,6 @@ The reward function for this problem.
 
 NOTE: Nothing intereseting here until the agent is also moving
 """
-function POMDPs.reward(p::HSModel, s::HSState, a::HSAction)::Float64
+function POMDPs.reward(m::HSModel, s::HSState, a::HSAction)::Float64
   return 0.0
 end
