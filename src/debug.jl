@@ -26,9 +26,9 @@ using ProgressMeter
 
 function get_test_problem()
   # create some test problem
-  pomdp_exact = HSPOMDP(sensor=ExactPositionSensor(), mdp=HSMDP(transition_model=DeterministicPControlledHumanTransition()))
-  pomdp_noisy = HSPOMDP(sensor=NoisyPositionSensor([0.3, 0.3, 0.3]), mdp=HSMDP(transition_model=NoisyPControlledHumanTransition()))
-  rng = MersenneTwister(111)
+  pomdp_exact = HSPOMDP(sensor=ExactPositionSensor(), mdp=HSMDP(transition_model=PControlledHumanTransition()))
+  pomdp_noisy = HSPOMDP(sensor=NoisyPositionSensor([0.3, 0.3, 0.3]), mdp=HSMDP(transition_model=PControlledHumanAWGNTransition()))
+  rng = MersenneTwister(7)
 
   return pomdp_exact, pomdp_noisy, rng
 end
@@ -58,5 +58,5 @@ function test_belief_updater()
   # the policy plannes without a model as it is always the same action
   policy = FunctionPolicy(x->HSAction())
   # the simulator uses the exact dynamics (not known to the belief_updater)
-  makegif(exact_pomdp, policy, belief_updater, filename=joinpath(@__DIR__, "../renderings/out.gif"), rng=rng, max_steps=100, show_progress=true)
+  makegif(exact_pomdp, policy, belief_updater, filename=joinpath(@__DIR__, "../renderings/out.gif"), extra_initial=true, rng=rng, max_steps=100, show_progress=true)
 end

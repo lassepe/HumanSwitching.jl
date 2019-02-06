@@ -40,10 +40,10 @@ PIDHumanTransition
 a deterministic human transition model where the human follows a simiple
 proportional controller towards a fixed target
 """
-struct DeterministicPControlledHumanTransition <: HSTransitionModel end
-@with_kw struct NoisyPControlledHumanTransition <: HSTransitionModel
+struct PControlledHumanTransition <: HSTransitionModel end
+@with_kw struct PControlledHumanAWGNTransition <: HSTransitionModel
   " the diagonal of the transition AWGN covariance matrix"
-  cov::Array{Float64, 1} = [0.1, 0.1, 0.01]
+  pose_cov::Array{Float64, 1} = [0.1, 0.1, 0.01]
 end
 
 """
@@ -85,7 +85,7 @@ observable problem.
 """
 @with_kw struct HSMDP{TT} <: MDP{HSState, HSAction}
   room::RoomRep = RoomRep()
-  transition_model::TT = DeterministicPControlledHumanTransition()
+  transition_model::TT = PControlledHumanTransition()
 end
 
 """
@@ -149,10 +149,10 @@ function human_p_transition(s::HSState)::HSState
 end
 
 # helper funciton to access the deterministic P controlled human transition
-POMDPs.generate_s(m::HSMDP{DeterministicPControlledHumanTransition}, s::HSState, a::HSAction, rng::AbstractRNG)::HSState = human_p_transition(s)
+POMDPs.generate_s(m::HSMDP{PControlledHumanTransition}, s::HSState, a::HSAction, rng::AbstractRNG)::HSState = human_p_transition(s)
 
 # same as above but with AWGN
-function POMDPs.generate_s(m::HSMDP{NoisyPControlledHumanTransition}, s::HSState, a::HSAction, rng::AbstractRNG)::HSState
+function POMDPs.generate_s(m::HSMDP{PControlledHumanAWGNTransition}, s::HSState, a::HSAction, rng::AbstractRNG)::HSState
   # first get the deterministic version
   sp::HSState = human_p_transition(s)
   # add AWGN to the pose

@@ -466,9 +466,9 @@ uuid = "a63ad114-7e13-5084-954f-fe012c677804"
 
 [[Mustache]]
 deps = ["Printf", "Tables", "Test"]
-git-tree-sha1 = "9a548a873a8de9f982284817b89ae0c5faa5a80b"
+git-tree-sha1 = "3cc9a0b673519c5c39186e636d747facb12bf075"
 uuid = "ffc61752-8dc7-55ee-8c37-f3e9cdd09e70"
-version = "0.5.10"
+version = "0.5.11"
 
 [[Mux]]
 deps = ["AssetRegistry", "Base64", "HTTP", "Hiccup", "Lazy", "Pkg", "Sockets", "Test", "WebSockets"]
@@ -508,9 +508,7 @@ version = "0.9.6"
 
 [[POMDPGifs]]
 deps = ["POMDPModelTools", "POMDPPolicies", "POMDPSimulators", "POMDPs", "Parameters", "ProgressMeter", "Random", "Reel"]
-git-tree-sha1 = "56bb8c159253ad45434168b3ffa7bcc6742fd16f"
-repo-rev = "master"
-repo-url = "https://github.com/JuliaPOMDP/POMDPGifs.jl"
+path = "/home/lassepe/.julia/dev/POMDPGifs"
 uuid = "7f35509c-0cb9-11e9-0708-2928828cdbb7"
 version = "0.1.0"
 
