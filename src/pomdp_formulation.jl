@@ -4,7 +4,7 @@
   height::Float64 = 15
 end
 
-corner_states(r::RoomRep) = [Pose(x, y, 0) for x in [0.1r.width, 0.9r.width], y in [0.1r.height, 0.9r.height]]
+corner_poses(r::RoomRep) = [Pose(x, y, 0) for x in [0.1r.width, 0.9r.width], y in [0.1r.height, 0.9r.height]]
 
 # the physical representation of an agent
 @with_kw struct Pose <: FieldVector{3, Float64}
@@ -57,10 +57,13 @@ orientation) as well as its target.
 @with_kw struct HSState
   human_pose::Pose
   human_target::Pose
+  robot_pose::Pose
+  robot_target::Pose
 end
 
 function Base.isequal(a::HSState, b::HSState)
-  isequal(a.human_pose, b.human_pose) && isequal(a.human_target, b.human_target)
+  isequal(a.human_pose, b.human_pose) && isequal(a.human_target, b.human_target) &&
+  isequal(a.robot_pose, b.robot_pose) && isequal(a.robot_target, b.robot_target)
 end
 
 """
@@ -130,37 +133,55 @@ Generates the next state given the last state and the taken action
 POMDPs.generate_s(m::HSModel, s::HSState, a::HSAction, rng::AbstractRNG)::HSState = generate_s(mdp(m), s, a, rng)
 
 # human controlled by simple P-controller
-function human_p_transition(s::HSState)::HSState
+function human_p_transition(s::HSState)::Tuple{Pose, Pose}
   human_velocity = min(0.6, human_dist_to_target(s)) #m/s
   vec2target = human_vec_to_target(s)
   target_direction = normalize(vec2target)
   current_walk_direction = @SVector [cos(s.human_pose.phi), sin(s.human_pose.phi)]
   walk_direction = (target_direction + current_walk_direction)/2
   # new position:
-  sp::HSState = deepcopy(s)
+  human_pose_p::Pose = s.human_pose
   if !any(isnan(i) for i in target_direction)
     xy_p = s.human_pose[1:2] + walk_direction * human_velocity
     phi_p = atan(walk_direction[2], walk_direction[1])
     human_pose::Pose = [xy_p..., phi_p]
-    sp = HSState(human_pose, s.human_target)
   end
 
- return sp
+  return human_pose, s.human_target
 end
 
 # helper funciton to access the deterministic P controlled human transition
-POMDPs.generate_s(m::HSMDP{PControlledHumanTransition}, s::HSState, a::HSAction, rng::AbstractRNG)::HSState = human_p_transition(s)
+function POMDPs.generate_s(m::HSMDP{PControlledHumanTransition}, s::HSState, a::HSAction, rng::AbstractRNG)::HSState
+  # assembling the new state
+  human_pose_p, human_target_p = human_p_transition(s)
+  # TODO: robotAction
+  robot_pose_p = Pose(0, 0, 0)
+  robot_target_p = Pose(0, 0, 0)
+
+  HSState(human_pose_p, human_target_p, robot_pose_p, robot_target_p)
+end
 
 # same as above but with AWGN
 function POMDPs.generate_s(m::HSMDP{PControlledHumanAWGNTransition}, s::HSState, a::HSAction, rng::AbstractRNG)::HSState
   # first get the deterministic version
-  sp::HSState = human_p_transition(s)
+  human_pose_p, human_target_p = human_p_transition(s)
   # add AWGN to the pose
   # TODO: Maybe we also want noise on the target
   do_resample = rand(rng) > 0.99
-  new_target = do_resample ? rand(corner_states(room(m))) : sp.human_target
-  return HSState(sp.human_pose + rand(rng, MvNormal([0, 0, 0], transition_model(m).pose_cov)), new_target)
+  human_target_p = do_resample ? rand(corner_poses(room(m))) : human_target_p
+
+  HSState(human_pose_p + rand(rng, MvNormal([0, 0, 0], transition_model(m).pose_cov)), human_target_p,
+          Pose(), Pose()) # TODO: robotAction
 end
+
+# TODO: robotObservation
+@with_kw struct HSObservation
+  human_pose::Pose
+  robot_pose::Pose
+  robot_target::Pose
+end
+# some convenient constructor
+HSObservation(s::HSState) = HSObservation(s.human_pose, s.robot_pose, s.robot_target)
 
 """
 generate_o
@@ -171,6 +192,7 @@ Generates an observation for an observed transition
 # observable. `Pose` should probably be renamed.
 
 # In this version the observation is a **deterministic** extraction of the observable part of the state
+# TODO: robotObservation
 POMDPs.generate_o(m::HSPOMDP{ExactPositionSensor, Pose}, s::HSState, a::HSAction, sp::HSState, rng::AbstractRNG)::Pose = sp.human_pose
 
 # In this version the observation is a **noisy** extraction of the observable part of the state
@@ -199,6 +221,8 @@ TODO: For now the problem terminates if the human reached it's goal. This
 should be done differently as soon as the agent is doing more than just
 observing the scene
 """
+
+# TODO: robotAction (robot also needs to reach target)
 POMDPs.isterminal(m::HSModel, s::HSState) = human_dist_to_target(s) < 0.1
 
 """
@@ -209,10 +233,16 @@ Draw an initial state and a target state for the human agent.
 # TODO: Later this will also include the start and goal of the robot agent
 function POMDPs.initialstate(m::HSModel, rng::AbstractRNG)::HSState
   # generate an initial position and a goal for the human
-  human_init_state = rand_pose(room(m), rng=rng)
+  human_init_pose = rand_pose(room(m), rng=rng)
   # for now the target is one of the 4 corners of the room
-  human_target_state = rand(rng, corner_states(room(m)))
-  return HSState(human_pose=human_init_state, human_target=human_target_state)
+  human_target_pose = rand(rng, corner_poses(room(m)))
+
+  # the robot starts in some rando mpose and want's to go some random pose
+  robot_init_pose = rand_pose(room(m), rng=rng)
+  robot_target_pose = rand_pose(room(m), rng=rng)
+
+  return HSState(human_pose=human_init_pose, human_target=human_target_pose,
+                 robot_pose=robot_init_pose, robot_target=robot_target_pose)
 end
 
 struct HSInitialDistribution{ModelType<:HSModel}

@@ -117,7 +117,7 @@ function render_step_compose(m::HSModel, step::NamedTuple)::Context
   # the room background
   room_viz = room_node(room_rep)
   # all targets where humans might go
-  potential_targets = corner_states(room_rep)
+  potential_targets = corner_poses(room_rep)
   potential_targets_viz = [target_node(pt) for pt in potential_targets]
   # the human and it's target
   agent_with_target_viz = agent_with_target_node(sp.human_pose, sp.human_target)
