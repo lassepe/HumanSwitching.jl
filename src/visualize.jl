@@ -19,8 +19,8 @@ Fields:
 - `as` the state of the agent to be rendered
 - `r` the visual radius of the agent
 """
-function agent_node(as::AgentState; r=0.15, fill_color="tomato", stroke_color="black")::Context
-  compose(context(), fill(fill_color), stroke(stroke_color),
+function agent_node(as::AgentState; r=0.15, fill_color="tomato", stroke_color="black", opacity::Float64=1.0)::Context
+  compose(context(), fill(fill_color), fillopacity(opacity), stroke(stroke_color), strokeopacity(opacity),
           (context(), circle(as.x, as.y, r)),
           (context(), line([(as.x, as.y), (as.x+cos(as.phi)*r*2, as.y+sin(as.phi)*r*2)]), linewidth(1)))
 end
@@ -33,8 +33,9 @@ Composes a target node (states that agents want to reach) for the visualization 
 Fields:
 - `ts` the target state to be visualized
 """
-function target_node(as::AgentState; size=0.15, fill_color="deepskyblue", stroke_color="black")::Context
-  compose(context(), fill(fill_color), stroke(stroke_color),
+function target_node(as::AgentState; size=0.15, fill_color="deepskyblue", stroke_color="black", opacity::Float64=1.0)::Context
+  compose(context(), fill(fill_color), fillopacity(opacity), stroke(stroke_color), strokeopacity(opacity),
+
           circle(as.x, as.y, size/2))
 end
 
@@ -48,7 +49,7 @@ Fields:
 - `target` the target position towards which the curve points (end anchor point, only for position)
 - `r` the visual radius of the agent
 """
-function start_target_curve_node(start_pose::AgentState, target::AgentState; r=0.5, stroke_color="green")::Context
+function start_target_curve_node(start_pose::AgentState, target::AgentState; r=0.5, stroke_color="green", opacity::Float64=1.0)::Context
   # the start and end anchor point for the bezier curve
   p_start = [Tuple(start_pose[1:2])]
   p_end = [Tuple(target[1:2])]
@@ -59,24 +60,32 @@ function start_target_curve_node(start_pose::AgentState, target::AgentState; r=0
   c2_help = (start_pose[1:2] + target[1:2]) / 2
   c2 = [(c2_help[1], c2_help[2])]
 
-  compose(context(), stroke(stroke_color), curve(p_start, c1, c2, p_end))
+  compose(context(), stroke(stroke_color), strokeopacity(opacity), curve(p_start, c1, c2, p_end))
 end
 
-function agent_with_target_node(agent_pose::AgentState, target::AgentState; agent_color="tomato", curve_color="green", target_color="light green")
+function agent_with_target_node(agent_pose::AgentState, target::AgentState;
+                                target_size=0.2, agent_color="tomato", curve_color="green",
+                                target_color="light green", opacity::Float64=1.0)::Context
   # the actual target of the human
-  current_target_viz = target_node(target, size=0.2, fill_color=target_color)
+  current_target_viz = target_node(target, size=target_size, fill_color=target_color, opacity=opacity)
   # the current pose of the human
-  agent_pose_viz = agent_node(agent_pose, fill_color=agent_color)
+  agent_pose_viz = agent_node(agent_pose, fill_color=agent_color, opacity=opacity)
   # a connection line between the human and the target
-  target_curve_viz = start_target_curve_node(agent_pose, target, stroke_color=curve_color)
+  target_curve_viz = start_target_curve_node(agent_pose, target, stroke_color=curve_color, opacity=opacity)
 
   compose(context(), agent_pose_viz, current_target_viz, target_curve_viz)
 end
 
-function belief_node(bp::AbstractParticleBelief)
-  some_p = rand(particles(bp))
-
-  compose(context(), [agent_with_target_node(p.human_pose, p.human_target, agent_color="light blue", curve_color="light blue", target_color= "white") for p in particles(bp)])
+function belief_node(bp::AbstractParticleBelief)::Context
+  compose(context(),
+          [agent_with_target_node(p.human_pose,
+                                  p.human_target,
+                                  agent_color="light blue",
+                                  curve_color="gray",
+                                  target_color="light blue",
+                                  target_size=0.4,
+                                  opacity=0.1)
+           for p in particles(bp)])
 end
 
 """
