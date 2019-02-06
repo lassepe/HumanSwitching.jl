@@ -157,7 +157,9 @@ function POMDPs.generate_s(m::HSMDP{PControlledHumanAWGNTransition}, s::HSState,
   sp::HSState = human_p_transition(s)
   # add AWGN to the pose
   # TODO: Maybe we also want noise on the target
-  return HSState(sp.human_pose + rand(rng, MvNormal([0, 0, 0], transition_model(m).cov)), sp.human_target)
+  do_resample = rand(rng) > 0.99
+  new_target = do_resample ? rand(corner_states(room(m))) : sp.human_target
+  return HSState(sp.human_pose + rand(rng, MvNormal([0, 0, 0], transition_model(m).pose_cov)), new_target)
 end
 
 """
