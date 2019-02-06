@@ -43,7 +43,7 @@ proportional controller towards a fixed target
 struct DeterministicPControlledHumanTransition <: HSTransitionModel end
 @with_kw struct NoisyPControlledHumanTransition <: HSTransitionModel
   " the diagonal of the transition AWGN covariance matrix"
-  transition_cov::Array{Float64, 1} = [0.1, 0.1, 0.01]
+  cov::Array{Float64, 1} = [0.1, 0.1, 0.01]
 end
 
 """
@@ -69,10 +69,9 @@ The action representation in the HumanSwitching POMDP
 NOTE:
 - for now this is not too interesting as the agent can not take any actions
 """
-struct HSAction
-  some_action::Int64
+@with_kw struct HSAction
+  some_action::Int64 = 0
 end
-HSAction() = HSAction(0)
 
 """
 The action space for this problem
@@ -83,63 +82,43 @@ struct HSActionSpace end
 The MDP representation of the fully observable HumanSwitching problem. This MDP
 formulation is used to derive the POMDP formulation for the partially
 observable problem.
-
-- state transitions / generation
-- reward assignments
-
-NOTE: In a more mature version of this code this should also feature:
-- physical limitations (e.g. speed of robot)
-- terminal check
-
-For now this is rather glue code as we will implement this version is a pure
-information gathering problem for now.
 """
-@with_kw struct HSMDP{AS} <: MDP{HSState, HSAction}
+@with_kw struct HSMDP{TT} <: MDP{HSState, HSAction}
   room::RoomRep = RoomRep()
-  aspace::AS = HSActionSpace()
+  transition_model::TT = DeterministicPControlledHumanTransition()
 end
 
 """
 The POMDP representation (thus partially observable) formulation of the
 HumanSwitching problem.
 
-NOTE:
-For now we will assume that the positions observable with absolute certainty.
-This has some implications to think of later:
-
-- the observation function of the position is a dirac and thus will cause
-trouble in observation update. This state as to externalized.
-
 Fields:
-- `sensor::TS` a struct specifying the sensor used (e.g. ExactPositionSensor)
+
+- `sensor::TS` a struct specifying the sensor used
 - `mdp::HSDMP` a MDP version of this problem
+
+Parameters:
+
+- `TS` the type of the sensor
+- `O` the type of of observations the sensor model returns
+- `M` the type of the underlying MDP
 """
-@with_kw struct HSPOMDP{TS, O} <: POMDP{HSState, HSAction, O}
+@with_kw struct HSPOMDP{TS, O, M} <: POMDP{HSState, HSAction, O}
   sensor::TS = ExactPositionSensor()
-  transition_model::HSTransitionModel = DeterministicPControlledHumanTransition()
-  mdp::HSMDP = HSMDP()
+  mdp::M = HSMDP()
 end
 
-# TODO: this is rather ugly but works for now:
-# add the transition noise
-sample_transition_awgn(tm::DeterministicPControlledHumanTransition, ::AbstractRNG)::AgentState = [0, 0, 0]
-sample_transition_awgn(tm::NoisyPControlledHumanTransition, rng::AbstractRNG)::AgentState = rand(rng, MvNormal([0, 0, 0], tm.transition_cov))
+function HSPOMDP(sensor::HSSensor, mdp::HSMDP)
+  HSPOMDP{typeof(sensor), obstype(sensor), typeof(mdp)}(sensor, mdp)
+end
 
-# TODO: maybe move to struct field
-POMDPs.discount(HSModel) = 0.99
 const HSModel = Union{HSMDP, HSPOMDP}
-
-# Some convenient constructors
-HSPOMDP(sensor::HSSensor, transition_model::HSTransitionModel) = HSPOMDP{typeof(sensor), obstype(sensor)}(sensor, transition_model, HSMDP())
-HSPOMDP(sensor::HSSensor, transition_model::HSTransitionModel, mdp::HSMDP) = HSPOMDP{typeof(sensor), obstype(sensor)}(sensor, transition_model, mdp)
+POMDPs.discount(HSModel) = 0.99  # TODO: maybe move to struct field
 
 mdp(m::HSMDP) = m
 mdp(m::HSPOMDP) = m.mdp
+transition_model(m::HSModel) = mdp(m).transition_model
 room(m::HSModel) = mdp(m).room
-
-# TODO: remove, not really used
-# POMDPs.actions(m::HSModel) = mdp(m).aspace
-# POMDPs.n_actions(m::HSModel) = length(mdp(m).aspace)
 
 # Implementing the main API of the generative interface
 """
@@ -147,10 +126,11 @@ generate_s
 
 Generates the next state given the last state and the taken action
 """
-function POMDPs.generate_s(m::HSModel, s::HSState, a::HSAction, rng::AbstractRNG)::HSState
-  # TODO: For now the human simply has a P controller that drives him to the
-  # goal with a constant velocity. On a long run one can implement different
-  # models for the human (e.g. Bolzmann)
+# this simple forwards to the different transition models
+POMDPs.generate_s(m::HSModel, s::HSState, a::HSAction, rng::AbstractRNG)::HSState = generate_s(mdp(m), s, a, rng)
+
+# human controlled by simple P-controller
+function human_p_transition(s::HSState)::HSState
   human_velocity = min(0.6, human_dist_to_target(s)) #m/s
   vec2target = human_vec_to_target(s)
   target_direction = normalize(vec2target)
@@ -161,12 +141,25 @@ function POMDPs.generate_s(m::HSModel, s::HSState, a::HSAction, rng::AbstractRNG
   if !any(isnan(i) for i in target_direction)
     xy_p = s.human_pose[1:2] + walk_direction * human_velocity
     phi_p = atan(walk_direction[2], walk_direction[1])
-    human_pose::AgentState = [xy_p..., phi_p] + sample_transition_awgn(m.transition_model, rng)
+    human_pose::AgentState = [xy_p..., phi_p]
     sp = HSState(human_pose, s.human_target)
   end
 
-  return sp
+ return sp
 end
+
+# helper funciton to access the deterministic P controlled human transition
+POMDPs.generate_s(m::HSMDP{DeterministicPControlledHumanTransition}, s::HSState, a::HSAction, rng::AbstractRNG)::HSState = human_p_transition(s)
+
+# same as above but with AWGN
+function POMDPs.generate_s(m::HSMDP{NoisyPControlledHumanTransition}, s::HSState, a::HSAction, rng::AbstractRNG)::HSState
+  # first get the deterministic version
+  sp::HSState = human_p_transition(s)
+  # add AWGN to the pose
+  # TODO: Maybe we also want noise on the target
+  return HSState(sp.human_pose + rand(rng, MvNormal([0, 0, 0], transition_model(m).cov)), sp.human_target)
+end
+
 """
 generate_o
 
@@ -176,16 +169,13 @@ Generates an observation for an observed transition
 # observable. `AgentState` should probably be renamed.
 
 # In this version the observation is a **deterministic** extraction of the observable part of the state
-function POMDPs.generate_o(m::HSPOMDP{ExactPositionSensor, AgentState}, s::HSState, a::HSAction, sp::HSState, rng::AbstractRNG)::AgentState
-  return sp.human_pose
-end
+POMDPs.generate_o(m::HSPOMDP{ExactPositionSensor, AgentState}, s::HSState, a::HSAction, sp::HSState, rng::AbstractRNG)::AgentState = sp.human_pose
 
 # In this version the observation is a **noisy** extraction of the observable part of the state
 function POMDPs.generate_o(m::HSPOMDP{NoisyPositionSensor, AgentState}, s::HSState, a::HSAction, sp::HSState, rng::AbstractRNG)::AgentState
   # NOTE: this distribution is **already** centered around the state sp
   o_distribution = MvNormal(convert(Array, sp.human_pose), m.sensor.measurement_cov)
   return rand(rng, o_distribution)
-
 end
 
 # TODO: Think about this

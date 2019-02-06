@@ -98,14 +98,6 @@ function render_step_compose(m::HSModel, step::NamedTuple)::Context
   # extract the relevant information from the step
   sp = step[:sp]
 
-  # TODO: MOVE!
-  if haskey(step, :bp) && step[:bp] isa AbstractParticleBelief
-    belief_viz = belief_node(step[:bp])
-  else
-    println("Has no AbstractParticleBelief!")
-    belief_viz = context()
-  end
-
   # extract the room prepresentation from the problem
   room_rep::RoomRep = room(m)
   # place mirror all children along the middle axis of the unit context
@@ -120,6 +112,7 @@ function render_step_compose(m::HSModel, step::NamedTuple)::Context
   potential_targets_viz = [target_node(pt) for pt in potential_targets]
   # the human and it's target
   agent_with_target_viz = agent_with_target_node(sp.human_pose, sp.human_target)
+  belief_viz = haskey(step, :bp) && step[:bp] isa AbstractParticleBelief ? belief_node(step[:bp]) : context()
 
   compose(mirror, (base_scale, agent_with_target_viz, potential_targets_viz..., belief_viz, room_viz))
 end
@@ -144,7 +137,7 @@ Is a workaround to render Compose.jl context to blink windows by:
 - then rendering this object in blink
 """
 function blink!(c::Context, win::Blink.Window)
-  sp = SVG(600px, 600px, false)
+  s = SVG(600px, 600px, false)
   draw(s, c)
   # make sure that blink is used with options async=true and
   # fade=false to make a better animation

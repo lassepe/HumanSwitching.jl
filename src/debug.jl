@@ -26,8 +26,8 @@ using ProgressMeter
 
 function get_test_problem()
   # create some test problem
-  pomdp_exact = HSPOMDP(ExactPositionSensor(), DeterministicPControlledHumanTransition())
-  pomdp_noisy = HSPOMDP(NoisyPositionSensor([0.3, 0.3, 0.3]), NoisyPControlledHumanTransition())
+  pomdp_exact = HSPOMDP(sensor=ExactPositionSensor(), mdp=HSMDP(transition_model=DeterministicPControlledHumanTransition()))
+  pomdp_noisy = HSPOMDP(sensor=NoisyPositionSensor([0.3, 0.3, 0.3]), mdp=HSMDP(transition_model=NoisyPControlledHumanTransition()))
   rng = MersenneTwister(111)
 
   return pomdp_exact, pomdp_noisy, rng

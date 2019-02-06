@@ -25,8 +25,9 @@ end;
 @testset "POMDP interface" begin
   # checking whether we can actually succesfully construct all those types
   rng = MersenneTwister(42)
-  hs_pomdp_exact_o = HSPOMDP(ExactPositionSensor(), DeterministicPControlledHumanTransition())
-  hs_pomdp_noisy_o = HSPOMDP(NoisyPositionSensor([0.001,0.001,0.01]), DeterministicPControlledHumanTransition())
+  phuman_mdp = HSMDP(transition_model=DeterministicPControlledHumanTransition())
+  hs_pomdp_exact_o = HSPOMDP(sensor=ExactPositionSensor(), mdp=phuman_mdp)
+  hs_pomdp_noisy_o = HSPOMDP(sensor=NoisyPositionSensor([0.001,0.001,0.01]), mdp=phuman_mdp)
   s = initialstate(hs_pomdp_exact_o, rng)
   a = HS.HSAction()
   # Transition model, simply checking whether the call is successfull
@@ -59,10 +60,11 @@ end;
 # this test set checks whether everything is implemented to be pseudo-random.
 # Meaning that with the same rng we should get the same result!
 @testset "POMDP deterministic checks" begin
-  pomdp = HSPOMDP(NoisyPositionSensor(), NoisyPControlledHumanTransition())
+  mdp = HSMDP(transition_model=NoisyPControlledHumanTransition())
+  pomdp = HSPOMDP(sensor=NoisyPositionSensor(), mdp=mdp)
   a = HS.HSAction()
 
-  # ORDER of everything matters (rng1 and rng2 must undergoe the same
+  # ORDER of everything matters (rng1 and rng2 must undergo the same
   # "transitions")
   rng1 = MersenneTwister(42)
   rng2 = MersenneTwister(42)
@@ -84,7 +86,8 @@ end;
 end;
 
 @testset "POMDP visualization" begin
-  pomdp = HSPOMDP(HS.NoisyPositionSensor([0.1,0.1,0.01]), DeterministicPControlledHumanTransition())
+  mdp = HSMDP(transition_model=DeterministicPControlledHumanTransition())
+  pomdp = HSPOMDP(sensor=NoisyPositionSensor([0.1,0.1,0.01]), mdp=mdp)
   rng = MersenneTwister(42)
   belief_updater = NothingUpdater()
   policy = FunctionPolicy(x->HSAction())
