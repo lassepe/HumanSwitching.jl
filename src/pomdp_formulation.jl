@@ -4,10 +4,10 @@
   height::Float64 = 15
 end
 
-corner_states(r::RoomRep) = [AgentState(x, y, 0) for x in [0.1r.width, 0.9r.width], y in [0.1r.height, 0.9r.height]]
+corner_states(r::RoomRep) = [Pose(x, y, 0) for x in [0.1r.width, 0.9r.width], y in [0.1r.height, 0.9r.height]]
 
 # the physical representation of an agent
-@with_kw struct AgentState <: FieldVector{3, Float64}
+@with_kw struct Pose <: FieldVector{3, Float64}
   x::Float64 = 0   # horizontal position
   y::Float64 = 0   # vertical position
   phi::Float64 = 0 # the orientation of the human
@@ -29,8 +29,8 @@ A sensor that gives a noisy reading to the agents positions
                                         0.1,
                                         0.01]
 end
-POMDPs.obstype(::ExactPositionSensor) = AgentState
-POMDPs.obstype(::NoisyPositionSensor) = AgentState
+POMDPs.obstype(::ExactPositionSensor) = Pose
+POMDPs.obstype(::NoisyPositionSensor) = Pose
 
 # defining some transition models
 abstract type HSTransitionModel end
@@ -55,8 +55,8 @@ orientation) as well as its target.
 - For now the human is assumed to walk in a straight line towards the unobserved goal
 """
 @with_kw struct HSState
-  human_pose::AgentState
-  human_target::AgentState
+  human_pose::Pose
+  human_target::Pose
 end
 
 function Base.isequal(a::HSState, b::HSState)
@@ -141,7 +141,7 @@ function human_p_transition(s::HSState)::HSState
   if !any(isnan(i) for i in target_direction)
     xy_p = s.human_pose[1:2] + walk_direction * human_velocity
     phi_p = atan(walk_direction[2], walk_direction[1])
-    human_pose::AgentState = [xy_p..., phi_p]
+    human_pose::Pose = [xy_p..., phi_p]
     sp = HSState(human_pose, s.human_target)
   end
 
@@ -168,13 +168,13 @@ generate_o
 Generates an observation for an observed transition
 """
 # TODO: This is a bit misleading as it make it look like the full state was
-# observable. `AgentState` should probably be renamed.
+# observable. `Pose` should probably be renamed.
 
 # In this version the observation is a **deterministic** extraction of the observable part of the state
-POMDPs.generate_o(m::HSPOMDP{ExactPositionSensor, AgentState}, s::HSState, a::HSAction, sp::HSState, rng::AbstractRNG)::AgentState = sp.human_pose
+POMDPs.generate_o(m::HSPOMDP{ExactPositionSensor, Pose}, s::HSState, a::HSAction, sp::HSState, rng::AbstractRNG)::Pose = sp.human_pose
 
 # In this version the observation is a **noisy** extraction of the observable part of the state
-function POMDPs.generate_o(m::HSPOMDP{NoisyPositionSensor, AgentState}, s::HSState, a::HSAction, sp::HSState, rng::AbstractRNG)::AgentState
+function POMDPs.generate_o(m::HSPOMDP{NoisyPositionSensor, Pose}, s::HSState, a::HSAction, sp::HSState, rng::AbstractRNG)::Pose
   # NOTE: this distribution is **already** centered around the state sp
   o_distribution = MvNormal(convert(Array, sp.human_pose), m.sensor.measurement_cov)
   return rand(rng, o_distribution)
@@ -209,7 +209,7 @@ Draw an initial state and a target state for the human agent.
 # TODO: Later this will also include the start and goal of the robot agent
 function POMDPs.initialstate(m::HSModel, rng::AbstractRNG)::HSState
   # generate an initial position and a goal for the human
-  human_init_state = rand_astate(room(m), rng=rng)
+  human_init_state = rand_pose(room(m), rng=rng)
   # for now the target is one of the 4 corners of the room
   human_target_state = rand(rng, corner_states(room(m)))
   return HSState(human_pose=human_init_state, human_target=human_target_state)

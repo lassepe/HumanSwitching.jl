@@ -24,14 +24,14 @@ function human_angle_to_target(s::HSState)::Float64
   return atan(v[2], v[1])
 end
 
-function rand_astate(r::RoomRep; rng::AbstractRNG=Random.GLOBAL_RNG)::AgentState
+function rand_pose(r::RoomRep; rng::AbstractRNG=Random.GLOBAL_RNG)::Pose
   x = rand(rng) * r.width
   y = rand(rng) * r.height
   phi = rand(rng) * pi
-  return AgentState(x, y, phi)
+  return Pose(x, y, phi)
 end
-rand_astate(m::HSModel; rng::AbstractRNG=Random.GLOBAL_RNG)::AgentState = rand_astate(room(m); rng=rng)
+rand_pose(m::HSModel; rng::AbstractRNG=Random.GLOBAL_RNG)::Pose = rand_pose(room(m); rng=rng)
 
-function isinroom(as::AgentState, r::RoomRep)
+function isinroom(as::Pose, r::RoomRep)
   return  0 <= as.x <= r.width && 0 <= as.y <= r.height
 end

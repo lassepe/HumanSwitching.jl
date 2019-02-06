@@ -19,7 +19,7 @@ Fields:
 - `as` the state of the agent to be rendered
 - `r` the visual radius of the agent
 """
-function agent_node(as::AgentState; r=0.15, fill_color="tomato", stroke_color="black", opacity::Float64=1.0)::Context
+function agent_node(as::Pose; r=0.15, fill_color="tomato", stroke_color="black", opacity::Float64=1.0)::Context
   compose(context(), fill(fill_color), fillopacity(opacity), stroke(stroke_color), strokeopacity(opacity),
           (context(), circle(as.x, as.y, r)),
           (context(), line([(as.x, as.y), (as.x+cos(as.phi)*r*2, as.y+sin(as.phi)*r*2)]), linewidth(1)))
@@ -33,7 +33,7 @@ Composes a target node (states that agents want to reach) for the visualization 
 Fields:
 - `ts` the target state to be visualized
 """
-function target_node(as::AgentState; size=0.15, fill_color="deepskyblue", stroke_color="black", opacity::Float64=1.0)::Context
+function target_node(as::Pose; size=0.15, fill_color="deepskyblue", stroke_color="black", opacity::Float64=1.0)::Context
   compose(context(), fill(fill_color), fillopacity(opacity), stroke(stroke_color), strokeopacity(opacity),
 
           circle(as.x, as.y, size/2))
@@ -49,7 +49,7 @@ Fields:
 - `target` the target position towards which the curve points (end anchor point, only for position)
 - `r` the visual radius of the agent
 """
-function start_target_curve_node(start_pose::AgentState, target::AgentState; r=0.5, stroke_color="green", opacity::Float64=1.0)::Context
+function start_target_curve_node(start_pose::Pose, target::Pose; r=0.5, stroke_color="green", opacity::Float64=1.0)::Context
   # the start and end anchor point for the bezier curve
   p_start = [Tuple(start_pose[1:2])]
   p_end = [Tuple(target[1:2])]
@@ -63,7 +63,7 @@ function start_target_curve_node(start_pose::AgentState, target::AgentState; r=0
   compose(context(), stroke(stroke_color), strokeopacity(opacity), curve(p_start, c1, c2, p_end))
 end
 
-function agent_with_target_node(agent_pose::AgentState, target::AgentState;
+function agent_with_target_node(agent_pose::Pose, target::Pose;
                                 target_size=0.2, agent_color="tomato", curve_color="green",
                                 target_color="light green", opacity::Float64=1.0)::Context
   # the actual target of the human

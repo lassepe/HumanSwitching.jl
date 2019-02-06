@@ -24,7 +24,7 @@ import POMDPs # modified in filtering.jl
 import POMDPModelTools: render # modified in visualization.jl
 
 export
-  AgentState,
+  Pose,
   RoomRep,
   corner_states,
   HSState,
