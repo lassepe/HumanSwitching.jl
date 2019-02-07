@@ -95,3 +95,13 @@ end;
   # work due to progressbar I assume)
   @test_nowarn makegif(pomdp, policy, belief_updater, filename=joinpath(@__DIR__, "test_renderings", "makegif_test.gif"), rng=rng, max_steps=100, show_progress=false)
 end;
+
+@testset "POMDP Actions" begin
+  # check whether the action space contains exactly one zero action
+  @test count(iszero(a) for a in HSActionSpace()) === 1
+
+  # check whether the action space is symmetric
+  isapproxin(container, external_it) = any(isapprox(it, external_it) for it in container)
+  reachable_states = (apply_action(zero(Pose), a) for a in HSActionSpace())
+  @test all(isapproxin(reachable_states, -s) for s in reachable_states)
+end

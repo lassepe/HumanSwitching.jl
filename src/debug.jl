@@ -97,7 +97,7 @@ function test_mdp_solver(n_runs::Int=1)
   heuristic_estimator = value_lower_bound
   rollout_estimator = RolloutEstimator(StraightToTarget())
 
-  solver = MCTSSolver(estimate_value=rollout_estimator, n_iterations=5000, depth=20, exploration_constant=5.0)
+  solver = MCTSSolver(estimate_value=rollout_estimator, n_iterations=2000, depth=15, exploration_constant=5.0)
   planner = solve(solver, mdp_exact)
 
   for i_run in 1:n_runs

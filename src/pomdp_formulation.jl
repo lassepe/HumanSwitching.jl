@@ -76,8 +76,8 @@ NOTE:
 # TODO: robotActions - for now the quad agent only moves in x and y. (never
 # changes orientation)
 @with_kw struct HSAction <: FieldVector{2, Float64}
-  dx::Float64 = 0   # horizontal position offset
-  dy::Float64 = 0   # vertical position offset
+  d::Float64 = 0   # distance to travel
+  phi::Float64 = 0 # angle of direction in which the distance is traveled
 end
 
 """
@@ -87,9 +87,11 @@ struct HSActionSpace
   actions::AbstractVector{HSAction}
 end
 # defining the default action space
-axis_actions = (-0.5, -0.25, 0.0, 0.25, 0.5)
-HSActionSpace() = vec([HSAction(dx, dy) for dx in axis_actions, dy in axis_actions])
-apply_action(p::Pose, a::HSAction) = Pose(p.x + a.dx, p.y + a.dy, p.phi)
+dist_actions = (0.25, 0.5)
+phi_resolution = (pi/4)
+phi_actions = (-pi:phi_resolution:(pi-phi_resolution))
+HSActionSpace() = vec([zero(HSAction()), (HSAction(d, phi) for d in dist_actions, phi in phi_actions)...])
+apply_action(p::Pose, a::HSAction) = Pose(p.x + cos(a.phi)*a.d, p.y + sin(a.phi)*a.d, p.phi)
 
 """
 The MDP representation of the fully observable HumanSwitching problem. This MDP
@@ -133,7 +135,7 @@ function HSPOMDP(sensor::HSSensor, mdp::HSMDP)
 end
 
 const HSModel = Union{HSMDP, HSPOMDP}
-POMDPs.discount(HSModel) = 1.0  # TODO: maybe move to struct field
+POMDPs.discount(HSModel) = 0.95  # TODO: maybe move to struct field
 
 mdp(m::HSMDP) = m
 mdp(m::HSPOMDP) = m.mdp
@@ -240,7 +242,7 @@ checks if the state is a terminal state
 """
 function POMDPs.isterminal(m::HSModel, s::HSState)
   # TODO: Is it relevant that the human should also have reached it's target?
-  robot_reached_target(s) || has_collision(m, s)
+  robot_reached_target(s) || !isinroom(s.robot_pose, room(m)) || has_collision(m, s)
 end
 
 """
@@ -290,15 +292,18 @@ NOTE: Nothing intereseting here until the agent is also moving
 function POMDPs.reward(m::HSModel, s::HSState, a::HSAction, sp::HSState)::Float64
   # TODO: Make things configurable
   living_penalty::Float64 = -0.1
+  control_cost::Float64 = 0.1
   collision_penalty::Float64 = -100.0
   move_to_goal_reward::Float64 = 0.1
   target_reached_reward::Float64 = 25.0
-  left_room_penalty::Float64 = -5.0
+  left_room_penalty::Float64 = -100.0
 
   step_reward::Float64 = 0
 
   # encourage finishing in finite time
   step_reward += living_penalty
+  # control_cost
+  step_reward += control_cost * a.d
   # avoid collision
   if has_collision(m, sp)
     step_reward += collision_penalty
