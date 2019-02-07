@@ -29,6 +29,7 @@ export
   corner_states,
   HSState,
   HSAction,
+  HSActionSpace,
   HSMDP,
   HSPOMDP,
   HSModel,
