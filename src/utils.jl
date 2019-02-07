@@ -26,6 +26,11 @@ robot_dist_to_target(s::HSState)::Float64 = norm(dist_to_pose(s.robot_pose, s.ro
 human_vec_to_target(s::HSState)::SVector{2} = vec_from_to(s.human_pose, s.human_target)
 # computes the distance between the human and it's target
 human_dist_to_target(s::HSState)::Float64 = norm(human_vec_to_target(s))
+# checks if the state currently has a collision between the robot and some other agent
+has_collision(m::HSModel, s::HSState)::Bool = dist_to_pose(s.human_pose, s.robot_pose) < agent_min_distance(m)
+
+human_reached_target(s::HSState)::Bool = human_dist_to_target(s) < 0.2
+robot_reached_target(s::HSState)::Bool = robot_dist_to_target(s) < 0.6
 
 function human_angle_to_target(s::HSState)::Float64
   v = human_vec_to_target(s)
@@ -40,6 +45,6 @@ function rand_pose(r::RoomRep; rng::AbstractRNG=Random.GLOBAL_RNG, forced_orient
 end
 rand_pose(m::HSModel; rng::AbstractRNG=Random.GLOBAL_RNG, forced_orientation::Union{Float64, Nothing}=nothing)::Pose = rand_pose(room(m); rng=rng)
 
-function isinroom(as::Pose, r::RoomRep)
-  return  0 <= as.x <= r.width && 0 <= as.y <= r.height
+function isinroom(p::Pose, r::RoomRep)
+  return  0 <= p.x <= r.width && 0 <= p.y <= r.height
 end

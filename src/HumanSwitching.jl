@@ -44,7 +44,8 @@ export
   generate_o,
   initialstate,
   reward,
-  discount
+  discount,
+  apply_action
 include("pomdp_formulation.jl")
 
 export
@@ -55,7 +56,9 @@ export
 include("visualize.jl")
 
 export
-  rand_astate
+  rand_astate,
+  dist_to_pose,
+  robot_dist_to_target
 include("utils.jl")
 
 end # module

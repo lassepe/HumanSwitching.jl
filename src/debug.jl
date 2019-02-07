@@ -13,6 +13,7 @@ using POMDPPolicies
 using POMDPSimulators
 using POMDPGifs
 using BeliefUpdaters
+using MCTS
 
 using Blink
 using Revise
@@ -56,9 +57,53 @@ function test_belief_updater(n_runs::Int=1)
   # the blief updater is run with a stocahstic version of the world
   belief_updater = SIRParticleFilter(noisy_pomdp, 1000, rng=rng)
   # the policy plannes without a model as it is always the same action
-  policy = FunctionPolicy(x->HSAction(0.2, 0.4))
+  policy = FunctionPolicy(x->rand(HSActionSpace()))
   # the simulator uses the exact dynamics (not known to the belief_updater)
   for i_run in 1:n_runs
     makegif(exact_pomdp, policy, belief_updater, filename=joinpath(@__DIR__, "../renderings/out$i_run.gif"), extra_initial=true, rng=rng, max_steps=100, show_progress=true)
+  end
+end
+
+struct StraightToTarget <: Policy end
+
+function POMDPs.action(p::StraightToTarget, s::HSState)
+  # take the action that moves me closest to goal as a rollout
+  best_action = reduce((a1, a2) -> dist_to_pose(apply_action(s.robot_pose, a1), s.robot_target) < dist_to_pose(apply_action(s.robot_pose, a2), s.robot_target) ? a1 : a2, HSActionSpace())
+end
+
+function value_lower_bound(mdp::HSMDP, s::HSState, depth::Int)::Float64 # depth is the solver `depth` parameter less the number of timesteps that have already passed (it can be ignored in many cases)
+  dist = robot_dist_to_target(s)
+  # TODO should be part of the MDP
+  robot_max_speed = 1
+  remaining_step_estimate = dist/robot_max_speed
+  # assume that there is only the (discounted) target reward
+  return 50.0 * (discount(mdp)^remaining_step_estimate) - remaining_step_estimate * 0.1
+end
+
+function test_mdp_solver(n_runs::Int=1)
+  rng = MersenneTwister(1)
+
+  mdp_exact = HSMDP(transition_model=PControlledHumanTransition())
+  mdp_awgn = HSMDP(transition_model=PControlledHumanTransition())
+
+  pomdp_exact = HSPOMDP(sensor=ExactPositionSensor(), mdp=mdp_exact)
+  pomdp_awgn = HSPOMDP(sensor=NoisyPositionSensor([0.3, 0.3, 0.3]), mdp=mdp_awgn)
+
+  # @requirements_info MCTSSolver() mdp_awgn initialstate(mdp_awgn, rng)
+
+  # for now we run the ...
+  # - the planner with some stochastic version of the true dynamics
+  # - the simulator with the true dynamics unknown to the planner
+  heuristic_estimator = value_lower_bound
+  rollout_estimator = RolloutEstimator(StraightToTarget())
+
+  solver = MCTSSolver(estimate_value=rollout_estimator, n_iterations=5000, depth=20, exploration_constant=5.0)
+  planner = solve(solver, mdp_exact)
+
+  for i_run in 1:n_runs
+    simulator = HistoryRecorder(rng=rng, max_steps=100)
+    sim_hist = simulate(simulator, mdp_exact, planner)
+    makegif(mdp_exact, sim_hist, filename=joinpath(@__DIR__, "../renderings/out_mcts$i_run.gif"), extra_initial=true, show_progress=true)
+    println(discounted_reward(sim_hist))
   end
 end

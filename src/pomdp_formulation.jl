@@ -75,7 +75,7 @@ NOTE:
 
 # TODO: robotActions - for now the quad agent only moves in x and y. (never
 # changes orientation)
-@with_kw struct HSAction <: FieldVector{3, Float64}
+@with_kw struct HSAction <: FieldVector{2, Float64}
   dx::Float64 = 0   # horizontal position offset
   dy::Float64 = 0   # vertical position offset
 end
@@ -87,8 +87,9 @@ struct HSActionSpace
   actions::AbstractVector{HSAction}
 end
 # defining the default action space
-HSActionSpace() = vec([HSAction(dx, dy) for dx in (-0.2, 0.0, 0.2), dy in (-0.2, 0.0, 0.2)])
-next_state(p::Pose, a::HSAction) = Pose(p.x + a.dx, p.y + a.dy, p.phi)
+axis_actions = (-0.5, -0.25, 0.0, 0.25, 0.5)
+HSActionSpace() = vec([HSAction(dx, dy) for dx in axis_actions, dy in axis_actions])
+apply_action(p::Pose, a::HSAction) = Pose(p.x + a.dx, p.y + a.dy, p.phi)
 
 """
 The MDP representation of the fully observable HumanSwitching problem. This MDP
@@ -104,6 +105,7 @@ Parameters:
   room::RoomRep = RoomRep()
   transition_model::TM = PControlledHumanTransition()
   aspace::AS = HSActionSpace()
+  agent_min_distance::Float64 = 1.0
 end
 
 """
@@ -131,12 +133,16 @@ function HSPOMDP(sensor::HSSensor, mdp::HSMDP)
 end
 
 const HSModel = Union{HSMDP, HSPOMDP}
-POMDPs.discount(HSModel) = 0.99  # TODO: maybe move to struct field
+POMDPs.discount(HSModel) = 1.0  # TODO: maybe move to struct field
 
 mdp(m::HSMDP) = m
 mdp(m::HSPOMDP) = m.mdp
 transition_model(m::HSModel) = mdp(m).transition_model
 room(m::HSModel) = mdp(m).room
+agent_min_distance(m::HSModel) = mdp(m).agent_min_distance
+
+POMDPs.actions(m::HSModel) = mdp(m).aspace
+POMDPs.n_actions(m::HSModel) = length(mdp(m).aspace)
 
 # Implementing the main API of the generative interface
 """
@@ -145,7 +151,10 @@ generate_s
 Generates the next state given the last state and the taken action
 """
 # this simple forwards to the different transition models
-POMDPs.generate_s(m::HSModel, s::HSState, a::HSAction, rng::AbstractRNG)::HSState = generate_s(mdp(m), s, a, rng)
+function POMDPs.generate_s(m::HSModel, s::HSState, a::HSAction, rng::AbstractRNG)::HSState
+  @assert (a in actions(m))
+  generate_s(mdp(m), s, a, rng)
+end
 
 # human controlled by simple P-controller
 function human_p_transition(s::HSState)::Tuple{Pose, Pose}
@@ -170,7 +179,7 @@ function POMDPs.generate_s(m::HSMDP{PControlledHumanTransition, <:Any}, s::HSSta
   # assembling the new state
   human_pose_p, human_target_p = human_p_transition(s)
   # a deterministic robot transition model
-  robot_pose_p = next_state(s.robot_pose, a)
+  robot_pose_p = apply_action(s.robot_pose, a)
   robot_target_p = s.robot_target
 
   HSState(human_pose_p, human_target_p, robot_pose_p, robot_target_p)
@@ -185,7 +194,7 @@ function POMDPs.generate_s(m::HSMDP{PControlledHumanAWGNTransition, <:Any}, s::H
   do_resample = rand(rng) > 0.99
   human_target_p = do_resample ? rand(corner_poses(room(m))) : human_target_p
   # a deterministic robot transition model
-  robot_pose_p = next_state(s.robot_pose, a)
+  robot_pose_p = apply_action(s.robot_pose, a)
   robot_target_p = s.robot_target
 
   HSState(human_pose_p + rand(rng, MvNormal([0, 0, 0], transition_model(m).pose_cov)), human_target_p,
@@ -229,7 +238,10 @@ isterminal
 
 checks if the state is a terminal state
 """
-POMDPs.isterminal(m::HSModel, s::HSState) = (human_dist_to_target(s) < 0.2) # && (robot_dist_to_target(s) < 0.2)
+function POMDPs.isterminal(m::HSModel, s::HSState)
+  # TODO: Is it relevant that the human should also have reached it's target?
+  robot_reached_target(s) || has_collision(m, s)
+end
 
 """
 initialstate
@@ -275,6 +287,32 @@ The reward function for this problem.
 
 NOTE: Nothing intereseting here until the agent is also moving
 """
-function POMDPs.reward(m::HSModel, s::HSState, a::HSAction)::Float64
-  return 0.0
+function POMDPs.reward(m::HSModel, s::HSState, a::HSAction, sp::HSState)::Float64
+  # TODO: Make things configurable
+  living_penalty::Float64 = -0.1
+  collision_penalty::Float64 = -100.0
+  move_to_goal_reward::Float64 = 0.1
+  target_reached_reward::Float64 = 25.0
+  left_room_penalty::Float64 = -5.0
+
+  step_reward::Float64 = 0
+
+  # encourage finishing in finite time
+  step_reward += living_penalty
+  # avoid collision
+  if has_collision(m, sp)
+    step_reward += collision_penalty
+  end
+  # make rewards less sparse by rewarding going towards the goal
+  step_reward += move_to_goal_reward * (robot_dist_to_target(s) - robot_dist_to_target(sp))
+  # reward for reaching the goal
+  if robot_reached_target(sp)
+    step_reward += target_reached_reward
+  end
+
+  if !isinroom(sp.robot_pose, room(m))
+    step_reward += left_room_penalty
+  end
+
+  step_reward
 end
