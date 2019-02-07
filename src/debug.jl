@@ -56,7 +56,7 @@ function test_belief_updater(n_runs::Int=1)
   # the blief updater is run with a stocahstic version of the world
   belief_updater = SIRParticleFilter(noisy_pomdp, 1000, rng=rng)
   # the policy plannes without a model as it is always the same action
-  policy = FunctionPolicy(x->HSAction())
+  policy = FunctionPolicy(x->HSAction(0.2, 0.4))
   # the simulator uses the exact dynamics (not known to the belief_updater)
   for i_run in 1:n_runs
     makegif(exact_pomdp, policy, belief_updater, filename=joinpath(@__DIR__, "../renderings/out$i_run.gif"), extra_initial=true, rng=rng, max_steps=100, show_progress=true)

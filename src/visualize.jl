@@ -11,7 +11,7 @@ function room_node(rr::RoomRep; fill_color="bisque", stroke_color="black")::Cont
           rectangle(0, rr.height, rr.width, rr.height))
 end
 """
-agent_node
+pose_node
 
 Composes an agent node for the visualization graph
 
@@ -19,10 +19,19 @@ Fields:
 - `as` the state of the agent to be rendered
 - `r` the visual radius of the agent
 """
-function agent_node(as::Pose; r=0.15, fill_color="tomato", stroke_color="black", opacity::Float64=1.0)::Context
+function pose_node(as::Pose; has_orientation::Bool=true, r::Float64=0.15,
+                   fill_color="tomato", stroke_color="black", opacity::Float64=1.0)::Context
+
+  if has_orientation
+    marker = compose(context(), line([(as.x, as.y), (as.x+cos(as.phi)*r*2, as.y+sin(as.phi)*r*2)]), linewidth(1))
+  else
+    center_line(angle::Float64) = line([(as.x-cos(angle)*r*2, as.y-sin(angle)*r*2),
+                                      (as.x+cos(angle)*r*2, as.y+sin(angle)*r*2)])
+    marker = compose(context(), center_line(pi/4), center_line(-pi/4),linewidth(1))
+  end
+
   compose(context(), fill(fill_color), fillopacity(opacity), stroke(stroke_color), strokeopacity(opacity),
-          (context(), circle(as.x, as.y, r)),
-          (context(), line([(as.x, as.y), (as.x+cos(as.phi)*r*2, as.y+sin(as.phi)*r*2)]), linewidth(1)))
+          circle(as.x, as.y, r), marker)
 end
 
 """
@@ -49,7 +58,10 @@ Fields:
 - `target` the target position towards which the curve points (end anchor point, only for position)
 - `r` the visual radius of the agent
 """
-function start_target_curve_node(start_pose::Pose, target::Pose; r=0.5, stroke_color="green", opacity::Float64=1.0)::Context
+function start_target_curve_node(start_pose::Pose, target::Pose;
+                                 has_orientation::Bool=true, r::Float64=0.5,
+                                 stroke_color="green", opacity::Float64=1.0)::Context
+
   # the start and end anchor point for the bezier curve
   p_start = [Tuple(start_pose[1:2])]
   p_end = [Tuple(target[1:2])]
@@ -60,18 +72,24 @@ function start_target_curve_node(start_pose::Pose, target::Pose; r=0.5, stroke_c
   c2_help = (start_pose[1:2] + target[1:2]) / 2
   c2 = [(c2_help[1], c2_help[2])]
 
-  compose(context(), stroke(stroke_color), strokeopacity(opacity), curve(p_start, c1, c2, p_end))
+  compose(context(), stroke(stroke_color), strokeopacity(opacity),
+          has_orientation ? curve(p_start, c1, c2, p_end) : line([p_start..., p_end...]))
 end
 
 function agent_with_target_node(agent_pose::Pose, target::Pose;
-                                target_size=0.2, agent_color="tomato", curve_color="green",
+                                target_size::Float64=0.2, has_orientation::Bool=true,
+                                agent_color="tomato", curve_color="green",
                                 target_color="light green", opacity::Float64=1.0)::Context
   # the actual target of the human
   current_target_viz = target_node(target, size=target_size, fill_color=target_color, opacity=opacity)
   # the current pose of the human
-  agent_pose_viz = agent_node(agent_pose, fill_color=agent_color, opacity=opacity)
+  agent_pose_viz = pose_node(agent_pose,
+                             has_orientation=has_orientation,
+                             fill_color=agent_color, opacity=opacity)
   # a connection line between the human and the target
-  target_curve_viz = start_target_curve_node(agent_pose, target, stroke_color=curve_color, opacity=opacity)
+  target_curve_viz = start_target_curve_node(agent_pose, target,
+                                             has_orientation=has_orientation,
+                                             stroke_color=curve_color, opacity=opacity)
 
   compose(context(), agent_pose_viz, current_target_viz, target_curve_viz)
 end
@@ -119,11 +137,21 @@ function render_step_compose(m::HSModel, step::NamedTuple)::Context
   # all targets where humans might go
   potential_targets = corner_poses(room_rep)
   potential_targets_viz = [target_node(pt) for pt in potential_targets]
+
   # the human and it's target
-  agent_with_target_viz = agent_with_target_node(sp.human_pose, sp.human_target)
+  human_with_target_viz = agent_with_target_node(sp.human_pose, sp.human_target)
+
+  # the robot and it's target
+  robot_with_target_viz = agent_with_target_node(sp.robot_pose, sp.robot_target,
+                                                 has_orientation=false,
+                                                 agent_color="pink", curve_color="steelblue")
+
   belief_viz = haskey(step, :bp) && step[:bp] isa AbstractParticleBelief ? belief_node(step[:bp]) : context()
 
-  compose(mirror, (base_scale, agent_with_target_viz, potential_targets_viz..., belief_viz, room_viz))
+  compose(mirror, (base_scale,
+                   robot_with_target_viz,
+                   human_with_target_viz, potential_targets_viz..., belief_viz,
+                   room_viz))
 end
 
 """
