@@ -550,9 +550,9 @@ version = "0.1.3"
 
 [[POMDPSimulators]]
 deps = ["BeliefUpdaters", "DataFrames", "Distributed", "POMDPModelTools", "POMDPPolicies", "POMDPs", "ProgressMeter", "Random", "Test"]
-git-tree-sha1 = "80af97861f72bea33264a3fc907774b7837d4780"
+path = "/home/lassepe/.julia/dev/POMDPSimulators"
 uuid = "e0d0a172-29c6-5d4e-96d0-f262df5d01fd"
-version = "0.2.0"
+version = "0.2.0+"
 
 [[POMDPs]]
 deps = ["Distributions", "LibGit2", "Pkg", "Random", "Statistics", "Test"]

@@ -73,7 +73,7 @@ end
 
 function value_lower_bound(mdp::HSMDP, s::HSState, depth::Int)::Float64 # depth is the solver `depth` parameter less the number of timesteps that have already passed (it can be ignored in many cases)
   dist = robot_dist_to_target(s)
-  # TODO should be part of the MDP
+  # TODO parameters shoudl be taken from the model
   robot_max_speed = 1
   remaining_step_estimate = dist/robot_max_speed
   # assume that there is only the (discounted) target reward
@@ -84,26 +84,45 @@ function test_mdp_solver(n_runs::Int=1)
   rng = MersenneTwister(1)
 
   mdp_exact = HSMDP(transition_model=PControlledHumanTransition())
-  mdp_awgn = HSMDP(transition_model=PControlledHumanTransition())
-
-  pomdp_exact = HSPOMDP(sensor=ExactPositionSensor(), mdp=mdp_exact)
-  pomdp_awgn = HSPOMDP(sensor=NoisyPositionSensor([0.3, 0.3, 0.3]), mdp=mdp_awgn)
 
   # @requirements_info MCTSSolver() mdp_awgn initialstate(mdp_awgn, rng)
 
   # for now we run the ...
   # - the planner with some stochastic version of the true dynamics
   # - the simulator with the true dynamics unknown to the planner
-  heuristic_estimator = value_lower_bound
   rollout_estimator = RolloutEstimator(StraightToTarget())
-
   solver = MCTSSolver(estimate_value=rollout_estimator, n_iterations=2000, depth=15, exploration_constant=5.0)
   planner = solve(solver, mdp_exact)
+  simulator = HistoryRecorder(rng=rng, max_steps=100)
 
   for i_run in 1:n_runs
-    simulator = HistoryRecorder(rng=rng, max_steps=100)
     sim_hist = simulate(simulator, mdp_exact, planner)
     makegif(mdp_exact, sim_hist, filename=joinpath(@__DIR__, "../renderings/out_mcts$i_run.gif"), extra_initial=true, show_progress=true)
-    println(discounted_reward(sim_hist))
+    println("Discounted reward: $(discounted_reward(sim_hist))")
   end
+end
+
+function demo_mcts_blief_updater(n_runs::Int=1)
+  rng = MersenneTwister(1)
+
+  mdp_awgn = HSMDP(transition_model=PControlledHumanAWGNTransition())
+  pomdp_awgn = HSPOMDP(sensor=NoisyPositionSensor([0.3, 0.3, 0.3]), mdp=mdp_awgn)
+
+  # blief updater on the pomdp
+  belief_updater = SIRParticleFilter(pomdp_awgn, 2000, rng=rng)
+
+  # for now, run the planner on the fully observable version
+  rollout_estimator = RolloutEstimator(StraightToTarget())
+  solver = MCTSSolver(estimate_value=rollout_estimator, n_iterations=2000, depth=15, exploration_constant=5.0)
+  planner = solve(solver, mdp_awgn)
+  simulator = HistoryRecorder(rng=rng, max_steps=100, show_progress=true)
+
+  for i_run in 1:n_runs
+    try
+      sim_hist = simulate(simulator, pomdp_awgn, planner, belief_updater)
+      makegif(pomdp_awgn, sim_hist, filename=joinpath(@__DIR__, "../renderings/out_updater_and_mcts$i_run.gif"), extra_initial=true, show_progress=true)
+    catch
+    end
+  end
+
 end

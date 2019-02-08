@@ -193,7 +193,7 @@ function POMDPs.generate_s(m::HSMDP{PControlledHumanAWGNTransition, <:Any}, s::H
   human_pose_p, human_target_p = human_p_transition(s)
   # add AWGN to the pose
   # TODO: Maybe we also want noise on the target
-  do_resample = rand(rng) > 0.99
+  do_resample = rand(rng) > 0.99 || human_reached_target(s)
   human_target_p = do_resample ? rand(corner_poses(room(m))) : human_target_p
   # a deterministic robot transition model
   robot_pose_p = apply_action(s.robot_pose, a)
