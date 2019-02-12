@@ -29,8 +29,8 @@ A sensor that gives a noisy reading to the agents positions
                                         0.1,
                                         0.01]
 end
-POMDPs.obstype(::ExactPositionSensor) = Pose
-POMDPs.obstype(::NoisyPositionSensor) = Pose
+POMDPs.obstype(::ExactPositionSensor) = HSObservation
+POMDPs.obstype(::NoisyPositionSensor) = HSObservation
 
 # defining some transition models
 abstract type HSTransitionModel end
@@ -194,9 +194,12 @@ function POMDPs.generate_s(m::HSMDP{PControlledHumanAWGNTransition, <:Any}, s::H
   # add AWGN to the pose
   # TODO: Maybe we also want noise on the target
   do_resample = rand(rng) > 0.99 || human_reached_target(s)
-  human_target_p = do_resample ? rand(corner_poses(room(m))) : human_target_p
+  human_target_p = do_resample ? rand(rng, corner_poses(room(m))) : human_target_p
   # a deterministic robot transition model
-  robot_pose_p = apply_action(s.robot_pose, a)
+
+  # TODO: Just proof of concept! MOVE to a propper place!
+  transition_noise = rand(rng, MvNormal([0, 0, 0], transition_model(m).pose_cov))
+  robot_pose_p = apply_action(s.robot_pose, a) + [transition_noise[1:2]..., 0]
   robot_target_p = s.robot_target
 
   HSState(human_pose_p + rand(rng, MvNormal([0, 0, 0], transition_model(m).pose_cov)), human_target_p,
@@ -204,13 +207,16 @@ function POMDPs.generate_s(m::HSMDP{PControlledHumanAWGNTransition, <:Any}, s::H
 end
 
 # TODO: robotObservation
-@with_kw struct HSObservation
-  human_pose::Pose
-  robot_pose::Pose
-  robot_target::Pose
+@with_kw struct HSObservation <:FieldVector{5, Float64}
+  h_x::Float64 = 0
+  h_y::Float64 = 0
+  h_phi::Float64 = 0
+  r_x::Float64 = 0
+  r_y::Float64 = 0
 end
+
 # some convenient constructor
-HSObservation(s::HSState) = HSObservation(s.human_pose, s.robot_pose, s.robot_target)
+HSObservation(s::HSState) = HSObservation(s.human_pose..., s.robot_pose[1:2]...)
 
 """
 generate_o
@@ -225,14 +231,14 @@ Generates an observation for an observed transition
 POMDPs.generate_o(m::HSPOMDP{ExactPositionSensor, Pose}, s::HSState, a::HSAction, sp::HSState, rng::AbstractRNG)::Pose = sp.human_pose
 
 # In this version the observation is a **noisy** extraction of the observable part of the state
-function POMDPs.generate_o(m::HSPOMDP{NoisyPositionSensor, Pose}, s::HSState, a::HSAction, sp::HSState, rng::AbstractRNG)::Pose
+function POMDPs.generate_o(m::HSPOMDP{NoisyPositionSensor, Pose}, s::HSState, a::HSAction, sp::HSState, rng::AbstractRNG)::HSObservation
   # NOTE: this distribution is **already** centered around the state sp
-  o_distribution = MvNormal(convert(Array, sp.human_pose), m.sensor.measurement_cov)
-  return rand(rng, o_distribution)
+  return HSObservation(rand(rng, observation(m, s)))
 end
 
 function POMDPs.observation(m::HSModel, s::HSState)
-  return MvNormal(convert(Array, s.human_pose), m.sensor.measurement_cov)
+  # TODO: do this properly
+  return MvNormal(Array{Float64, 1}([s.human_pose..., s.robot_pose[1:2]...]), Array{Float64, 1}([m.sensor.measurement_cov..., m.sensor.measurement_cov[1:2]...]))
 end
 
 """

@@ -103,7 +103,7 @@ function test_mdp_solver(n_runs::Int=1)
 end
 
 function demo_mcts_blief_updater(n_runs::Int=1)
-  rng = MersenneTwister(1)
+  rng = MersenneTwister(7)
 
   mdp_awgn = HSMDP(transition_model=PControlledHumanAWGNTransition())
   pomdp_awgn = HSPOMDP(sensor=NoisyPositionSensor([0.3, 0.3, 0.3]), mdp=mdp_awgn)
@@ -117,12 +117,11 @@ function demo_mcts_blief_updater(n_runs::Int=1)
   planner = solve(solver, mdp_awgn)
   simulator = HistoryRecorder(rng=rng, max_steps=100, show_progress=true)
 
-  for i_run in 1:n_runs
-    try
+  global i_run = 0
+  while i_run < n_runs
       sim_hist = simulate(simulator, pomdp_awgn, planner, belief_updater)
       makegif(pomdp_awgn, sim_hist, filename=joinpath(@__DIR__, "../renderings/out_updater_and_mcts$i_run.gif"), extra_initial=true, show_progress=true)
-    catch
-    end
+      global i_run += 1
   end
 
 end

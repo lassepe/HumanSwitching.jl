@@ -32,3 +32,5 @@ minimum time without colliding with the human.
   the fully observable `MDP` using `MCTS`.
 
 ![example](readme_media/updater_and_mcts_example.gif)
+
+![example](readme_media/join_observation_example.gif)

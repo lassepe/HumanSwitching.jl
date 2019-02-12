@@ -95,15 +95,22 @@ function agent_with_target_node(agent_pose::Pose, target::Pose;
 end
 
 function belief_node(bp::AbstractParticleBelief)::Context
-  compose(context(),
-          [agent_with_target_node(p.human_pose,
-                                  p.human_target,
-                                  agent_color="light blue",
-                                  curve_color="gray",
-                                  target_color="light blue",
-                                  target_size=0.4,
-                                  opacity=0.1)
-           for p in particles(bp)])
+  human_particles = [agent_with_target_node(p.human_pose,
+                                            p.human_target,
+                                            agent_color="light blue",
+                                            curve_color="gray",
+                                            target_color="light blue",
+                                            target_size=0.4,
+                                            opacity=0.1)
+                     for p in particles(bp)]
+
+  robot_particles = [pose_node(p.robot_pose,
+                               has_orientation=false, # TODO just for checking
+                               fill_color="light green",
+                               opacity=0.1)
+                     for p in particles(bp)]
+
+  compose(context(), robot_particles, human_particles)
 end
 
 """
