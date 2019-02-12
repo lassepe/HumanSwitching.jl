@@ -94,7 +94,12 @@ function agent_with_target_node(agent_pose::Pose, target::Pose;
   compose(context(), agent_pose_viz, current_target_viz, target_curve_viz)
 end
 
-function belief_node(bp::AbstractParticleBelief)::Context
+function belief_node(bp::AbstractParticleBelief;
+                     render_particle_percentage::Float64=0.1)::Context
+  # pick only a few particles to render since otherwise rendering takes ages
+  particle_subset = (p for (i, p) in enumerate(particles(bp))
+                     if i <= render_particle_percentage*length(particles(bp)))
+
   human_particles = [agent_with_target_node(p.human_pose,
                                             p.human_target,
                                             agent_color="light blue",
@@ -102,13 +107,13 @@ function belief_node(bp::AbstractParticleBelief)::Context
                                             target_color="light blue",
                                             target_size=0.4,
                                             opacity=0.1)
-                     for p in particles(bp)]
+                     for p in particle_subset]
 
   robot_particles = [pose_node(p.robot_pose,
                                has_orientation=false, # TODO just for checking
                                fill_color="light green",
                                opacity=0.1)
-                     for p in particles(bp)]
+                     for p in particle_subset]
 
   compose(context(), robot_particles, human_particles)
 end

@@ -113,7 +113,7 @@ function demo_mcts_blief_updater(n_runs::Int=1)
 
   # for now, run the planner on the fully observable version
   rollout_estimator = RolloutEstimator(StraightToTarget())
-  solver = MCTSSolver(estimate_value=rollout_estimator, n_iterations=2000, depth=15, exploration_constant=5.0)
+  solver = MCTSSolver(estimate_value=rollout_estimator, n_iterations=1000, depth=15, exploration_constant=5.0)
   planner = solve(solver, mdp_awgn)
   simulator = HistoryRecorder(rng=rng, max_steps=100, show_progress=true)
 
@@ -123,5 +123,4 @@ function demo_mcts_blief_updater(n_runs::Int=1)
       makegif(pomdp_awgn, sim_hist, filename=joinpath(@__DIR__, "../renderings/out_updater_and_mcts$i_run.gif"), extra_initial=true, show_progress=true)
       global i_run += 1
   end
-
 end
