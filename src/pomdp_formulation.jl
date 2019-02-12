@@ -93,6 +93,15 @@ phi_actions = (-pi:phi_resolution:(pi-phi_resolution))
 HSActionSpace() = vec([zero(HSAction()), (HSAction(d, phi) for d in dist_actions, phi in phi_actions)...])
 apply_action(p::Pose, a::HSAction) = Pose(p.x + cos(a.phi)*a.d, p.y + sin(a.phi)*a.d, p.phi)
 
+@with_kw struct HSRewardModel
+  living_penalty::Float64 = -0.1
+  control_cost::Float64 = 0.1
+  collision_penalty::Float64 = -100.0
+  move_to_goal_reward::Float64 = 0.1
+  target_reached_reward::Float64 = 25.0
+  left_room_penalty::Float64 = -100.0
+end
+
 """
 The MDP representation of the fully observable HumanSwitching problem. This MDP
 formulation is used to derive the POMDP formulation for the partially
@@ -107,6 +116,7 @@ Parameters:
   room::RoomRep = RoomRep()
   transition_model::TM = PControlledHumanTransition()
   aspace::AS = HSActionSpace()
+  reward_model = HSRewardModel()
   agent_min_distance::Float64 = 1.0
 end
 
@@ -140,6 +150,7 @@ POMDPs.discount(HSModel) = 0.95  # TODO: maybe move to struct field
 mdp(m::HSMDP) = m
 mdp(m::HSPOMDP) = m.mdp
 transition_model(m::HSModel) = mdp(m).transition_model
+reward_model(m::HSModel) = mdp(m).reward_model
 room(m::HSModel) = mdp(m).room
 agent_min_distance(m::HSModel) = mdp(m).agent_min_distance
 
@@ -191,13 +202,12 @@ end
 function POMDPs.generate_s(m::HSMDP{PControlledHumanAWGNTransition, <:Any}, s::HSState, a::HSAction, rng::AbstractRNG)::HSState
   # first get the deterministic version
   human_pose_p, human_target_p = human_p_transition(s)
-  # add AWGN to the pose
-  # TODO: Maybe we also want noise on the target
+  # add AWGN to the pose and have small likelyhood of chaning the target
   do_resample = rand(rng) > 0.99 || human_reached_target(s)
   human_target_p = do_resample ? rand(rng, corner_poses(room(m))) : human_target_p
   # a deterministic robot transition model
 
-  # TODO: Just proof of concept! MOVE to a propper place!
+  # TODO: Just proof of concept! MOVE to a proper place!
   transition_noise = rand(rng, MvNormal([0, 0, 0], transition_model(m).pose_cov))
   robot_pose_p = apply_action(s.robot_pose, a) + [transition_noise[1:2]..., 0]
   robot_target_p = s.robot_target
@@ -206,7 +216,6 @@ function POMDPs.generate_s(m::HSMDP{PControlledHumanAWGNTransition, <:Any}, s::H
           robot_pose_p, robot_target_p)
 end
 
-# TODO: robotObservation
 @with_kw struct HSObservation <:FieldVector{5, Float64}
   h_x::Float64 = 0
   h_y::Float64 = 0
@@ -228,17 +237,13 @@ Generates an observation for an observed transition
 
 # In this version the observation is a **deterministic** extraction of the observable part of the state
 # TODO: robotObservation
-POMDPs.generate_o(m::HSPOMDP{ExactPositionSensor, Pose}, s::HSState, a::HSAction, sp::HSState, rng::AbstractRNG)::Pose = sp.human_pose
+POMDPs.generate_o(m::HSPOMDP{ExactPositionSensor, HSObservation, <:Any},
+                  s::HSState, a::HSAction, sp::HSState, rng::AbstractRNG)::HSObservation = HSObservation(sp)
 
-# In this version the observation is a **noisy** extraction of the observable part of the state
-function POMDPs.generate_o(m::HSPOMDP{NoisyPositionSensor, Pose}, s::HSState, a::HSAction, sp::HSState, rng::AbstractRNG)::HSObservation
-  # NOTE: this distribution is **already** centered around the state sp
-  return HSObservation(rand(rng, observation(m, s)))
-end
-
-function POMDPs.observation(m::HSModel, s::HSState)
+function POMDPs.observation(m::HSPOMDP{NoisyPositionSensor, HSObservation, <:Any}, s::HSState)
   # TODO: do this properly
-  return MvNormal(Array{Float64, 1}([s.human_pose..., s.robot_pose[1:2]...]), Array{Float64, 1}([m.sensor.measurement_cov..., m.sensor.measurement_cov[1:2]...]))
+  return MvNormal(Array{Float64, 1}([s.human_pose..., s.robot_pose[1:2]...]),
+                  Array{Float64, 1}([m.sensor.measurement_cov..., m.sensor.measurement_cov[1:2]...]))
 end
 
 """
@@ -247,7 +252,6 @@ isterminal
 checks if the state is a terminal state
 """
 function POMDPs.isterminal(m::HSModel, s::HSState)
-  # TODO: Is it relevant that the human should also have reached it's target?
   robot_reached_target(s) || !isinroom(s.robot_pose, room(m)) || has_collision(m, s)
 end
 
@@ -285,7 +289,8 @@ POMDPs.rand(rng::AbstractRNG, d::HSInitialDistribution) = initialstate(d.m, rng)
 initialstate_distribution
 
 defines the initial state distribution on this
-problem set which can be passed to rand """
+problem set which can be passed to rand
+"""
 POMDPs.initialstate_distribution(m::HSModel) = HSInitialDistribution(m)
 
 """
@@ -296,33 +301,26 @@ The reward function for this problem.
 NOTE: Nothing intereseting here until the agent is also moving
 """
 function POMDPs.reward(m::HSModel, s::HSState, a::HSAction, sp::HSState)::Float64
-  # TODO: Make things configurable
-  living_penalty::Float64 = -0.1
-  control_cost::Float64 = 0.1
-  collision_penalty::Float64 = -100.0
-  move_to_goal_reward::Float64 = 0.1
-  target_reached_reward::Float64 = 25.0
-  left_room_penalty::Float64 = -100.0
-
+  rm = reward_model(m)
   step_reward::Float64 = 0
 
   # encourage finishing in finite time
-  step_reward += living_penalty
+  step_reward += rm.living_penalty
   # control_cost
-  step_reward += control_cost * a.d
+  step_reward += rm.control_cost * a.d
   # avoid collision
   if has_collision(m, sp)
-    step_reward += collision_penalty
+    step_reward += rm.collision_penalty
   end
   # make rewards less sparse by rewarding going towards the goal
-  step_reward += move_to_goal_reward * (robot_dist_to_target(s) - robot_dist_to_target(sp))
+  step_reward += rm.move_to_goal_reward * (robot_dist_to_target(s) - robot_dist_to_target(sp))
   # reward for reaching the goal
   if robot_reached_target(sp)
-    step_reward += target_reached_reward
+    step_reward += rm.target_reached_reward
   end
 
   if !isinroom(sp.robot_pose, room(m))
-    step_reward += left_room_penalty
+    step_reward += rm.left_room_penalty
   end
 
   step_reward
