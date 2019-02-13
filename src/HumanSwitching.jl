@@ -45,7 +45,8 @@ export
   initialstate,
   reward,
   discount,
-  apply_action
+  apply_action,
+  generate_hspomdp
 include("pomdp_formulation.jl")
 
 export

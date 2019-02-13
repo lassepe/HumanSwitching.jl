@@ -13,6 +13,7 @@ using POMDPPolicies
 using POMDPSimulators
 using POMDPGifs
 using BeliefUpdaters
+using POMCPOW
 using MCTS
 
 using Blink
@@ -115,12 +116,30 @@ function demo_mcts_blief_updater(n_runs::Int=1)
   rollout_estimator = RolloutEstimator(StraightToTarget())
   solver = MCTSSolver(estimate_value=rollout_estimator, n_iterations=1000, depth=15, exploration_constant=5.0)
   planner = solve(solver, mdp_awgn)
-  simulator = HistoryRecorder(rng=rng, max_steps=100, show_progress=true)
+  simulator = HistoryRecorder(max_steps=100, show_progress=true, rng=rng)
 
   global i_run = 0
   while i_run < n_runs
       sim_hist = simulate(simulator, pomdp_awgn, planner, belief_updater)
       makegif(pomdp_awgn, sim_hist, filename=joinpath(@__DIR__, "../renderings/out_updater_and_mcts$i_run.gif"), extra_initial=true, show_progress=true)
       global i_run += 1
+  end
+end
+
+function demo_pomdp(n_runs::Int=1)
+  for i_run in 1:n_runs
+    rng = MersenneTwister(i_run)
+    pomdp = generate_hspomdp(NoisyPositionSensor(), PControlledHumanAWGNTransition(), rng)
+
+    belief_updater = SIRParticleFilter(pomdp, 4000, rng=rng)
+    solver = POMCPOWSolver(criterion=MaxUCB(20), estimate_value=FORollout(StraightToTarget()), default_action=zero(HSAction), rng=rng)
+    planner = solve(solver, pomdp)
+    simulator = HistoryRecorder(max_steps=100, show_progress=true, rng=rng)
+
+    try
+      sim_hist = simulate(simulator, pomdp, planner, belief_updater)
+      makegif(pomdp, sim_hist, filename=joinpath(@__DIR__, "../renderings/out_pomcpow_$i_run.gif"), extra_initial=true, show_progress=true)
+    catch
+    end
   end
 end

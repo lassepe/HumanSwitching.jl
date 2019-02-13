@@ -37,13 +37,32 @@ function human_angle_to_target(s::HSState)::Float64
   return atan(v[2], v[1])
 end
 
-function rand_pose(r::RoomRep; rng::AbstractRNG=Random.GLOBAL_RNG, forced_orientation::Union{Float64, Nothing}=nothing)::Pose
+function rand_pose(r::RoomRep, rng::AbstractRNG; forced_orientation::Union{Float64, Nothing}=nothing)::Pose
   x = rand(rng) * r.width
   y = rand(rng) * r.height
   phi = forced_orientation === nothing ? rand(rng) * pi : forced_orientation
   return Pose(x, y, phi)
 end
-rand_pose(m::HSModel; rng::AbstractRNG=Random.GLOBAL_RNG, forced_orientation::Union{Float64, Nothing}=nothing)::Pose = rand_pose(room(m); rng=rng)
+rand_pose(m::HSModel, rng::AbstractRNG; forced_orientation::Union{Float64, Nothing}=nothing)::Pose = rand_pose(room(m))
+
+# TODO: fixType
+function rand_state(r::RoomRep, rng::AbstractRNG; known_external_state::Union{HSState, Nothing}=nothing)
+  if known_external_state === nothing
+    human_init_pose = rand_pose(r, rng)
+    robot_init_pose = rand_pose(r, rng; forced_orientation=0.0)
+    robot_target_pose = rand_pose(r, rng; forced_orientation=0.0)
+  else
+    human_init_pose = known_external_state.human_pose
+    robot_init_pose = known_external_state.robot_pose
+    robot_target_pose = known_external_state.robot_target
+  end
+
+  # the human target is always unknown
+  human_target_pose = rand(rng, corner_poses(r))
+
+  return HSState(human_pose=human_init_pose, human_target=human_target_pose,
+                 robot_pose=robot_init_pose, robot_target=robot_target_pose)
+end
 
 function isinroom(p::Pose, r::RoomRep)
   return  0 <= p.x <= r.width && 0 <= p.y <= r.height

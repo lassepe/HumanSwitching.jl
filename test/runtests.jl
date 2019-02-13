@@ -50,10 +50,9 @@ end;
   @test all(HS.isinroom(td.human_pose, r) && HS.isinroom(td.human_target, r) for td in test_inits_data)
 
   # check whether the simulation terminates in finite time if we only observe
-  s = initialstate(hs_pomdp_noisy_o, rng)
   policy = FunctionPolicy(x->HSAction())
   belief_updater = NothingUpdater()
-  history = simulate(HistoryRecorder(max_steps=500), hs_pomdp_noisy_o, policy, belief_updater)
+  history = simulate(HistoryRecorder(rng=rng, max_steps=500), hs_pomdp_noisy_o, policy, belief_updater)
   # note that only sp is terminal, not s! (you never take an action from the
   # terminal state)
   last_s = last(collect(sp for sp in eachstep(history, "sp")))

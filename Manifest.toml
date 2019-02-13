@@ -37,6 +37,12 @@ version = "0.3.0"
 [[Base64]]
 uuid = "2a0f44e3-6c83-55bd-87e4-b1978d98bd5f"
 
+[[BasicPOMCP]]
+deps = ["BeliefUpdaters", "CPUTime", "Colors", "D3Trees", "MCTS", "POMDPModelTools", "POMDPPolicies", "POMDPSimulators", "POMDPs", "Parameters", "ParticleFilters", "Printf", "Random"]
+git-tree-sha1 = "e344c80226c8aaef0424c3b361a1be3099ccbf62"
+uuid = "d721219e-3fc6-5570-a8ef-e5402f47c49e"
+version = "0.2.1"
+
 [[BeliefUpdaters]]
 deps = ["POMDPModelTools", "POMDPs", "Random", "Statistics", "StatsBase", "Test"]
 git-tree-sha1 = "f2c17c607f45236ce8bfe77f4e0278e29fe4a760"
@@ -256,9 +262,9 @@ version = "0.4.0"
 
 [[Gtk]]
 deps = ["BinDeps", "Cairo", "Compat", "Graphics", "Homebrew", "Libdl", "Reexport", "Serialization", "Test", "WinRPM"]
-git-tree-sha1 = "261bfcf4910db53990f289c1338aa8eb3b89fb44"
+git-tree-sha1 = "dd884c7cbd08c8e370172bdd535d6bea45359537"
 uuid = "4c0ca9eb-093a-5379-98c5-f87ac0bbbf44"
-version = "0.16.4"
+version = "0.16.5"
 
 [[GtkReactive]]
 deps = ["Cairo", "Colors", "Dates", "FixedPointNumbers", "Graphics", "Gtk", "IntervalSets", "Reactive", "Reexport", "RoundingIntegers", "Test"]
@@ -530,6 +536,12 @@ git-tree-sha1 = "b6c91fc0ab970c0563cbbe69af18d741a49ce551"
 uuid = "90014a1f-27ba-587c-ab20-58faa44d9150"
 version = "0.9.6"
 
+[[POMCPOW]]
+deps = ["BasicPOMCP", "CPUTime", "Colors", "D3Trees", "MCTS", "POMDPModelTools", "POMDPPolicies", "POMDPs", "Parameters", "ParticleFilters", "Printf", "Random"]
+git-tree-sha1 = "ed65ce2f8ce2c7980e1bea5a84767b343c459015"
+uuid = "4c53ee00-974c-466f-8fa5-8dd73959bbab"
+version = "0.2.2"
+
 [[POMDPGifs]]
 deps = ["POMDPModelTools", "POMDPPolicies", "POMDPSimulators", "POMDPs", "Parameters", "ProgressMeter", "Random", "Reel"]
 path = "/home/lassepe/.julia/dev/POMDPGifs"
@@ -550,9 +562,9 @@ version = "0.1.3"
 
 [[POMDPSimulators]]
 deps = ["BeliefUpdaters", "DataFrames", "Distributed", "POMDPModelTools", "POMDPPolicies", "POMDPs", "ProgressMeter", "Random", "Test"]
-path = "/home/lassepe/.julia/dev/POMDPSimulators"
+git-tree-sha1 = "80af97861f72bea33264a3fc907774b7837d4780"
 uuid = "e0d0a172-29c6-5d4e-96d0-f262df5d01fd"
-version = "0.2.0+"
+version = "0.2.0"
 
 [[POMDPs]]
 deps = ["Distributions", "LibGit2", "Pkg", "Random", "Statistics", "Test"]
@@ -662,9 +674,9 @@ version = "0.5.0"
 
 [[Rotations]]
 deps = ["LinearAlgebra", "Random", "StaticArrays", "Statistics", "Test"]
-git-tree-sha1 = "ef8fc0cb5933cb3e2432c6549d7e5c4fd0de353f"
+git-tree-sha1 = "dfb3ceb177a59f25fee4e2f26c1aeb92b73d3a0e"
 uuid = "6038ab10-8711-5258-84ad-4b1120ba62dc"
-version = "0.11.0"
+version = "0.11.1"
 
 [[RoundingIntegers]]
 deps = ["Test"]
@@ -800,15 +812,15 @@ version = "1.1.3"
 
 [[VideoIO]]
 deps = ["BinDeps", "ColorTypes", "FileIO", "FixedPointNumbers", "Glob", "Homebrew", "ImageCore", "ImageView", "Libdl", "Requires", "Test"]
-git-tree-sha1 = "c46d00e44bb16863fbc1fd7f686fae8309f38b40"
+git-tree-sha1 = "35b20aa2222be12a671377876c68bdcc2d11fc2a"
 uuid = "d6d074c3-1acf-5d4c-9a43-ef38773959a2"
-version = "0.5.0"
+version = "0.5.1"
 
 [[WeakRefStrings]]
 deps = ["Missings", "Random", "Test"]
-git-tree-sha1 = "bccf012a0e8815410ad8b6846944a33903992fc3"
+git-tree-sha1 = "cf70c71939e621a3fac4156a8bfb3c80d745794a"
 uuid = "ea10d353-3f73-51f8-a26c-33c1cb351aa5"
-version = "0.5.6"
+version = "0.5.7"
 
 [[WebIO]]
 deps = ["AssetRegistry", "Base64", "Compat", "FunctionalCollections", "JSON", "Logging", "Observables", "Random", "Requires", "Sockets", "Test", "UUIDs", "Widgets"]

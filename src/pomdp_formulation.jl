@@ -43,7 +43,7 @@ proportional controller towards a fixed target
 struct PControlledHumanTransition <: HSTransitionModel end
 @with_kw struct PControlledHumanAWGNTransition <: HSTransitionModel
   " the diagonal of the transition AWGN covariance matrix"
-  pose_cov::Array{Float64, 1} = [0.1, 0.1, 0.01]
+  pose_cov::Array{Float64, 1} = [0.15, 0.15, 0.01]
 end
 
 """
@@ -118,6 +118,7 @@ Parameters:
   aspace::AS = HSActionSpace()
   reward_model = HSRewardModel()
   agent_min_distance::Float64 = 1.0
+  known_external_initstate::Union{HSState, Nothing} = nothing
 end
 
 """
@@ -142,6 +143,25 @@ end
 
 function HSPOMDP(sensor::HSSensor, mdp::HSMDP)
   HSPOMDP{typeof(sensor), obstype(sensor), typeof(mdp)}(sensor, mdp)
+end
+
+function generate_hspomdp(sensor::HSSensor, transition_model::HSTransitionModel, rng::AbstractRNG;
+                          room::RoomRep=RoomRep(),
+                          aspace=HSActionSpace(),
+                          reward_model::HSRewardModel=HSRewardModel(),
+                          agent_min_distance::Float64=1.0,
+                          initial_positions_known::Bool=true)
+
+  known_external_initstate = initial_positions_known ? rand_state(room, rng) : nothing
+
+  mdp = HSMDP(;room=room,
+              transition_model=transition_model,
+              aspace=aspace,
+              reward_model=reward_model,
+              agent_min_distance=agent_min_distance,
+              known_external_initstate=known_external_initstate)
+
+  return HSPOMDP(sensor, mdp)
 end
 
 const HSModel = Union{HSMDP, HSPOMDP}
@@ -208,6 +228,7 @@ function POMDPs.generate_s(m::HSMDP{PControlledHumanAWGNTransition, <:Any}, s::H
   # a deterministic robot transition model
 
   # TODO: Just proof of concept! MOVE to a proper place!
+  # TODO: The robot should have it's own transition statistics
   transition_noise = rand(rng, MvNormal([0, 0, 0], transition_model(m).pose_cov))
   robot_pose_p = apply_action(s.robot_pose, a) + [transition_noise[1:2]..., 0]
   robot_target_p = s.robot_target
@@ -232,14 +253,14 @@ generate_o
 
 Generates an observation for an observed transition
 """
-# TODO: This is a bit misleading as it make it look like the full state was
-# observable. `Pose` should probably be renamed.
 
 # In this version the observation is a **deterministic** extraction of the observable part of the state
-# TODO: robotObservation
 POMDPs.generate_o(m::HSPOMDP{ExactPositionSensor, HSObservation, <:Any},
                   s::HSState, a::HSAction, sp::HSState, rng::AbstractRNG)::HSObservation = HSObservation(sp)
+POMDPs.generate_o(m::HSPOMDP{NoisyPositionSensor, HSObservation, <:Any},
+                  s::HSState, a::HSAction, sp::HSState, rng::AbstractRNG)::HSObservation = HSObservation(rand(rng, POMDPs.observation(m, sp)))
 
+# TODO: This is a bit ugly. There should be away to directly define a distribution type on a FieldVector
 function POMDPs.observation(m::HSPOMDP{NoisyPositionSensor, HSObservation, <:Any}, s::HSState)
   # TODO: do this properly
   return MvNormal(Array{Float64, 1}([s.human_pose..., s.robot_pose[1:2]...]),
@@ -261,17 +282,7 @@ initialstate
 Sample an initial state and a target state for each agent.
 """
 function POMDPs.initialstate(m::HSModel, rng::AbstractRNG)::HSState
-  # generate an initial position and a goal for the human
-  human_init_pose = rand_pose(room(m), rng=rng)
-  # for now the target is one of the 4 corners of the room
-  human_target_pose = rand(rng, corner_poses(room(m)))
-
-  # the robot starts in some rando mpose and want's to go some random pose
-  robot_init_pose = rand_pose(room(m), rng=rng, forced_orientation=0.0)
-  robot_target_pose = rand_pose(room(m), rng=rng, forced_orientation=0.0)
-
-  return HSState(human_pose=human_init_pose, human_target=human_target_pose,
-                 robot_pose=robot_init_pose, robot_target=robot_target_pose)
+  return rand_state(room(m), rng; known_external_state=mdp(m).known_external_initstate)
 end
 
 struct HSInitialDistribution{ModelType<:HSModel}
