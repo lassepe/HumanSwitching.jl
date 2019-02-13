@@ -72,7 +72,12 @@ export
   rand_astate,
   dist_to_pose,
   robot_dist_to_target,
-  corner_poses
+  corner_poses,
+  has_collision
 include("utils.jl")
+
+export
+  AgentPerformance
+include("agent_performance_metrics.jl")
 
 end # module

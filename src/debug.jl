@@ -128,7 +128,6 @@ function demo_mcts_blief_updater(n_runs::Int=1)
   end
 end
 
-
 # TODO: Think about the deepcopy part
 function demo_pomdp(runs)
   for i_run in runs
@@ -143,13 +142,14 @@ function demo_pomdp(runs)
     planner = solve(solver, planning_model)
 
     # run simulation and render gif
-    simulator = HistoryRecorder(max_steps=100, show_progress=true, rng=deepcopy(rng))
-
     try
+      @info "Run #$i_run"
+      simulator = HistoryRecorder(max_steps=100, show_progress=true, rng=deepcopy(rng))
       sim_hist = simulate(simulator, simulation_model, planner, belief_updater)
       makegif(simulation_model, sim_hist, filename=joinpath(@__DIR__, "../renderings/out_pomcpow_$i_run.gif"), extra_initial=true, show_progress=true)
+      println(AgentPerformance(simulation_model, sim_hist))
     catch ex
-      print(typeof(ex))
+      println(typeof(ex))
     end
   end
 end
