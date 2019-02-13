@@ -94,11 +94,11 @@ HSActionSpace() = vec([zero(HSAction()), (HSAction(d, phi) for d in dist_actions
 apply_action(p::Pose, a::HSAction) = Pose(p.x + cos(a.phi)*a.d, p.y + sin(a.phi)*a.d, p.phi)
 
 @with_kw struct HSRewardModel
-  living_penalty::Float64 = -0.1
-  control_cost::Float64 = 0.1
+  living_penalty::Float64 = -2
+  control_cost::Float64 = -0.1
   collision_penalty::Float64 = -100.0
   move_to_goal_reward::Float64 = 0.1
-  target_reached_reward::Float64 = 25.0
+  target_reached_reward::Float64 = 100.0
   left_room_penalty::Float64 = -100.0
 end
 
@@ -150,9 +150,14 @@ function generate_hspomdp(sensor::HSSensor, transition_model::HSTransitionModel,
                           aspace=HSActionSpace(),
                           reward_model::HSRewardModel=HSRewardModel(),
                           agent_min_distance::Float64=1.0,
-                          initial_positions_known::Bool=true)
+                          known_external_initstate::Union{HSState, Nothing}=nothing)
 
-  known_external_initstate = initial_positions_known ? rand_state(room, rng) : nothing
+  generate_own_init_state = (known_external_initstate === nothing)
+
+  # if no explicit fixed stated for this problem was provided, we generate it
+  if generate_own_init_state
+    known_external_initstate = rand_state(room, rng)
+  end
 
   mdp = HSMDP(;room=room,
               transition_model=transition_model,
@@ -161,11 +166,11 @@ function generate_hspomdp(sensor::HSSensor, transition_model::HSTransitionModel,
               agent_min_distance=agent_min_distance,
               known_external_initstate=known_external_initstate)
 
-  return HSPOMDP(sensor, mdp)
+  return generate_own_init_state ? (HSPOMDP(sensor, mdp), known_external_initstate) : HSPOMDP(sensor, mdp)
 end
 
 const HSModel = Union{HSMDP, HSPOMDP}
-POMDPs.discount(HSModel) = 0.95  # TODO: maybe move to struct field
+POMDPs.discount(HSModel) = 0.8  # TODO: maybe move to struct field
 
 mdp(m::HSMDP) = m
 mdp(m::HSPOMDP) = m.mdp
@@ -191,7 +196,7 @@ end
 
 # human controlled by simple P-controller
 function human_p_transition(s::HSState)::Tuple{Pose, Pose}
-  human_velocity = min(0.6, human_dist_to_target(s)) #m/s
+  human_velocity = min(0.3, human_dist_to_target(s)) #m/s
   vec2target = human_vec_to_target(s)
   target_direction = normalize(vec2target)
   current_walk_direction = @SVector [cos(s.human_pose.phi), sin(s.human_pose.phi)]
@@ -211,6 +216,10 @@ end
 function POMDPs.generate_s(m::HSMDP{PControlledHumanTransition, <:Any}, s::HSState, a::HSAction, rng::AbstractRNG)::HSState
   # assembling the new state
   human_pose_p, human_target_p = human_p_transition(s)
+  if human_reached_target(s)
+    human_target_p = rand(rng, corner_poses(room(m)))
+  end
+
   # a deterministic robot transition model
   robot_pose_p = apply_action(s.robot_pose, a)
   robot_target_p = s.robot_target

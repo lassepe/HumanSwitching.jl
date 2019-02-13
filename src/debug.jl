@@ -75,10 +75,14 @@ end
 function value_lower_bound(mdp::HSMDP, s::HSState, depth::Int)::Float64 # depth is the solver `depth` parameter less the number of timesteps that have already passed (it can be ignored in many cases)
   dist = robot_dist_to_target(s)
   # TODO parameters shoudl be taken from the model
-  robot_max_speed = 1
+  robot_max_speed = 0.5
   remaining_step_estimate = dist/robot_max_speed
   # assume that there is only the (discounted) target reward
-  return 50.0 * (discount(mdp)^remaining_step_estimate) - remaining_step_estimate * 0.1
+  return (discount(mdp)^remaining_step_estimate) - remaining_step_estimate * 0.1
+end
+
+function value_lower_bound(pomdp::HSPOMDP, s::HSState, b::AbstractParticleBelief, steps::Int)
+  return value_lower_bound(mdp(pomdp), s, steps)
 end
 
 function test_mdp_solver(n_runs::Int=1)
@@ -118,28 +122,34 @@ function demo_mcts_blief_updater(n_runs::Int=1)
   planner = solve(solver, mdp_awgn)
   simulator = HistoryRecorder(max_steps=100, show_progress=true, rng=rng)
 
-  global i_run = 0
-  while i_run < n_runs
+  for i_run in 1:n_runs
       sim_hist = simulate(simulator, pomdp_awgn, planner, belief_updater)
       makegif(pomdp_awgn, sim_hist, filename=joinpath(@__DIR__, "../renderings/out_updater_and_mcts$i_run.gif"), extra_initial=true, show_progress=true)
-      global i_run += 1
   end
 end
 
+
+# TODO: Think about the deepcopy part
 function demo_pomdp(n_runs::Int=1)
   for i_run in 1:n_runs
     rng = MersenneTwister(i_run)
-    pomdp = generate_hspomdp(NoisyPositionSensor(), PControlledHumanAWGNTransition(), rng)
+    # setup models
+    simulation_model, external_init_state = generate_non_trivial_scenario(ExactPositionSensor(), PControlledHumanTransition(), deepcopy(rng))
+    planning_model = generate_hspomdp(NoisyPositionSensor(), PControlledHumanAWGNTransition(), rng; known_external_initstate=external_init_state)
 
-    belief_updater = SIRParticleFilter(pomdp, 4000, rng=rng)
-    solver = POMCPOWSolver(criterion=MaxUCB(20), estimate_value=FORollout(StraightToTarget()), default_action=zero(HSAction), rng=rng)
-    planner = solve(solver, pomdp)
-    simulator = HistoryRecorder(max_steps=100, show_progress=true, rng=rng)
+    # setup POMDP solver and belief updater
+    belief_updater = SIRParticleFilter(planning_model, 1000, rng=rng)
+    solver = POMCPOWSolver(criterion=MaxUCB(200), estimate_value=FORollout(StraightToTarget()), default_action=zero(HSAction), rng=rng)
+    planner = solve(solver, planning_model)
 
-    try
-      sim_hist = simulate(simulator, pomdp, planner, belief_updater)
-      makegif(pomdp, sim_hist, filename=joinpath(@__DIR__, "../renderings/out_pomcpow_$i_run.gif"), extra_initial=true, show_progress=true)
-    catch
-    end
+    # run simulation and render gif
+    simulator = HistoryRecorder(max_steps=100, show_progress=true, rng=deepcopy(rng))
+    sim_hist = simulate(simulator, simulation_model, planner, belief_updater)
+    makegif(simulation_model, sim_hist, filename=joinpath(@__DIR__, "../renderings/out_pomcpow_$i_run.gif"), extra_initial=true, show_progress=true)
   end
+end
+
+function test_nontrivial()
+  rng = MersenneTwister(4)
+  generate_non_trivial_scenario(NoisyPositionSensor(), PControlledHumanTransition(), rng)
 end

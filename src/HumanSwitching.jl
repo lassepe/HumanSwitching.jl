@@ -16,6 +16,7 @@ using Compose
 
 # POMDP libraries
 using POMDPs
+using POMDPSimulators
 using POMDPPolicies
 using ParticleFilters
 
@@ -39,6 +40,7 @@ export
   HSTransitionModel,
   PControlledHumanTransition,
   PControlledHumanAWGNTransition,
+  mdp,
   room,
   generate_s,
   generate_o,
@@ -59,7 +61,8 @@ include("visualize.jl")
 export
   rand_astate,
   dist_to_pose,
-  robot_dist_to_target
+  robot_dist_to_target,
+  generate_non_trivial_scenario
 include("utils.jl")
 
 end # module

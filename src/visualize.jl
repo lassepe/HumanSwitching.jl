@@ -95,10 +95,10 @@ function agent_with_target_node(agent_pose::Pose, target::Pose;
 end
 
 function belief_node(bp::AbstractParticleBelief;
-                     render_particle_percentage::Float64=0.1)::Context
+                     max_n_particles::Int=1000)::Context
   # pick only a few particles to render since otherwise rendering takes ages
   particle_subset = (p for (i, p) in enumerate(particles(bp))
-                     if i <= render_particle_percentage*length(particles(bp)))
+                     if i <= max_n_particles)
 
   human_particles = [agent_with_target_node(p.human_pose,
                                             p.human_target,
