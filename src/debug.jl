@@ -130,8 +130,8 @@ end
 
 
 # TODO: Think about the deepcopy part
-function demo_pomdp(n_runs::Int=1)
-  for i_run in 1:n_runs
+function demo_pomdp(runs)
+  for i_run in runs
     rng = MersenneTwister(i_run)
     # setup models
     simulation_model, external_init_state = generate_non_trivial_scenario(ExactPositionSensor(), PControlledHumanTransition(), deepcopy(rng))
@@ -144,8 +144,13 @@ function demo_pomdp(n_runs::Int=1)
 
     # run simulation and render gif
     simulator = HistoryRecorder(max_steps=100, show_progress=true, rng=deepcopy(rng))
-    sim_hist = simulate(simulator, simulation_model, planner, belief_updater)
-    makegif(simulation_model, sim_hist, filename=joinpath(@__DIR__, "../renderings/out_pomcpow_$i_run.gif"), extra_initial=true, show_progress=true)
+
+    try
+      sim_hist = simulate(simulator, simulation_model, planner, belief_updater)
+      makegif(simulation_model, sim_hist, filename=joinpath(@__DIR__, "../renderings/out_pomcpow_$i_run.gif"), extra_initial=true, show_progress=true)
+    catch ex
+      print(typeof(ex))
+    end
   end
 end
 

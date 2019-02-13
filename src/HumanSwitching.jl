@@ -27,7 +27,6 @@ import POMDPModelTools: render # modified in visualization.jl
 export
   Pose,
   RoomRep,
-  corner_states,
   HSState,
   HSAction,
   HSActionSpace,
@@ -37,9 +36,6 @@ export
   HSSensor,
   ExactPositionSensor,
   NoisyPositionSensor,
-  HSTransitionModel,
-  PControlledHumanTransition,
-  PControlledHumanAWGNTransition,
   mdp,
   room,
   generate_s,
@@ -47,9 +43,23 @@ export
   initialstate,
   reward,
   discount,
-  apply_action,
-  generate_hspomdp
+  apply_action
 include("pomdp_formulation.jl")
+
+export
+  HSTransitionModel,
+  generate_s
+include("reward_model.jl")
+
+export
+  PControlledHumanTransition,
+  PControlledHumanAWGNTransition
+include("transition_models.jl")
+
+export
+  generate_hspomdp,
+  generate_non_trivial_scenario
+include("problem_gen.jl")
 
 export
   render_step_compose,
@@ -62,7 +72,7 @@ export
   rand_astate,
   dist_to_pose,
   robot_dist_to_target,
-  generate_non_trivial_scenario
+  corner_poses
 include("utils.jl")
 
 end # module
