@@ -17,6 +17,7 @@ HSSensor
 Abstract type for different sensor models
 """
 abstract type HSSensor end
+abstract type HSPostTransitionTransform end
 
 struct ExactPositionSensor <: HSSensor end
 
@@ -27,18 +28,9 @@ struct ExactPositionSensor <: HSSensor end
                                         0.01]
 end
 
-"""
-HSTransitionModel
-
-Abstract type for different transition models (defined in transition_model.jl)
-"""
-abstract type HSTransitionModel end
-
 # TODO: refactorState
 # - this might also need to include other model details
-@with_kw struct HumanBehaviorModel
-  human_target::Pose
-end
+abstract type HumanBehaviorModel end
 
 @with_kw struct HSExternalState
   human_pose::Pose
@@ -57,7 +49,9 @@ function HSState(human_pose::Pose, human_target::Pose,
   HSState(external=HSExternalState(human_pose,
                                    robot_pose,
                                    robot_target),
-          hbm=HumanBehaviorModel(human_target=human_target))
+          # TODO: humanBehavior - for now this is fixed but this should be
+          # selected dynamically from a list
+          hbm=HumanPIDBehavior(human_target=human_target))
 end
 
 external(s::HSState) = s.external
@@ -109,15 +103,14 @@ observable problem.
 
 Parameters:
 
-- `TM` the type of the transition model
 - `AS` the type of the action space
 """
-@with_kw struct HSMDP{TM, AS} <: MDP{HSState, HSAction}
+@with_kw struct HSMDP{AS} <: MDP{HSState, HSAction}
   room::RoomRep = RoomRep()
-  transition_model::TM = PControlledHumanTransition()
   aspace::AS = HSActionSpace()
   reward_model = HSRewardModel()
   agent_min_distance::Float64 = 1.0
+  post_transition_transform::HSPostTransitionTransform = HSIdentityPTT()
   known_external_initstate::Union{HSExternalState, Nothing} = nothing
 end
 
@@ -151,8 +144,9 @@ const HSModel = Union{HSMDP, HSPOMDP}
 
 mdp(m::HSMDP) = m
 mdp(m::HSPOMDP) = m.mdp
-transition_model(m::HSModel) = mdp(m).transition_model
 reward_model(m::HSModel) = mdp(m).reward_model
+post_transition_transform(m::HSModel) = mdp(m).post_transition_transform
+
 room(m::HSModel) = mdp(m).room
 agent_min_distance(m::HSModel) = mdp(m).agent_min_distance
 
@@ -168,7 +162,22 @@ Generates the next state given the last state and the taken action
 # this simple forwards to the different transition models
 function POMDPs.generate_s(m::HSModel, s::HSState, a::HSAction, rng::AbstractRNG)::HSState
   @assert (a in actions(m))
-  generate_s(mdp(m), s, a, rng)
+
+  # compute the human transition - giving a new pose for the human and a new transition model
+  mp, human_pose_p = human_transition(hbm(s), human_pose(s))
+
+  # compute the transition of the robot
+  robot_pose_p = apply_action(robot_pose(s), a)
+  robot_target_p = robot_target(s)
+
+  sp::HSState = HSState(external=HSExternalState(human_pose_p,
+                                                  robot_pose_p,
+                                                  robot_target_p),
+                         hbm=mp)
+
+  # potentially add some noise to sp for numerical reasons
+  return post_transition_transform(m, s, a, sp,
+                                   rng::AbstractRNG)::HSState
 end
 
 """

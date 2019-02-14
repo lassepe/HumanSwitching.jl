@@ -25,7 +25,7 @@ end;
 @testset "POMDP interface" begin
   # checking whether we can actually succesfully construct all those types
   rng = MersenneTwister(42)
-  phuman_mdp = HSMDP(transition_model=PControlledHumanTransition())
+  phuman_mdp = HSMDP(post_transition_transform=HSIdentityPTT())
   hs_pomdp_exact_o = HSPOMDP(sensor=ExactPositionSensor(), mdp=phuman_mdp)
   hs_pomdp_noisy_o = HSPOMDP(sensor=NoisyPositionSensor([0.001,0.001,0.01]), mdp=phuman_mdp)
   s = initialstate(hs_pomdp_exact_o, rng)
@@ -62,7 +62,7 @@ end;
 # this test set checks whether everything is implemented to be pseudo-random.
 # Meaning that with the same rng we should get the same result!
 @testset "POMDP deterministic checks" begin
-  mdp = HSMDP(transition_model=PControlledHumanAWGNTransition())
+  mdp = HSMDP(post_transition_transform=HSGaussianNoisePTT())
   pomdp = HSPOMDP(sensor=NoisyPositionSensor(), mdp=mdp)
   a = HS.HSAction()
 
@@ -88,7 +88,7 @@ end;
 end;
 
 @testset "POMDP visualization" begin
-  mdp = HSMDP(transition_model=PControlledHumanTransition())
+  mdp = HSMDP(post_transition_transform=HSIdentityPTT())
   pomdp = HSPOMDP(sensor=NoisyPositionSensor([0.1,0.1,0.01]), mdp=mdp)
   rng = MersenneTwister(42)
   belief_updater = NothingUpdater()

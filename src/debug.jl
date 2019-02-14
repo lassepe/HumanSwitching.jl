@@ -28,8 +28,8 @@ using ProgressMeter
 
 function get_test_problem()
   # create some test problem
-  pomdp_exact = HSPOMDP(sensor=ExactPositionSensor(), mdp=HSMDP(transition_model=PControlledHumanTransition()))
-  pomdp_noisy = HSPOMDP(sensor=NoisyPositionSensor([0.3, 0.3, 0.3]), mdp=HSMDP(transition_model=PControlledHumanAWGNTransition()))
+  pomdp_exact = HSPOMDP(sensor=ExactPositionSensor(), mdp=HSMDP(post_transition_transform=HSIdentityPTT()))
+  pomdp_noisy = HSPOMDP(sensor=NoisyPositionSensor([0.3, 0.3, 0.3]), mdp=HSMDP(post_transition_transform=HSGaussianNoisePTT()))
   rng = MersenneTwister(1)
 
   return pomdp_exact, pomdp_noisy, rng
@@ -91,7 +91,7 @@ end
 function test_mdp_solver(n_runs::Int=1)
   rng = MersenneTwister(1)
 
-  mdp_exact = HSMDP(transition_model=PControlledHumanTransition())
+  mdp_exact = HSMDP(post_transition_transform=HSIdentityPTT())
 
   # @requirements_info MCTSSolver() mdp_awgn initialstate(mdp_awgn, rng)
 
@@ -113,7 +113,7 @@ end
 function demo_mcts_blief_updater(n_runs::Int=1)
   rng = MersenneTwister(7)
 
-  mdp_awgn = HSMDP(transition_model=PControlledHumanAWGNTransition())
+  mdp_awgn = HSMDP(post_transition_transform=HSGaussianNoisePTT())
   pomdp_awgn = HSPOMDP(sensor=NoisyPositionSensor([0.3, 0.3, 0.3]), mdp=mdp_awgn)
 
   # blief updater on the pomdp
@@ -136,8 +136,8 @@ function demo_pomdp(runs)
   for i_run in runs
     rng = MersenneTwister(i_run)
     # setup models
-    simulation_model, init_state = generate_non_trivial_scenario(ExactPositionSensor(), PControlledHumanTransition(), deepcopy(rng))
-    planning_model = generate_hspomdp(NoisyPositionSensor(), PControlledHumanAWGNTransition(), rng; known_external_initstate=external(init_state))
+    simulation_model, init_state = generate_non_trivial_scenario(ExactPositionSensor(), HSIdentityPTT(), deepcopy(rng))
+    planning_model = generate_hspomdp(NoisyPositionSensor(), HSGaussianNoisePTT(), rng; known_external_initstate=external(init_state))
 
     # setup POMDP solver and belief updater
     belief_updater = SIRParticleFilter(planning_model, 1000, rng=rng)
@@ -152,12 +152,12 @@ function demo_pomdp(runs)
       makegif(simulation_model, sim_hist, filename=joinpath(@__DIR__, "../renderings/out_pomcpow_$i_run.gif"), extra_initial=true, show_progress=true)
       println(AgentPerformance(simulation_model, sim_hist))
     catch ex
-      println(typeof(ex))
+      print(ex)
     end
   end
 end
 
 function test_nontrivial()
   rng = MersenneTwister(4)
-  generate_non_trivial_scenario(NoisyPositionSensor(), PControlledHumanTransition(), rng)
+  generate_non_trivial_scenario(NoisyPositionSensor(), HSIdentityPTT(), rng)
 end
