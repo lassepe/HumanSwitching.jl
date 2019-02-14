@@ -41,6 +41,14 @@ abstract type HSTransitionModel end
   robot_target::Pose
 end
 
+@with_kw struct HSExternalState
+  human_pose::Pose
+  robot_pose::Pose
+  robot_target::Pose
+end
+
+Base.convert(::Type{HSExternalState}, s::HSState) = HSExternalState(s.human_pose, s.robot_pose, s.robot_target)
+
 @with_kw struct HSObservation <:FieldVector{5, Float64}
   h_x::Float64 = 0
   h_y::Float64 = 0
@@ -89,7 +97,7 @@ Parameters:
   aspace::AS = HSActionSpace()
   reward_model = HSRewardModel()
   agent_min_distance::Float64 = 1.0
-  known_external_initstate::Union{HSState, Nothing} = nothing
+  known_external_initstate::Union{HSExternalState, Nothing} = nothing
 end
 
 """

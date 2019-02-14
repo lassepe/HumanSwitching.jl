@@ -54,7 +54,7 @@ end
 rand_pose(m::HSModel, rng::AbstractRNG; forced_orientation::Union{Float64, Nothing}=nothing)::Pose = rand_pose(room(m))
 
 # TODO: fixType
-function rand_state(r::RoomRep, rng::AbstractRNG; known_external_state::Union{HSState, Nothing}=nothing)
+function rand_state(r::RoomRep, rng::AbstractRNG; known_external_state::Union{HSExternalState, Nothing}=nothing)
   if known_external_state === nothing
     human_init_pose = rand_pose(r, rng)
     robot_init_pose = rand_pose(r, rng; forced_orientation=0.0)
