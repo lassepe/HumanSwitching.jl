@@ -3,13 +3,13 @@ function generate_hspomdp(sensor::HSSensor, transition_model::HSTransitionModel,
                           aspace=HSActionSpace(),
                           reward_model::HSRewardModel=HSRewardModel(),
                           agent_min_distance::Float64=1.0,
-                          known_external_initstate::Union{HSState, Nothing}=nothing)
+                          known_external_initstate::Union{HSExternalState, Nothing}=nothing)
 
   generate_own_init_state = (known_external_initstate === nothing)
 
   # if no explicit fixed stated for this problem was provided, we generate it
   if generate_own_init_state
-    known_external_initstate = rand_state(room, rng)
+    known_external_initstate = external(rand_state(room, rng))
   end
 
   mdp = HSMDP(;room=room,
@@ -24,7 +24,8 @@ end
 
 function generate_non_trivial_scenario(sensor::HSSensor, transition_model::HSTransitionModel, rng::AbstractRNG; kwargs...)
   trivial_policy = FunctionPolicy(s->reduce((a1, a2) ->
-                                            dist_to_pose(apply_action(s.robot_pose, a1), s.robot_target) < dist_to_pose(apply_action(s.robot_pose, a2), s.robot_target) ?
+                                            dist_to_pose(apply_action(robot_pose(s), a1), robot_target(s))
+                                            < dist_to_pose(apply_action(robot_pose(s), a2), robot_target(s)) ?
                                             a1 : a2,
                                             HSActionSpace()))
 

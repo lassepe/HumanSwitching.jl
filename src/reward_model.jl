@@ -34,7 +34,7 @@ function POMDPs.reward(m::HSModel, s::HSState, a::HSAction, sp::HSState)::Float6
     step_reward += rm.target_reached_reward
   end
 
-  if !isinroom(sp.robot_pose, room(m))
+  if !isinroom(robot_pose(sp), room(m))
     step_reward += rm.left_room_penalty
   end
 

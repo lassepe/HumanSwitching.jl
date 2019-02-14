@@ -34,11 +34,10 @@ Abstract type for different transition models (defined in transition_model.jl)
 """
 abstract type HSTransitionModel end
 
-@with_kw struct HSState
-  human_pose::Pose
+# TODO: refactorState
+# - this might also need to include other model details
+@with_kw struct HumanBehaviorModel
   human_target::Pose
-  robot_pose::Pose
-  robot_target::Pose
 end
 
 @with_kw struct HSExternalState
@@ -47,9 +46,31 @@ end
   robot_target::Pose
 end
 
-Base.convert(::Type{HSExternalState}, s::HSState) = HSExternalState(s.human_pose, s.robot_pose, s.robot_target)
+@with_kw struct HSState
+  external::HSExternalState
+  hbm::HumanBehaviorModel
+end
 
-@with_kw struct HSObservation <:FieldVector{5, Float64}
+function HSState(human_pose::Pose, human_target::Pose,
+                 robot_pose::Pose, robot_target::Pose)
+
+  HSState(external=HSExternalState(human_pose,
+                                   robot_pose,
+                                   robot_target),
+          hbm=HumanBehaviorModel(human_target=human_target))
+end
+
+external(s::HSState) = s.external
+external(s::HSExternalState) = s
+hbm(s::HSState) = s.hbm
+hbm(m::HumanBehaviorModel) = m
+
+human_target(s::Union{HSState, HumanBehaviorModel}) = hbm(s).human_target
+human_pose(s::Union{HSState, HSExternalState}) = external(s).human_pose
+robot_pose(s::Union{HSState, HSExternalState}) = external(s).robot_pose
+robot_target(s::Union{HSState, HSExternalState}) = external(s).robot_target
+
+@with_kw struct HSObservation <: FieldVector{5, Float64}
   h_x::Float64 = 0
   h_y::Float64 = 0
   h_phi::Float64 = 0
@@ -57,7 +78,7 @@ Base.convert(::Type{HSExternalState}, s::HSState) = HSExternalState(s.human_pose
   r_y::Float64 = 0
 end
 # some convenient constructor
-HSObservation(s::HSState) = HSObservation(s.human_pose..., s.robot_pose[1:2]...)
+HSObservation(s::HSState) = HSObservation(human_pose(s)..., robot_pose(s)[1:2]...)
 
 @with_kw struct HSAction <: FieldVector{2, Float64}
   d::Float64 = 0   # distance to travel
@@ -165,7 +186,7 @@ POMDPs.generate_o(m::HSPOMDP{NoisyPositionSensor, HSObservation, <:Any},
 # TODO: This is a bit ugly. There should be away to directly define a distribution type on a FieldVector
 function POMDPs.observation(m::HSPOMDP{NoisyPositionSensor, HSObservation, <:Any}, s::HSState)
   # TODO: do this properly
-  return MvNormal(Array{Float64, 1}([s.human_pose..., s.robot_pose[1:2]...]),
+  return MvNormal(Array{Float64, 1}([human_pose(s)..., robot_pose(s)[1:2]...]),
                   Array{Float64, 1}([m.sensor.measurement_cov..., m.sensor.measurement_cov[1:2]...]))
 end
 
@@ -175,7 +196,7 @@ isterminal
 checks if the state is a terminal state
 """
 function POMDPs.isterminal(m::HSModel, s::HSState)
-  robot_reached_target(s) || !isinroom(s.robot_pose, room(m)) || has_collision(m, s)
+  robot_reached_target(s) || !isinroom(robot_pose(s), room(m)) || has_collision(m, s)
 end
 
 """

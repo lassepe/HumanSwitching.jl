@@ -19,19 +19,19 @@ Fields:
 - `as` the state of the agent to be rendered
 - `r` the visual radius of the agent
 """
-function pose_node(as::Pose; has_orientation::Bool=true, r::Float64=0.15,
+function pose_node(p::Pose; has_orientation::Bool=true, r::Float64=0.15,
                    fill_color="tomato", stroke_color="black", opacity::Float64=1.0)::Context
 
   if has_orientation
-    marker = compose(context(), line([(as.x, as.y), (as.x+cos(as.phi)*r*2, as.y+sin(as.phi)*r*2)]), linewidth(1))
+    marker = compose(context(), line([(p.x, p.y), (p.x+cos(p.phi)*r*2, p.y+sin(p.phi)*r*2)]), linewidth(1))
   else
-    center_line(angle::Float64) = line([(as.x-cos(angle)*r*2, as.y-sin(angle)*r*2),
-                                      (as.x+cos(angle)*r*2, as.y+sin(angle)*r*2)])
+    center_line(angle::Float64) = line([(p.x-cos(angle)*r*2, p.y-sin(angle)*r*2),
+                                      (p.x+cos(angle)*r*2, p.y+sin(angle)*r*2)])
     marker = compose(context(), center_line(pi/4), center_line(-pi/4),linewidth(1))
   end
 
   compose(context(), fill(fill_color), fillopacity(opacity), stroke(stroke_color), strokeopacity(opacity),
-          circle(as.x, as.y, r), marker)
+          circle(p.x, p.y, r), marker)
 end
 
 """
@@ -42,10 +42,10 @@ Composes a target node (states that agents want to reach) for the visualization 
 Fields:
 - `ts` the target state to be visualized
 """
-function target_node(as::Pose; size=0.15, fill_color="deepskyblue", stroke_color="black", opacity::Float64=1.0)::Context
+function target_node(p::Pose; size=0.15, fill_color="deepskyblue", stroke_color="black", opacity::Float64=1.0)::Context
   compose(context(), fill(fill_color), fillopacity(opacity), stroke(stroke_color), strokeopacity(opacity),
 
-          circle(as.x, as.y, size/2))
+          circle(p.x, p.y, size/2))
 end
 
 """
@@ -100,8 +100,8 @@ function belief_node(bp::AbstractParticleBelief;
   particle_subset = (p for (i, p) in enumerate(particles(bp))
                      if i <= max_n_particles)
 
-  human_particles = [agent_with_target_node(p.human_pose,
-                                            p.human_target,
+  human_particles = [agent_with_target_node(human_pose(p),
+                                            human_target(p),
                                             agent_color="light blue",
                                             curve_color="gray",
                                             target_color="light blue",
@@ -109,7 +109,7 @@ function belief_node(bp::AbstractParticleBelief;
                                             opacity=0.1)
                      for p in particle_subset]
 
-  robot_particles = [pose_node(p.robot_pose,
+  robot_particles = [pose_node(robot_pose(p),
                                has_orientation=false, # TODO just for checking
                                fill_color="light green",
                                opacity=0.1)
@@ -151,10 +151,10 @@ function render_step_compose(m::HSModel, step::NamedTuple)::Context
   potential_targets_viz = [target_node(pt) for pt in potential_targets]
 
   # the human and it's target
-  human_with_target_viz = agent_with_target_node(sp.human_pose, sp.human_target)
+  human_with_target_viz = agent_with_target_node(human_pose(sp), human_target(sp))
 
   # the robot and it's target
-  robot_with_target_viz = agent_with_target_node(sp.robot_pose, sp.robot_target,
+  robot_with_target_viz = agent_with_target_node(robot_pose(sp), robot_target(sp),
                                                  has_orientation=false,
                                                  agent_color="pink", curve_color="steelblue")
 

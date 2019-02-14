@@ -69,7 +69,10 @@ struct StraightToTarget <: Policy end
 
 function POMDPs.action(p::StraightToTarget, s::HSState)
   # take the action that moves me closest to goal as a rollout
-  best_action = reduce((a1, a2) -> dist_to_pose(apply_action(s.robot_pose, a1), s.robot_target) < dist_to_pose(apply_action(s.robot_pose, a2), s.robot_target) ? a1 : a2, HSActionSpace())
+  best_action = reduce((a1, a2) -> dist_to_pose(apply_action(robot_pose(s), a1), robot_target(s))
+                       < dist_to_pose(apply_action(robot_pose(s), a2), robot_target(s)) ?
+                       a1 : a2,
+                       HSActionSpace())
 end
 
 function value_lower_bound(mdp::HSMDP, s::HSState, depth::Int)::Float64 # depth is the solver `depth` parameter less the number of timesteps that have already passed (it can be ignored in many cases)
@@ -133,8 +136,8 @@ function demo_pomdp(runs)
   for i_run in runs
     rng = MersenneTwister(i_run)
     # setup models
-    simulation_model, external_init_state = generate_non_trivial_scenario(ExactPositionSensor(), PControlledHumanTransition(), deepcopy(rng))
-    planning_model = generate_hspomdp(NoisyPositionSensor(), PControlledHumanAWGNTransition(), rng; known_external_initstate=external_init_state)
+    simulation_model, init_state = generate_non_trivial_scenario(ExactPositionSensor(), PControlledHumanTransition(), deepcopy(rng))
+    planning_model = generate_hspomdp(NoisyPositionSensor(), PControlledHumanAWGNTransition(), rng; known_external_initstate=external(init_state))
 
     # setup POMDP solver and belief updater
     belief_updater = SIRParticleFilter(planning_model, 1000, rng=rng)
