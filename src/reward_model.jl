@@ -4,6 +4,7 @@
   collision_penalty::Float64 = -50
   left_room_penalty::Float64 = -50
   target_reached_reward::Float64 = 40.0
+  dist_to_human_penalty::Float64 = -5
   move_to_goal_reward::Float64 = 0
   control_cost::Float64 = 0
 end
@@ -37,6 +38,9 @@ function POMDPs.reward(m::HSModel, s::HSState, a::HSAction, sp::HSState)::Float6
   if !isinroom(robot_pose(sp), room(m))
     step_reward += rm.left_room_penalty
   end
+
+  # being close to humans is asymptotically bad
+  step_reward += rm.dist_to_human_penalty * 1/(1 + dist_to_pose(human_pose(s), robot_pose(s)))
 
   step_reward
 end
