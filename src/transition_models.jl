@@ -35,10 +35,11 @@ move)
 """
 @with_kw struct HumanPIDBehavior <: HumanBehaviorModel
   human_target::Pose
+  max_speed::Float64 = 0.5
 end
 
 function human_transition(hb::HumanPIDBehavior, p::Pose)::Tuple{HumanBehaviorModel, Pose}
-  human_velocity = min(0.3, dist_to_pose(p, human_target(hb))) #m/s
+  human_velocity = min(hb.max_speed, dist_to_pose(p, human_target(hb))) #m/s
   vec2target = vec_from_to(p, human_target(hb))
   target_direction = normalize(vec2target)
   current_walk_direction = @SVector [cos(p.phi), sin(p.phi)]

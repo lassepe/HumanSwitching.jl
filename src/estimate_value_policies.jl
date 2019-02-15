@@ -17,11 +17,12 @@ function POMDPs.action(p::StraightToTarget, b::AbstractParticleBelief)
                        HSActionSpace())
 end
 
+const robot_max_speed = maximum(a[1] for a in HSActionSpace())
+
 # depth is the solver `depth` parameter less the number of timesteps that have already passed (it can be ignored in many cases)
 function free_space_estimate(mdp::HSMDP, s::HSState, depth::Int)::Float64
   rm = reward_model(mdp)
   # TODO parameters shoudl be taken from the model
-  robot_max_speed = 0.4
   dist = robot_dist_to_target(s)
   remaining_step_estimate = div(dist, robot_max_speed)
 
