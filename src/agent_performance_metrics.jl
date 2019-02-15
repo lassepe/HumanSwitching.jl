@@ -5,13 +5,13 @@ Some metrics to evaluate the performance of the planner.
 @with_kw struct AgentPerformance
   min_dist_to_human::Float64 = 0
   time_to_reach_target::Float64 = Inf
-  undiscounted_reward::Float64 = 0
+  discounted_reward::Float64 = 0
 end
 
 function AgentPerformance(m::HSModel, sim_hist::SimHistory)
   AgentPerformance(min_dist_to_human=min_dist_to_human(sim_hist),
                    time_to_reach_target=time_to_reach_target(m, sim_hist),
-                   undiscounted_reward=undiscounted_reward(sim_hist))
+                   discounted_reward=discounted_reward(sim_hist))
 end
 
 function min_dist_to_human(sim_hist::SimHistory)::Float64

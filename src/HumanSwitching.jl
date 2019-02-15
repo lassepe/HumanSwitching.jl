@@ -34,6 +34,7 @@ export
   HSPOMDP,
   HSModel,
   HSSensor,
+  HSRewardModel,
   HSPostTransitionTransform,
   HSIdentityPTT,
   HSGaussianNoisePTT,
@@ -51,6 +52,7 @@ export
   generate_o,
   initialstate,
   reward,
+  reward_model,
   discount,
   apply_action
 include("pomdp_formulation.jl")

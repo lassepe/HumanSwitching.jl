@@ -1,9 +1,9 @@
 @with_kw struct HSRewardModel
   discount_factor::Float64 = 0.8
-  living_penalty::Float64 = -2
-  control_cost::Float64 = -0.1
+  living_penalty::Float64 = -1
+  control_cost::Float64 = 0
   collision_penalty::Float64 = -100.0
-  move_to_goal_reward::Float64 = 0.1
+  move_to_goal_reward::Float64 = 10
   target_reached_reward::Float64 = 100.0
   left_room_penalty::Float64 = -100.0
 end

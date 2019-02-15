@@ -95,7 +95,7 @@ function agent_with_target_node(agent_pose::Pose, target::Pose;
 end
 
 function belief_node(bp::AbstractParticleBelief;
-                     max_n_particles::Int=1000)::Context
+                     max_n_particles::Int=500)::Context
   # pick only a few particles to render since otherwise rendering takes ages
   particle_subset = (p for (i, p) in enumerate(particles(bp))
                      if i <= max_n_particles)

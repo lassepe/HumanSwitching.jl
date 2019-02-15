@@ -35,6 +35,8 @@ function generate_non_trivial_scenario(sensor::HSSensor, post_transition_transfo
     @error "Non-trivial scenarios can't be generated from fixed external init states."
   end
 
+  simulator_rng = deepcopy(rng)
+
   while true
     # sample a new, partially observable setup
     po_model, external_init_state = generate_hspomdp(sensor, post_transition_transform, rng; kwargs...)
@@ -42,7 +44,7 @@ function generate_non_trivial_scenario(sensor::HSSensor, post_transition_transfo
     # observable problem
     fo_model = mdp(po_model)
 
-    simulator = HistoryRecorder(max_steps=100, show_progress=false, rng=rng)
+    simulator = HistoryRecorder(max_steps=100, show_progress=false, rng=deepcopy(simulator_rng))
     sim_hist = simulate(simulator, fo_model, trivial_policy)
 
     state_history = collect(eachstep(sim_hist, "sp"))

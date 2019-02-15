@@ -25,6 +25,7 @@ using Compose
 using Random
 using ProgressMeter
 
+include("estimate_value_policies.jl")
 
 function get_test_problem()
   # create some test problem
@@ -63,29 +64,6 @@ function test_belief_updater(n_runs::Int=1)
   for i_run in 1:n_runs
     makegif(exact_pomdp, policy, belief_updater, filename=joinpath(@__DIR__, "../renderings/out$i_run.gif"), extra_initial=true, rng=rng, max_steps=100, show_progress=true)
   end
-end
-
-struct StraightToTarget <: Policy end
-
-function POMDPs.action(p::StraightToTarget, s::HSState)
-  # take the action that moves me closest to goal as a rollout
-  best_action = reduce((a1, a2) -> dist_to_pose(apply_action(robot_pose(s), a1), robot_target(s))
-                       < dist_to_pose(apply_action(robot_pose(s), a2), robot_target(s)) ?
-                       a1 : a2,
-                       HSActionSpace())
-end
-
-function value_lower_bound(mdp::HSMDP, s::HSState, depth::Int)::Float64 # depth is the solver `depth` parameter less the number of timesteps that have already passed (it can be ignored in many cases)
-  dist = robot_dist_to_target(s)
-  # TODO parameters shoudl be taken from the model
-  robot_max_speed = 0.5
-  remaining_step_estimate = dist/robot_max_speed
-  # assume that there is only the (discounted) target reward
-  return (discount(mdp)^remaining_step_estimate) - remaining_step_estimate * 0.1
-end
-
-function value_lower_bound(pomdp::HSPOMDP, s::HSState, b::AbstractParticleBelief, steps::Int)
-  return value_lower_bound(mdp(pomdp), s, steps)
 end
 
 function test_mdp_solver(n_runs::Int=1)
@@ -136,12 +114,12 @@ function demo_pomdp(runs)
   for i_run in runs
     rng = MersenneTwister(i_run)
     # setup models
-    simulation_model, init_state = generate_non_trivial_scenario(ExactPositionSensor(), HSIdentityPTT(), deepcopy(rng))
-    planning_model = generate_hspomdp(NoisyPositionSensor(), HSGaussianNoisePTT(), rng; known_external_initstate=external(init_state))
+    simulation_model, init_state = generate_non_trivial_scenario(ExactPositionSensor(), HSGaussianNoisePTT(pose_cov=[0.003, 0.003, 0.003]), deepcopy(rng))
+    planning_model = generate_hspomdp(NoisyPositionSensor(), HSGaussianNoisePTT(pose_cov=[0.003, 0.003, 0.003]), deepcopy(rng); known_external_initstate=external(init_state))
 
     # setup POMDP solver and belief updater
-    belief_updater = SIRParticleFilter(planning_model, 1000, rng=rng)
-    solver = POMCPOWSolver(criterion=MaxUCB(200), estimate_value=FORollout(StraightToTarget()), default_action=zero(HSAction), rng=rng)
+    belief_updater = SIRParticleFilter(planning_model, 10000, rng=deepcopy(rng))
+    solver = POMCPOWSolver(tree_queries=1000, max_depth=30,criterion=MaxUCB(200), estimate_value=FORollout(StraightToTarget()), default_action=zero(HSAction), rng=deepcopy(rng))
     planner = solve(solver, planning_model)
 
     # run simulation and render gif
@@ -157,7 +135,73 @@ function demo_pomdp(runs)
   end
 end
 
-function test_nontrivial()
-  rng = MersenneTwister(4)
-  generate_non_trivial_scenario(NoisyPositionSensor(), HSIdentityPTT(), rng)
+function tune_policy()
+  # the reward model that produces the desired behavior in the planner
+  fake_reward_model = HSRewardModel(discount_factor = 0.97,
+                                    living_penalty = -1,
+                                    collision_penalty = -50.0,
+                                    target_reached_reward = 40.0,
+                                    left_room_penalty = -50.0,
+                                    move_to_goal_reward = 10,
+                                    control_cost = 0)
+
+  # the reward model that produces the desired behavior in the planner
+  evaluation_reward_model = HSRewardModel(discount_factor = 0.97,
+                                          living_penalty = -1,
+                                          collision_penalty = -50,
+                                          target_reached_reward = 40.0,
+                                          left_room_penalty = -50,
+                                          move_to_goal_reward = 0,
+                                          control_cost = 0)
+
+  rng = MersenneTwister(1)
+  # construct some interesting situation
+  init_state = HSState(Pose(1, 1, 0), Pose(1, 14, 0), Pose(14, 1, 0), Pose(1, 14, 0))
+  # setup models
+  simulation_model = generate_hspomdp(ExactPositionSensor(), HSGaussianNoisePTT(pose_cov=[0.1, 0.1, 0.1]), deepcopy(rng);
+                                      known_external_initstate=external(init_state),
+                                      reward_model=evaluation_reward_model)
+
+  fake_planner = generate_hspomdp(NoisyPositionSensor(), HSGaussianNoisePTT(pose_cov=[0.1, 0.1, 0.1]), deepcopy(rng);
+                                  known_external_initstate=external(init_state),
+                                  reward_model=fake_reward_model)
+
+  true_planner = generate_hspomdp(NoisyPositionSensor(), HSGaussianNoisePTT(pose_cov=[0.1, 0.1, 0.1]), deepcopy(rng);
+                                  known_external_initstate=external(init_state),
+                                  reward_model=evaluation_reward_model)
+
+  #  @info "Planning With FAKE Reward:"
+
+  #  ## evaluate the fake planner - the policy that we think is optimal
+  #  # setup POMDP solver and belief updater
+  #  belief_updater = SIRParticleFilter(fake_planner, 10000, rng=deepcopy(rng))
+  #  solver = POMCPOWSolver(tree_queries=1500, max_depth=100, criterion=MaxUCB(80), estimate_value=FORollout(StraightToTarget()), default_action=zero(HSAction), rng=deepcopy(rng))
+  #  planner = solve(solver, fake_planner)
+
+  #  # run simulation and render gif
+  #  simulator = HistoryRecorder(max_steps=100, show_progress=true, rng=deepcopy(rng))
+  #  sim_hist = simulate(simulator, simulation_model, planner, belief_updater)
+
+  #  # evaluate performance
+  #  println(AgentPerformance(simulation_model, sim_hist))
+
+  #  makegif(simulation_model, sim_hist, filename=joinpath(@__DIR__, "../renderings/fake_planner_policy.gif"), extra_initial=true, show_progress=true)
+
+
+  @info "Planning With TRUE Reward:"
+
+  ## evaluate the true planner - the policy that uses the reward model that we think we should be using
+  # setup POMDP solver and belief updater
+  belief_updater = SIRParticleFilter(true_planner, 10000, rng=deepcopy(rng))
+  solver = POMCPOWSolver(tree_queries=2000, max_depth=100, criterion=MaxUCB(160), estimate_value=free_space_estimate, rng=deepcopy(rng))
+  planner = solve(solver, true_planner)
+
+  # run simulation and render gif
+  simulator = HistoryRecorder(max_steps=100, show_progress=true, rng=deepcopy(rng))
+  sim_hist = simulate(simulator, simulation_model, planner, belief_updater)
+
+  # evaluate performance
+  println(AgentPerformance(simulation_model, sim_hist))
+
+  makegif(simulation_model, sim_hist, filename=joinpath(@__DIR__, "../renderings/true_planner_policy.gif"), extra_initial=true, show_progress=true)
 end
