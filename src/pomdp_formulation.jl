@@ -85,7 +85,7 @@ end
 
 # defining the default action space
 function HSActionSpace()
-  dist_actions = (0.15, 0.3)
+  dist_actions = (0.3)
   phi_resolution = (pi/4)
   phi_actions = (-pi:phi_resolution:(pi-phi_resolution))
 
