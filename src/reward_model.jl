@@ -29,9 +29,9 @@ function POMDPs.reward(m::HSModel, s::HSState, a::HSAction, sp::HSState)::Float6
     step_reward += rm.collision_penalty
   end
   # make rewards less sparse by rewarding going towards the goal
-  step_reward += rm.move_to_goal_reward * (robot_dist_to_target(s) - robot_dist_to_target(sp))
+  step_reward += rm.move_to_goal_reward * (robot_dist_to_target(m, s) - robot_dist_to_target(m, sp))
   # reward for reaching the goal
-  if robot_reached_target(sp)
+  if robot_reached_target(m, sp)
     step_reward += rm.target_reached_reward
   end
 

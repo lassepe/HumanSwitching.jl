@@ -27,45 +27,6 @@ using ProgressMeter
 
 include("estimate_value_policies.jl")
 
-function get_test_problem()
-  # create some test problem
-  pomdp_exact = HSPOMDP(sensor=ExactPositionSensor(), mdp=HSMDP(post_transition_transform=HSIdentityPTT()))
-  pomdp_noisy = HSPOMDP(sensor=NoisyPositionSensor([0.3, 0.3, 0.3]), mdp=HSMDP(post_transition_transform=HSGaussianNoisePTT()))
-  rng = MersenneTwister(1)
-
-  return pomdp_exact, pomdp_noisy, rng
-end
-
-function simulate_with_policy(n_runs=1)
-  belief_updater = NothingUpdater()
-  exact_pomdp, _, rng = get_test_problem()
-  policy = FunctionPolicy(x->HSAction())
-  # now step over the history and render to blink using the usual method
-  win = Blink.Window()
-
-  @showprogress for i in 1:n_runs
-    history = simulate(HistoryRecorder(max_steps=100), exact_pomdp, policy, belief_updater)
-    for step in eachstep(history)
-      render_step_blink(exact_pomdp, step, win)
-      sleep(0.2)
-    end
-  end
-
-  close(win)
-end
-
-function test_belief_updater(n_runs::Int=1)
-  exact_pomdp, noisy_pomdp, rng = get_test_problem()
-  # the blief updater is run with a stocahstic version of the world
-  belief_updater = SIRParticleFilter(noisy_pomdp, 1000, rng=rng)
-  # the policy plannes without a model as it is always the same action
-  policy = FunctionPolicy(x->rand(HSActionSpace()))
-  # the simulator uses the exact dynamics (not known to the belief_updater)
-  for i_run in 1:n_runs
-    makegif(exact_pomdp, policy, belief_updater, filename=joinpath(@__DIR__, "../renderings/out$i_run.gif"), extra_initial=true, rng=rng, max_steps=100, show_progress=true)
-  end
-end
-
 function test_mdp_solver(n_runs::Int=1)
   rng = MersenneTwister(1)
 
@@ -88,105 +49,17 @@ function test_mdp_solver(n_runs::Int=1)
   end
 end
 
-function demo_mcts_blief_updater(n_runs::Int=1)
-  rng = MersenneTwister(7)
-
-  mdp_awgn = HSMDP(post_transition_transform=HSGaussianNoisePTT())
-  pomdp_awgn = HSPOMDP(sensor=NoisyPositionSensor([0.3, 0.3, 0.3]), mdp=mdp_awgn)
-
-  # blief updater on the pomdp
-  belief_updater = SIRParticleFilter(pomdp_awgn, 2000, rng=rng)
-
-  # for now, run the planner on the fully observable version
-  rollout_estimator = RolloutEstimator(StraightToTarget())
-  solver = MCTSSolver(estimate_value=rollout_estimator, n_iterations=1000, depth=15, exploration_constant=5.0)
-  planner = solve(solver, mdp_awgn)
-  simulator = HistoryRecorder(max_steps=100, show_progress=true, rng=rng)
-
-  for i_run in 1:n_runs
-      sim_hist = simulate(simulator, pomdp_awgn, planner, belief_updater)
-      makegif(pomdp_awgn, sim_hist, filename=joinpath(@__DIR__, "../renderings/out_updater_and_mcts$i_run.gif"), extra_initial=true, show_progress=true)
-  end
-end
-
-function tune_policy()
-  # the reward model that produces the desired behavior in the planner
-  fake_reward_model = HSRewardModel(discount_factor = 0.97,
-                                    living_penalty = -1,
-                                    collision_penalty = -50.0,
-                                    target_reached_reward = 40.0,
-                                    left_room_penalty = -50.0,
-                                    move_to_goal_reward = 10,
-                                    control_cost = 0)
-
-  # the reward model that produces the desired behavior in the planner
-  evaluation_reward_model = HSRewardModel(discount_factor = 0.97,
-                                          living_penalty = -1,
-                                          collision_penalty = -50,
-                                          target_reached_reward = 40.0,
-                                          left_room_penalty = -50,
-                                          move_to_goal_reward = 0,
-                                          control_cost = 0)
-
-  rng = MersenneTwister(1)
-  # construct some interesting situation
-  init_state = HSState(Pose(1, 1, 0), Pose(1, 14, 0), Pose(14, 1, 0), Pose(1, 14, 0))
-  # setup models
-  simulation_model = generate_hspomdp(ExactPositionSensor(), HSGaussianNoisePTT(pose_cov=[0.1, 0.1, 0.1]), deepcopy(rng);
-                                      known_external_initstate=external(init_state),
-                                      reward_model=evaluation_reward_model)
-
-  fake_planner = generate_hspomdp(NoisyPositionSensor(), HSGaussianNoisePTT(pose_cov=[0.1, 0.1, 0.1]), deepcopy(rng);
-                                  known_external_initstate=external(init_state),
-                                  reward_model=fake_reward_model)
-
-  true_planner = generate_hspomdp(NoisyPositionSensor(), HSGaussianNoisePTT(pose_cov=[0.1, 0.1, 0.1]), deepcopy(rng);
-                                  known_external_initstate=external(init_state),
-                                  reward_model=evaluation_reward_model)
-
-  @info "Planning With FAKE Reward:"
-
-  ## evaluate the fake planner - the policy that we think is optimal
-  # setup POMDP solver and belief updater
-  belief_updater = SIRParticleFilter(fake_planner, 10000, rng=deepcopy(rng))
-  solver = POMCPOWSolver(tree_queries=1500, max_depth=100, criterion=MaxUCB(80), estimate_value=FORollout(StraightToTarget()), default_action=zero(HSAction), rng=deepcopy(rng))
-  planner = solve(solver, fake_planner)
-
-  # run simulation and render gif
-  simulator = HistoryRecorder(max_steps=100, show_progress=true, rng=deepcopy(rng))
-  sim_hist = simulate(simulator, simulation_model, planner, belief_updater)
-
-  # evaluate performance
-  println(AgentPerformance(simulation_model, sim_hist))
-
-  makegif(simulation_model, sim_hist, filename=joinpath(@__DIR__, "../renderings/fake_planner_policy.gif"), extra_initial=true, show_progress=true)
-
-
-  @info "Planning With TRUE Reward:"
-
-  ## evaluate the true planner - the policy that uses the reward model that we think we should be using
-  # setup POMDP solver and belief updater
-  belief_updater = SIRParticleFilter(true_planner, 10000, rng=deepcopy(rng))
-  solver = POMCPOWSolver(tree_queries=2000, max_depth=100, criterion=MaxUCB(160), estimate_value=free_space_estimate, rng=deepcopy(rng))
-  planner = solve(solver, true_planner)
-
-  # run simulation and render gif
-  simulator = HistoryRecorder(max_steps=100, show_progress=true, rng=deepcopy(rng))
-  sim_hist = simulate(simulator, simulation_model, planner, belief_updater)
-
-  # evaluate performance
-  println(AgentPerformance(simulation_model, sim_hist))
-
-  makegif(simulation_model, sim_hist, filename=joinpath(@__DIR__, "../renderings/true_planner_policy.gif"), extra_initial=true, show_progress=true)
-end
-
-
 function demo_pomdp(runs)
   for i_run in runs
     rng = MersenneTwister(i_run)
     # setup models
-    simulation_model, init_state = generate_non_trivial_scenario(ExactPositionSensor(), HSGaussianNoisePTT(pose_cov=[0.003, 0.003, 0.003]), deepcopy(rng))
-    planning_model = generate_hspomdp(NoisyPositionSensor(), HSGaussianNoisePTT(pose_cov=[0.1, 0.1, 0.1]), deepcopy(rng); known_external_initstate=external(init_state))
+    simulation_model = generate_non_trivial_scenario(ExactPositionSensor(),
+                                                     HSGaussianNoisePTT(pose_cov=[0.003, 0.003, 0.003]),
+                                                     deepcopy(rng))
+    planning_model = generate_hspomdp(NoisyPositionSensor(),
+                                      HSGaussianNoisePTT(pose_cov=[0.1, 0.1, 0.1]),
+                                      simulation_model,
+                                      deepcopy(rng))
 
     # setup POMDP solver and belief updater
     belief_updater = SIRParticleFilter(planning_model, 10000, rng=deepcopy(rng))
@@ -207,3 +80,14 @@ function demo_pomdp(runs)
   end
 end
 
+function test_custom_particle_filter(n_runs::Int=1)
+  exact_pomdp, noisy_pomdp, rng = get_test_problem()
+  # the blief updater is run with a stocahstic version of the world
+  belief_updater = SharedExternalStateFilter(noisy_pomdp, 1000, HSObservation, HumanBehaviorModel, rng=rng)
+  # the policy plannes without a model as it is always the same action
+  policy = FunctionPolicy(x->rand(HSActionSpace()))
+  # the simulator uses the exact dynamics (not known to the belief_updater)
+  for i_run in 1:n_runs
+    makegif(exact_pomdp, policy, belief_updater, filename=joinpath(@__DIR__, "../renderings/out$i_run.gif"), extra_initial=true, rng=rng, max_steps=100, show_progress=true)
+  end
+end

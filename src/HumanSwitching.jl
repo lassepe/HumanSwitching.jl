@@ -21,7 +21,8 @@ using POMDPPolicies
 using ParticleFilters
 
 # packages that are extended by this module
-import POMDPs # modified in filtering.jl
+import ParticleFilters # modified in particle_fitler.jl
+import POMDPs # modified in particle_filter.jl
 import POMDPModelTools: render # modified in visualization.jl
 
 export

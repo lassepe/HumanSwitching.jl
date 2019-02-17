@@ -21,8 +21,7 @@ function Base.isequal(a::HSState, b::HSState)
 end
 function Base.isequal(a::HSExternalState, b::HSExternalState)
   isequal(human_pose(a), human_pose(b)) &&
-  isequal(robot_pose(a), robot_pose(b)) &&
-  isequal(robot_target(a), robot_target(b))
+  isequal(robot_pose(a), robot_pose(b))
 end
 function Base.isequal(a::HumanBehaviorModel, b::HumanBehaviorModel)
   # TODO refactorState
@@ -37,7 +36,7 @@ vec_from_to(p_start::Pose, p_end::Pose)::SVector{2} = p_end[1:2] - p_start[1:2]
 # computes the 2-norm distance between p1 and p2 (orientation ignored)
 dist_to_pose(p1::Pose, p2::Pose)::Float64 = norm(vec_from_to(p1, p2))
 # computes the distance between the robot and it's target
-robot_dist_to_target(s::HSState)::Float64 = norm(dist_to_pose(robot_pose(s), robot_target(s)))
+robot_dist_to_target(m::HSModel, s::HSState)::Float64 = norm(dist_to_pose(robot_pose(s), robot_target(m)))
 # computes the vector pointing from the human to it's target
 human_vec_to_target(s::HSState)::SVector{2} = vec_from_to(human_pose(s), human_target(s))
 # computes the distance between the human and it's target
@@ -46,7 +45,7 @@ human_dist_to_target(s::HSState)::Float64 = norm(human_vec_to_target(s))
 has_collision(m::HSModel, s::HSState)::Bool = dist_to_pose(human_pose(s), robot_pose(s)) < agent_min_distance(m)
 
 human_reached_target(s::HSState)::Bool = human_dist_to_target(s) < 0.2
-robot_reached_target(s::HSState)::Bool = robot_dist_to_target(s) < 0.6
+robot_reached_target(m::HSModel, s::HSState)::Bool = robot_dist_to_target(m, s) < 0.6
 
 function human_angle_to_target(s::HSState)::Float64
   v = human_vec_to_target(s)
@@ -65,19 +64,18 @@ function rand_state(r::RoomRep, rng::AbstractRNG; known_external_state::Union{HS
   if known_external_state === nothing
     human_init_pose = rand_pose(r, rng)
     robot_init_pose = rand_pose(r, rng; forced_orientation=0.0)
-    robot_target_pose = rand_pose(r, rng; forced_orientation=0.0)
   else
     human_init_pose = human_pose(known_external_state)
     robot_init_pose = robot_pose(known_external_state)
-    robot_target_pose = robot_target(known_external_state)
   end
 
   # the human target is always unknown
   human_target_pose = rand(rng, corner_poses(r))
 
   # TODO: refactorState
-  return HSState(human_init_pose, human_target_pose,
-                 robot_init_pose, robot_target_pose)
+  return HSState(human_init_pose,
+                 human_target_pose,
+                 robot_init_pose)
 end
 
 function isinroom(p::Pose, r::RoomRep)

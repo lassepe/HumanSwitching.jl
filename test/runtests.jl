@@ -25,9 +25,9 @@ end;
 @testset "POMDP interface" begin
   # checking whether we can actually succesfully construct all those types
   rng = MersenneTwister(42)
-  phuman_mdp = HSMDP(post_transition_transform=HSIdentityPTT())
-  hs_pomdp_exact_o = HSPOMDP(sensor=ExactPositionSensor(), mdp=phuman_mdp)
-  hs_pomdp_noisy_o = HSPOMDP(sensor=NoisyPositionSensor([0.001,0.001,0.01]), mdp=phuman_mdp)
+  hs_pomdp_exact_o = generate_hspomdp(ExactPositionSensor(), HSIdentityPTT(), rng)
+  hs_pomdp_noisy_o = generate_hspomdp(NoisyPositionSensor(), HSIdentityPTT(), rng)
+
   s = initialstate(hs_pomdp_exact_o, rng)
   a = HS.HSAction()
   # Transition model, simply checking whether the call is successfull

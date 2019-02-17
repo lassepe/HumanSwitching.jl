@@ -35,7 +35,6 @@ abstract type HumanBehaviorModel end
 @with_kw struct HSExternalState
   human_pose::Pose
   robot_pose::Pose
-  robot_target::Pose
 end
 
 @with_kw struct HSState
@@ -44,11 +43,10 @@ end
 end
 
 function HSState(human_pose::Pose, human_target::Pose,
-                 robot_pose::Pose, robot_target::Pose)
+                 robot_pose::Pose)
 
   HSState(external=HSExternalState(human_pose,
-                                   robot_pose,
-                                   robot_target),
+                                   robot_pose),
           # TODO: humanBehavior - for now this is fixed but this should be
           # selected dynamically from a list
           hbm=HumanPIDBehavior(human_target=human_target))
@@ -62,7 +60,6 @@ hbm(m::HumanBehaviorModel) = m
 human_target(s::Union{HSState, HumanBehaviorModel}) = hbm(s).human_target
 human_pose(s::Union{HSState, HSExternalState}) = external(s).human_pose
 robot_pose(s::Union{HSState, HSExternalState}) = external(s).robot_pose
-robot_target(s::Union{HSState, HSExternalState}) = external(s).robot_target
 
 @with_kw struct HSObservation <: FieldVector{5, Float64}
   h_x::Float64 = 0
@@ -109,6 +106,7 @@ Parameters:
   room::RoomRep = RoomRep()
   aspace::AS = HSActionSpace()
   reward_model = HSRewardModel()
+  robot_target::Pose = rand_pose(room, Random.GLOBAL_RNG, forced_orientation=0.0)
   agent_min_distance::Float64 = 1.0
   post_transition_transform::HSPostTransitionTransform = HSIdentityPTT()
   known_external_initstate::Union{HSExternalState, Nothing} = nothing
@@ -144,6 +142,7 @@ const HSModel = Union{HSMDP, HSPOMDP}
 
 mdp(m::HSMDP) = m
 mdp(m::HSPOMDP) = m.mdp
+robot_target(m::HSModel) = mdp(m).robot_target
 reward_model(m::HSModel) = mdp(m).reward_model
 post_transition_transform(m::HSModel) = mdp(m).post_transition_transform
 
@@ -168,11 +167,9 @@ function POMDPs.generate_s(m::HSModel, s::HSState, a::HSAction, rng::AbstractRNG
 
   # compute the transition of the robot
   robot_pose_p = apply_action(robot_pose(s), a)
-  robot_target_p = robot_target(s)
 
   sp::HSState = HSState(external=HSExternalState(human_pose_p,
-                                                  robot_pose_p,
-                                                  robot_target_p),
+                                                  robot_pose_p),
                          hbm=mp)
 
   # potentially add some noise to sp for numerical reasons
@@ -205,7 +202,7 @@ isterminal
 checks if the state is a terminal state
 """
 function POMDPs.isterminal(m::HSModel, s::HSState)
-  robot_reached_target(s) || !isinroom(robot_pose(s), room(m)) || has_collision(m, s)
+  robot_reached_target(m, s) || !isinroom(robot_pose(s), room(m)) || has_collision(m, s)
 end
 
 """

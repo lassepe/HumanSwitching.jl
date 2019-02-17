@@ -154,7 +154,7 @@ function render_step_compose(m::HSModel, step::NamedTuple)::Context
   human_with_target_viz = agent_with_target_node(human_pose(sp), human_target(sp))
 
   # the robot and it's target
-  robot_with_target_viz = agent_with_target_node(robot_pose(sp), robot_target(sp),
+  robot_with_target_viz = agent_with_target_node(robot_pose(sp), robot_target(m),
                                                  has_orientation=false,
                                                  agent_color="pink", curve_color="steelblue")
 

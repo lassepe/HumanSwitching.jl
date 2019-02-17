@@ -20,10 +20,10 @@ function post_transition_transform(model::HSModel, s::HSState, a::HSAction, sp::
     do_resample = rand(rng) < pttm.goal_change_prob || human_reached_target(sp)
     human_target_p::Pose = do_resample ? rand(rng, corner_poses(room(model))) : human_target(sp)
     robot_pose_p::Pose = robot_pose(sp) + rand(rng, MvNormal([0, 0, 0], pttm.pose_cov))
-    robot_target_p::Pose = robot_target(sp)
 
-    return HSState(human_pose_p, human_target_p,
-                   robot_pose_p, robot_target_p)
+    return HSState(human_pose_p,
+                   human_target_p,
+                   robot_pose_p)
   else
     @error "Unknown PTTM"
   end
