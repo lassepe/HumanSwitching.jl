@@ -29,6 +29,8 @@ export
   Pose,
   RoomRep,
   HSState,
+  HSExternalState,
+  HumanBehaviorModel,
   HSAction,
   HSActionSpace,
   HSMDP,

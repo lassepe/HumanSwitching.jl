@@ -37,6 +37,9 @@ abstract type HumanBehaviorModel end
   robot_pose::Pose
 end
 
+HSExternalState(v::AbstractVector{Float64}) = HSExternalState(v[1:3], v[4:6])
+convert(::Type{V}, o::HSExternalState) where V <: AbstractVector = V([human_pose(o)..., robot_pose(o)...])
+
 @with_kw struct HSState
   external::HSExternalState
   hbm::HumanBehaviorModel
@@ -60,16 +63,6 @@ hbm(m::HumanBehaviorModel) = m
 human_target(s::Union{HSState, HumanBehaviorModel}) = hbm(s).human_target
 human_pose(s::Union{HSState, HSExternalState}) = external(s).human_pose
 robot_pose(s::Union{HSState, HSExternalState}) = external(s).robot_pose
-
-@with_kw struct HSObservation <: FieldVector{5, Float64}
-  h_x::Float64 = 0
-  h_y::Float64 = 0
-  h_phi::Float64 = 0
-  r_x::Float64 = 0
-  r_y::Float64 = 0
-end
-# some convenient constructor
-HSObservation(s::HSState) = HSObservation(human_pose(s)..., robot_pose(s)[1:2]...)
 
 @with_kw struct HSAction <: FieldVector{2, Float64}
   d::Float64 = 0   # distance to travel
@@ -135,7 +128,7 @@ Parameters:
 end
 
 function HSPOMDP(sensor::HSSensor, mdp::HSMDP)
-  HSPOMDP{typeof(sensor), HSObservation, typeof(mdp)}(sensor, mdp)
+  HSPOMDP{typeof(sensor), HSExternalState, typeof(mdp)}(sensor, mdp)
 end
 
 const HSModel = Union{HSMDP, HSPOMDP}
@@ -184,17 +177,19 @@ Generates an observation for an observed transition
 """
 
 # In this version the observation is a **deterministic** extraction of the observable part of the state
-POMDPs.generate_o(m::HSPOMDP{ExactPositionSensor, HSObservation, <:Any},
-                  s::HSState, a::HSAction, sp::HSState, rng::AbstractRNG)::HSObservation = HSObservation(sp)
-POMDPs.generate_o(m::HSPOMDP{NoisyPositionSensor, HSObservation, <:Any},
-                  s::HSState, a::HSAction, sp::HSState, rng::AbstractRNG)::HSObservation = HSObservation(rand(rng, POMDPs.observation(m, sp)))
+POMDPs.generate_o(m::HSPOMDP{ExactPositionSensor, HSExternalState, <:Any},
+                  s::HSState, a::HSAction, sp::HSState, rng::AbstractRNG)::HSExternalState = external(sp)
+POMDPs.generate_o(m::HSPOMDP{NoisyPositionSensor, HSExternalState, <:Any},
+                  s::HSState, a::HSAction, sp::HSState, rng::AbstractRNG)::HSExternalState = HSExternalState(rand(rng, POMDPs.observation(m, sp)))
 
 # TODO: This is a bit ugly. There should be away to directly define a distribution type on a FieldVector
-function POMDPs.observation(m::HSPOMDP{NoisyPositionSensor, HSObservation, <:Any}, s::HSState)
+# at least one should get away with less type conversion
+function POMDPs.observation(m::HSPOMDP{NoisyPositionSensor, HSExternalState, <:Any}, s::HSState)
   # TODO: do this properly
-  return MvNormal(Array{Float64, 1}([human_pose(s)..., robot_pose(s)[1:2]...]),
-                  Array{Float64, 1}([m.sensor.measurement_cov..., m.sensor.measurement_cov[1:2]...]))
+  return MvNormal(Array{Float64, 1}([human_pose(s)..., robot_pose(s)...]),
+                  Array{Float64, 1}([m.sensor.measurement_cov..., m.sensor.measurement_cov...]))
 end
+Distributions.pdf(distribution::MvNormal, sample::HSExternalState) = pdf(distribution, convert(Vector{Float64}, sample))
 
 """
 isterminal
