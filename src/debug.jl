@@ -92,6 +92,8 @@ function test_custom_particle_filter(runs)
     simulation_model = generate_non_trivial_scenario(ExactPositionSensor(),
                                                      HSGaussianNoisePTT(pose_cov=[0.01, 0.01, 0.01]),
                                                      deepcopy(rng))
+    simulation_model_copy = deepcopy(simulation_model)
+
     planning_model = generate_hspomdp(NoisyPositionSensor(),
                                       HSGaussianNoisePTT(pose_cov=[0.1, 0.1, 0.1]),
                                       simulation_model,
@@ -101,8 +103,18 @@ function test_custom_particle_filter(runs)
     # belief_updater = SIRParticleFilter(planning_model, 2000, rng=deepcopy(rng))
     belief_updater = SharedExternalStateFilter(planning_model, 1000, HSExternalState, HumanBehaviorModel, rng=deepcopy(rng))
     # the policy plannes without a model as it is always the same action
-    policy = FunctionPolicy(x->zero(HSAction()))
+    solver = POMCPOWSolver(tree_queries=5000, max_depth=100, criterion=MaxUCB(40),
+                           estimate_value=free_space_estimate, default_action=zero(HSAction), rng=deepcopy(rng))
+    planner = solve(solver, planning_model)
+
     # the simulator uses the exact dynamics (not known to the belief_updater)
-    makegif(simulation_model, policy, belief_updater, filename=joinpath(@__DIR__, "../renderings/out$i_run.gif"), extra_initial=true, rng=rng, max_steps=100, show_progress=true)
+    simulator = HistoryRecorder(max_steps=10, show_progress=true, rng=deepcopy(rng))
+    sim_hist = simulate(simulator, simulation_model, planner, belief_updater)
+    # makegif(simulation_model, sim_hist, filename=joinpath(@__DIR__, "../renderings/out_pomcpow_$i_run.gif"), extra_initial=true, show_progress=true)
+
+    first_step = collect(eachstep(sim_hist))[1]
+    extra_init_step = (t=0, sp=first_step[:s], bp=first_step[:b])
+    render_step_blink(simulation_model_copy, extra_init_step)
+
   end
 end
