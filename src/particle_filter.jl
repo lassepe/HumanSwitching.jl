@@ -123,27 +123,24 @@ function SharedExternalStateFilter(pmodel, rmodel, n::Integer, external_type::Ty
 end
 
 function ParticleFilters.initialize_belief(up::SharedExternalStateFilter, distribution)
-  up._particle_memory = [rand(up.rng, distribution) for i in 1:up.n_init]
-  pm = up._particle_memory
-
-  first_state = first(pm)
-  @assert all(isequal(external(first_state), external(s)) for s in pm)
-
-  return ParticleCollection(pm)
+  particles = [rand(up.rng, distribution) for i in 1:up.n_init]
+  first_state = first(particles)
+  @assert all(isequal(external(first_state), external(p)) for p in particles)
+  return ParticleCollection(particles)
 end
 
 function ParticleFilters.update(up::SharedExternalStateFilter, b::ParticleCollection, a, o)
-    pm = up._particle_memory
-    wm = up._weight_memory
-    resize!(pm, n_particles(b))
-    resize!(wm, n_particles(b))
-    predict!(pm, up.predict_model, b, a, o, up.rng)
-    reweight!(wm, up.reweight_model, b, a, pm, o, up.rng)
+  pm = up._particle_memory
+  wm = up._weight_memory
+  resize!(pm, n_particles(b))
+  resize!(wm, n_particles(b))
+  predict!(pm, up.predict_model, b, a, o, up.rng)
+  reweight!(wm, up.reweight_model, b, a, pm, o, up.rng)
 
-    return resample(up.resampler,
-                    SharedExternalStateBelief{up.external_type, up. internal_type, sampletype(b)}(pm, wm),
-                    up.predict_model,
-                    up.reweight_model,
-                    b, a, o,
-                    up.rng)
+  return resample(up.resampler,
+                  SharedExternalStateBelief{up.external_type, up.internal_type, sampletype(b)}(pm, wm),
+  up.predict_model,
+  up.reweight_model,
+  b, a, o,
+  up.rng)
 end
