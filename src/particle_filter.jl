@@ -87,6 +87,21 @@ function ParticleFilters.resample(rs::SharedExternalStateResampler,
   return resample(rs.lv, bp, rng)
 end
 
+function ParticleFilters.resample(rs::SharedExternalStateResampler,
+                                  bp::WeightedParticleBelief,
+                                  pm::POMDP,
+                                  rm::POMDP,
+                                  b,
+                                  a,
+                                  o,
+                                  rng::AbstractRNG)
+  # we first update the external component of the
+  ps = [compose_state(o, internal(p)) for p in particles(bp)]
+  bp = WeightedParticleBelief(ps, weights(bp))
+  # now we can use low variance resampling to do the rest of the job
+  return resample(rs.lv, bp, rng)
+end
+
 mutable struct SharedExternalStateFilter{PM,RM,RNG<:AbstractRNG,PMEM} <: Updater
     predict_model::PM
     reweight_model::RM
@@ -139,8 +154,8 @@ function ParticleFilters.update(up::SharedExternalStateFilter, b::ParticleCollec
 
   return resample(up.resampler,
                   SharedExternalStateBelief{up.external_type, up.internal_type, sampletype(b)}(pm, wm),
-  up.predict_model,
-  up.reweight_model,
-  b, a, o,
-  up.rng)
+                  up.predict_model,
+                  up.reweight_model,
+                  b, a, o,
+                  up.rng)
 end
