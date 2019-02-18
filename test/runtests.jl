@@ -36,11 +36,11 @@ end;
   # Obsevation model:
   # the deterministic observation model
   o = HS.generate_o(hs_pomdp_exact_o, s, a, sp, rng)
-  @test human_pose(sp) == o[1:3]
-  @test robot_pose(sp)[1:2] == o[4:5]
+  @test human_pose(sp) == human_pose(o)
+  @test robot_pose(sp) == robot_pose(o)
 
   # the noisy obsevation model
-  test_obs_data = collect(HS.generate_o(hs_pomdp_noisy_o, s, a, sp, rng)[1:3] for i in 1:5)
+  test_obs_data = collect(human_pose(HS.generate_o(hs_pomdp_noisy_o, s, a, sp, rng)) for i in 1:5)
   dist = norm(mean(test_obs_data) - human_pose(sp))
   @test 0 <= dist <= 0.1
 
