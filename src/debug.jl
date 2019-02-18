@@ -90,12 +90,13 @@ function test_custom_particle_filter(runs)
     rng = MersenneTwister(i_run)
     # setup models
     simulation_model = generate_non_trivial_scenario(ExactPositionSensor(),
-                                                     HSGaussianNoisePTT(pose_cov=[0.01, 0.01, 0.01]),
+                                                     HSGaussianNoisePTT(pose_cov=[0.01, 0.01, 0.01],
+                                                                        goal_change_prob=0.1),
                                                      deepcopy(rng))
-    simulation_model_copy = deepcopy(simulation_model)
 
     planning_model = generate_hspomdp(NoisyPositionSensor(),
-                                      HSGaussianNoisePTT(pose_cov=[0.1, 0.1, 0.1]),
+                                      HSGaussianNoisePTT(pose_cov=[0.1, 0.1, 0.1],
+                                                         goal_change_prob=0.2),
                                       simulation_model,
                                       deepcopy(rng))
 
@@ -108,13 +109,9 @@ function test_custom_particle_filter(runs)
     planner = solve(solver, planning_model)
 
     # the simulator uses the exact dynamics (not known to the belief_updater)
-    simulator = HistoryRecorder(max_steps=10, show_progress=true, rng=deepcopy(rng))
+    simulator = HistoryRecorder(max_steps=100, show_progress=true, rng=deepcopy(rng))
     sim_hist = simulate(simulator, simulation_model, planner, belief_updater)
-    # makegif(simulation_model, sim_hist, filename=joinpath(@__DIR__, "../renderings/out_pomcpow_$i_run.gif"), extra_initial=true, show_progress=true)
-
-    first_step = collect(eachstep(sim_hist))[1]
-    extra_init_step = (t=0, sp=first_step[:s], bp=first_step[:b])
-    render_step_blink(simulation_model_copy, extra_init_step)
-
+    println(AgentPerformance(simulation_model, sim_hist))
+    makegif(simulation_model, sim_hist, filename=joinpath(@__DIR__, "../renderings/out_pomcpow_$i_run.gif"), extra_initial=true, show_progress=true)
   end
 end
