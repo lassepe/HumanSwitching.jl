@@ -42,10 +42,15 @@ Composes a target node (states that agents want to reach) for the visualization 
 Fields:
 - `ts` the target state to be visualized
 """
-function target_node(p::Pose; size=0.15, fill_color="deepskyblue", stroke_color="black", opacity::Float64=1.0)::Context
-  compose(context(), fill(fill_color), fillopacity(opacity), stroke(stroke_color), strokeopacity(opacity),
-
-          circle(p.x, p.y, size/2))
+function target_node(p::Pose;
+                     annotation::String="",
+                     size=0.15, fill_color="deepskyblue",
+                     stroke_color="black",
+                     opacity::Float64=1.0)::Context
+  compose(context(),
+         (context(), fill(fill_color), fillopacity(opacity), stroke(stroke_color), strokeopacity(opacity),
+          circle(p.x, p.y, size/2)),
+         (context(), text(p.x+size/2, p.y+size/2, annotation), fill("black")))
 end
 
 """
@@ -77,11 +82,16 @@ function start_target_curve_node(start_pose::Pose, target::Pose;
 end
 
 function agent_with_target_node(agent_pose::Pose, target::Pose;
+                                annotation::String="",
                                 target_size::Float64=0.2, has_orientation::Bool=true,
                                 agent_color="tomato", curve_color="green",
                                 target_color="light green", opacity::Float64=1.0)::Context
   # the actual target of the human
-  current_target_viz = target_node(target, size=target_size, fill_color=target_color, opacity=opacity)
+  current_target_viz = target_node(target,
+                                   annotation=annotation,
+                                   size=target_size,
+                                   fill_color=target_color,
+                                   opacity=opacity)
   # the current pose of the human
   agent_pose_viz = pose_node(agent_pose,
                              has_orientation=has_orientation,
@@ -94,11 +104,16 @@ function agent_with_target_node(agent_pose::Pose, target::Pose;
   compose(context(), agent_pose_viz, current_target_viz, target_curve_viz)
 end
 
-function belief_node(bp::AbstractParticleBelief;
-                     max_n_particles::Int=500)::Context
-  # pick only a few particles to render since otherwise rendering takes ages
-  particle_subset = (p for (i, p) in enumerate(particles(bp))
-                     if i <= max_n_particles)
+function belief_node(bp::AbstractParticleBelief)::Context
+
+  state_belief_dict = Dict()
+
+  for p in particles(bp)
+    if !haskey(state_belief_dict, p)
+      state_belief_dict[p] = 0
+    end
+    state_belief_dict[p] += 1
+  end
 
   human_particles = [agent_with_target_node(human_pose(p),
                                             human_target(p),
@@ -106,14 +121,15 @@ function belief_node(bp::AbstractParticleBelief;
                                             curve_color="gray",
                                             target_color="light blue",
                                             target_size=0.4,
-                                            opacity=0.1)
-                     for p in particle_subset]
+                                            annotation=string(state_count/n_particles(bp)),
+                                            opacity=sqrt(state_count/n_particles(bp)))
+                     for (p, state_count) in state_belief_dict]
 
   robot_particles = [pose_node(robot_pose(p),
                                has_orientation=false, # TODO just for checking
                                fill_color="light green",
-                               opacity=0.1)
-                     for p in particle_subset]
+                               opacity=sqrt(state_count/n_particles(bp)))
+                     for (p, state_count) in state_belief_dict]
 
   compose(context(), robot_particles, human_particles)
 end
