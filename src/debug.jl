@@ -31,15 +31,16 @@ include("particle_filter.jl")
 function test_mdp_solver(n_runs::Int=1)
   rng = MersenneTwister(1)
 
-  mdp_exact = HSMDP(post_transition_transform=HSIdentityPTT())
+  mdp_exact = generate_non_trivial_scenario(ExactPositionSensor(),
+                                            HSGaussianNoisePTT(pose_cov=[0.003, 0.003, 0.003]),
+                                            deepcopy(rng)) |> mdp
 
   # @requirements_info MCTSSolver() mdp_awgn initialstate(mdp_awgn, rng)
 
   # for now we run the ...
   # - the planner with some stochastic version of the true dynamics
   # - the simulator with the true dynamics unknown to the planner
-  rollout_estimator = RolloutEstimator(StraightToTarget())
-  solver = MCTSSolver(estimate_value=rollout_estimator, n_iterations=2000, depth=15, exploration_constant=5.0)
+  solver = MCTSSolver(estimate_value=free_space_estimate, n_iterations=5000, depth=10, exploration_constant=40.0)
   planner = solve(solver, mdp_exact)
   simulator = HistoryRecorder(rng=rng, max_steps=100)
 
@@ -95,16 +96,17 @@ function test_custom_particle_filter(runs)
                                                      deepcopy(rng))
 
     planning_model = generate_hspomdp(NoisyPositionSensor(),
-                                      HSGaussianNoisePTT(pose_cov=[0.1, 0.1, 0.1],
-                                                         goal_change_prob=0.2),
+                                      HSGaussianNoisePTT(pose_cov=[0.01, 0.01, 0.01],
+                                                         goal_change_prob=0.1),
                                       simulation_model,
                                       deepcopy(rng))
 
     # the blief updater is run with a stocahstic version of the world
     # belief_updater = SIRParticleFilter(planning_model, 2000, rng=deepcopy(rng))
-    belief_updater = SharedExternalStateFilter(planning_model, 1000, HSExternalState, HumanBehaviorModel, rng=deepcopy(rng))
+    # belief_updater = SharedExternalStateFilter(planning_model, 5000, HSExternalState, HumanBehaviorModel, rng=deepcopy(rng))
+    belief_updater = BasicParticleFilter(planning_model, SharedExternalStateResampler(2000), 2000, deepcopy(rng))
     # the policy plannes without a model as it is always the same action
-    solver = POMCPOWSolver(tree_queries=5000, max_depth=100, criterion=MaxUCB(40),
+    solver = POMCPOWSolver(tree_queries=1000, max_depth=70, criterion=MaxUCB(80),
                            estimate_value=free_space_estimate, default_action=zero(HSAction), rng=deepcopy(rng))
     planner = solve(solver, planning_model)
 
