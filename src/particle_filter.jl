@@ -45,6 +45,16 @@ function compose_state end
 function external end
 function internal end
 
+external_type(st::Type{S}) where {S} = first(Base.return_types(external, (st, )))
+internal_type(st::Type{S}) where {S} = first(Base.return_types(internal, (st, )))
+
+# determines the types of the external, internal and full state representation
+# from a given belief
+function ext_int_typesig(b::B) where {B <: AbstractParticleBelief}
+  s_type = sampletype(b)
+  return (external_type(s_type), internal_type(s_type), s_type)
+end
+
 ParticleFilters.n_particles(b::SharedExternalStateBelief) = length(b.internal_particles)
 ParticleFilters.particles(b::SharedExternalStateBelief{E, I, S}) where {E, I, S} = [compose_state(b.external, p)::S for p in b.internal_particles]
 ParticleFilters.weighted_particles(b::SharedExternalStateBelief) = (compose_state(b.external, b.internal_particles[i])=>b.weights[i]
@@ -110,30 +120,24 @@ mutable struct SharedExternalStateFilter{PM,RM,RNG<:AbstractRNG,PMEM} <: Updater
     rng::RNG
     _particle_memory::PMEM
     _weight_memory::Vector{Float64}
-    external_type::Type
-    internal_type::Type
 end
 
 ## Constructors ##
-function SharedExternalStateFilter(model::POMDP, n::Integer, external_type::Type, internal_type::Type; rng::AbstractRNG=Random.GLOBAL_RNG)
+function SharedExternalStateFilter(model::POMDP, n::Integer,; rng::AbstractRNG=Random.GLOBAL_RNG)
   return SharedExternalStateFilter(model,
                                    model,
                                    n,
-                                   external_type,
-                                   internal_type,
                                    rng=rng)
 end
 
-function SharedExternalStateFilter(pmodel, rmodel, n::Integer, external_type::Type, internal_type::Type; rng::AbstractRNG=Random.GLOBAL_RNG)
+function SharedExternalStateFilter(pmodel, rmodel, n::Integer; rng::AbstractRNG=Random.GLOBAL_RNG)
     return SharedExternalStateFilter(pmodel,
                                rmodel,
                                SharedExternalStateResampler(n),
                                n,
                                rng,
                                particle_memory(pmodel),
-                               Float64[],
-                               external_type,
-                               internal_type
+                               Float64[]
                               )
 end
 
@@ -153,7 +157,7 @@ function ParticleFilters.update(up::SharedExternalStateFilter, b::ParticleCollec
   reweight!(wm, up.reweight_model, b, a, pm, o, up.rng)
 
   return resample(up.resampler,
-                  SharedExternalStateBelief{up.external_type, up.internal_type, sampletype(b)}(pm, wm),
+                  SharedExternalStateBelief{ext_int_typesig(b)...}(pm, wm),
                   up.predict_model,
                   up.reweight_model,
                   b, a, o,

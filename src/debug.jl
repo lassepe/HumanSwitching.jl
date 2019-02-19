@@ -101,10 +101,11 @@ function test_custom_particle_filter(runs)
                                       simulation_model,
                                       deepcopy(rng))
 
+    n_particles = 2000
     # the blief updater is run with a stocahstic version of the world
-    # belief_updater = SIRParticleFilter(planning_model, 2000, rng=deepcopy(rng))
-    # belief_updater = SharedExternalStateFilter(planning_model, 5000, HSExternalState, HumanBehaviorModel, rng=deepcopy(rng))
-    belief_updater = BasicParticleFilter(planning_model, SharedExternalStateResampler(2000), 2000, deepcopy(rng))
+    # belief_updater = SIRParticleFilter(planning_model, n_particles, rng=deepcopy(rng))
+    # belief_updater = SharedExternalStateFilter(planning_model, n_particles, rng=deepcopy(rng))
+    belief_updater = BasicParticleFilter(planning_model, SharedExternalStateResampler(n_particles), n_particles, deepcopy(rng))
     # the policy plannes without a model as it is always the same action
     solver = POMCPOWSolver(tree_queries=1000, max_depth=70, criterion=MaxUCB(80),
                            estimate_value=free_space_estimate, default_action=zero(HSAction), rng=deepcopy(rng))
