@@ -201,14 +201,13 @@ Is a workaround to render Compose.jl context to blink windows by:
 - first drawing the composition to an SVG object
 - then rendering this object in blink
 """
-function blink!(c::Context, win::Blink.Window)
+function blink!(c::Context, win::Blink.Window = Blink.Window())
   s = SVG(600px, 600px, false)
   draw(s, c)
   # make sure that blink is used with options async=true and
   # fade=false to make a better animation
   body!(win, s, async=true, fade=false)
 end
-blink!(c::Context) = blink!(c, Blink.Window())
 
 # Some interface code to use the POMDPGifs package. This basically needs to im
 struct HSViz
