@@ -59,6 +59,8 @@ external(s::HSState) = s.external
 external(s::HSExternalState) = s
 hbm(s::HSState) = s.hbm
 hbm(m::HumanBehaviorModel) = m
+internal(s::HSState) = hbm(s::HSState)
+compose_state(e::HSExternalState, i::HumanBehaviorModel) = HSState(external=e, hbm=i)
 
 human_target(s::Union{HSState, HumanBehaviorModel}) = hbm(s).human_target
 human_pose(s::Union{HSState, HSExternalState}) = external(s).human_pose

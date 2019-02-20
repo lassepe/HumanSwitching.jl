@@ -26,7 +26,6 @@ using Random
 using ProgressMeter
 
 include("estimate_value_policies.jl")
-include("particle_filter.jl")
 
 function test_mdp_solver(n_runs::Int=1)
   rng = MersenneTwister(1)
@@ -81,10 +80,6 @@ function demo_pomdp(runs)
     end
   end
 end
-
-external(s::HSState) = s.external
-internal(s::HSState) = hbm(s::HSState)
-compose_state(e::HSExternalState, i::HumanBehaviorModel) = HSState(external=e, hbm=i)
 
 function test_custom_particle_filter(runs)
   for i_run in runs

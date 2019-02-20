@@ -94,4 +94,10 @@ export
   AgentPerformance
 include("agent_performance_metrics.jl")
 
+export
+  SharedExternalStateBelief,
+  SharedExternalStateFilter,
+  SharedExternalStateResampler
+include("particle_filter.jl")
+
 end # module
