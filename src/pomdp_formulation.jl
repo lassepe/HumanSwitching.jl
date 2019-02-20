@@ -158,14 +158,14 @@ function POMDPs.generate_s(m::HSModel, s::HSState, a::HSAction, rng::AbstractRNG
   @assert (a in actions(m))
 
   # compute the human transition - giving a new pose for the human and a new transition model
-  mp, human_pose_p = human_transition(hbm(s), human_pose(s))
+  human_pose_p = human_transition(hbm(s), human_pose(s))
 
   # compute the transition of the robot
   robot_pose_p = apply_action(robot_pose(s), a)
 
   sp::HSState = HSState(external=HSExternalState(human_pose_p,
                                                   robot_pose_p),
-                         hbm=mp)
+                        hbm=hbm(s))
 
   # potentially add some noise to sp for numerical reasons
   return post_transition_transform(m, s, a, sp,

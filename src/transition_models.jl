@@ -38,7 +38,7 @@ move)
   max_speed::Float64 = 0.5
 end
 
-function human_transition(hb::HumanPIDBehavior, p::Pose)::Tuple{HumanBehaviorModel, Pose}
+function human_transition(hb::HumanPIDBehavior, p::Pose)::Pose
   human_velocity = min(hb.max_speed, dist_to_pose(p, human_target(hb))) #m/s
   vec2target = vec_from_to(p, human_target(hb))
   target_direction = normalize(vec2target)
@@ -52,6 +52,14 @@ function human_transition(hb::HumanPIDBehavior, p::Pose)::Tuple{HumanBehaviorMod
     human_pose_p = [xy_p..., phi_p]
   end
 
-  return hb, human_pose_p
+  return human_pose_p
 end
 
+@with_kw struct HumanConstantVelocityBehavior <: HumanBehaviorModel
+  velocity::Float64
+end
+
+function human_transition(hb::HumanConstantVelocityBehavior, p::Pose)::Pose
+  dp = Pose(cos(p.phi), sin(p.phi), 0) * hb.velocity
+  return Pose(p + dp)
+end
