@@ -23,7 +23,7 @@ function Base.isequal(a::HSExternalState, b::HSExternalState)
   isequal(human_pose(a), human_pose(b)) &&
   isequal(robot_pose(a), robot_pose(b))
 end
-function Base.isequal(a::HumanBehaviorModel, b::HumanBehaviorModel)
+function Base.isequal(a::HumanPIDBehavior, b::HumanPIDBehavior)
   # TODO refactorState
   isequal(human_target(a), human_target(b))
 end
@@ -37,20 +37,10 @@ vec_from_to(p_start::Pose, p_end::Pose)::SVector{2} = p_end[1:2] - p_start[1:2]
 dist_to_pose(p1::Pose, p2::Pose)::Float64 = norm(vec_from_to(p1, p2))
 # computes the distance between the robot and it's target
 robot_dist_to_target(m::HSModel, s::HSState)::Float64 = norm(dist_to_pose(robot_pose(s), robot_target(m)))
-# computes the vector pointing from the human to it's target
-human_vec_to_target(s::HSState)::SVector{2} = vec_from_to(human_pose(s), human_target(s))
-# computes the distance between the human and it's target
-human_dist_to_target(s::HSState)::Float64 = norm(human_vec_to_target(s))
 # checks if the state currently has a collision between the robot and some other agent
 has_collision(m::HSModel, s::HSState)::Bool = dist_to_pose(human_pose(s), robot_pose(s)) < agent_min_distance(m)
 
-human_reached_target(s::HSState)::Bool = human_dist_to_target(s) < 0.2
 robot_reached_target(m::HSModel, s::HSState)::Bool = robot_dist_to_target(m, s) < 0.6
-
-function human_angle_to_target(s::HSState)::Float64
-  v = human_vec_to_target(s)
-  return atan(v[2], v[1])
-end
 
 function rand_pose(r::RoomRep, rng::AbstractRNG; forced_orientation::Union{Float64, Nothing}=nothing)::Pose
   x = rand(rng) * r.width

@@ -17,7 +17,7 @@ function post_transition_transform(model::HSModel, s::HSState, a::HSAction, sp::
   elseif pttm isa HSGaussianNoisePTT
     # add AWGN to the pose and have small likelyhood of chaning the target
     human_pose_p::Pose = human_pose(sp) + rand(rng, MvNormal([0, 0, 0], pttm.pose_cov))
-    do_resample = rand(rng) < pttm.goal_change_prob || human_reached_target(sp)
+    do_resample = rand(rng) < pttm.goal_change_prob
     human_target_p::Pose = do_resample ? rand(rng, corner_poses(room(model))) : human_target(sp)
     robot_pose_p::Pose = robot_pose(sp) + rand(rng, MvNormal([0, 0, 0], pttm.pose_cov))
 
