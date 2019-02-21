@@ -26,23 +26,36 @@ import POMDPs # modified in particle_filter.jl
 import POMDPModelTools: render # modified in visualization.jl
 
 export
+  # util types
   Pose,
   RoomRep,
-  HSState,
-  HSExternalState,
+
+  # post transition transformations for particle filter
+  HSPostTransitionTransform,
+  HSIdentityPTT,
+  HSGaussianNoisePTT,
+
+  # human transition models
   HumanBehaviorModel,
+  HumanConstantVelocityBehavior,
+  HumanPIDBehavior,
+
+  # Sensor / Observation Models
+  HSSensor,
+  ExactPositionSensor,
+  NoisyPositionSensor,
+
+  # Core POMDP types for problem formulation
+  HSRewardModel,
+  HSExternalState,
+  HSState,
   HSAction,
   HSActionSpace,
   HSMDP,
   HSPOMDP,
   HSModel,
-  HSSensor,
-  HSRewardModel,
-  HSPostTransitionTransform,
-  HSIdentityPTT,
-  HSGaussianNoisePTT,
-  ExactPositionSensor,
-  NoisyPositionSensor,
+
+  # problem utilites
   mdp,
   room,
   hbm,
@@ -51,6 +64,8 @@ export
   human_target,
   robot_pose,
   robot_target,
+
+  # POMDP interface implementation
   generate_s,
   generate_o,
   initialstate,
@@ -58,22 +73,11 @@ export
   reward_model,
   discount,
   apply_action
-include("pomdp_formulation.jl")
 
-export
-  HSTransitionModel,
-  generate_s
+include("pomdp_main.jl")
+include("post_transition_transform.jl")
 include("reward_model.jl")
-
-export
-  PControlledHumanTransition,
-  PControlledHumanAWGNTransition
-include("transition_models.jl")
-
-export
-  generate_hspomdp,
-  generate_non_trivial_scenario
-include("problem_gen.jl")
+include("human_transition_models.jl")
 
 export
   render_step_compose,
@@ -99,5 +103,10 @@ export
   SharedExternalStateFilter,
   SharedExternalStateResampler
 include("particle_filter.jl")
+
+export
+  generate_hspomdp,
+  generate_non_trivial_scenario
+include("problem_gen.jl")
 
 end # module

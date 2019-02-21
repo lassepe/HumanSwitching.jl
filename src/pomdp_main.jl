@@ -1,3 +1,6 @@
+"""
+# Utility Types
+"""
 # the physical representation of a room
 @with_kw struct RoomRep
   width::Float64 = 15
@@ -12,13 +15,12 @@ end
 end
 
 """
-HSSensor
+# Sensor Models
+For each type an observation model is defined
 
-Abstract type for different sensor models
+Details: `generate_o` and `observation`
 """
 abstract type HSSensor end
-abstract type HSPostTransitionTransform end
-
 struct ExactPositionSensor <: HSSensor end
 
 @with_kw struct NoisyPositionSensor <: HSSensor
@@ -28,10 +30,42 @@ struct ExactPositionSensor <: HSSensor end
                                         0.01]
 end
 
-# TODO: refactorState
-# - this might also need to include other model details
-abstract type HumanBehaviorModel end
+"""
+# Post Transition Transformations
+For each type a post-processing step for the particle filter is defined (e.g adding noise)
 
+Details: `post_transition_transform.jl`
+"""
+abstract type HSPostTransitionTransform end
+
+struct HSIdentityPTT <: HSPostTransitionTransform end
+
+@with_kw struct HSGaussianNoisePTT <: HSPostTransitionTransform
+  pose_cov::Array{Float64, 1} = [0.15, 0.15, 0.01] # the diagonal of the transition noise covariance matrix
+  goal_change_prob::Float64 = 0.01 # probability of randomely changing goal
+end
+
+
+"""
+# Human Behavior Models
+For each behavior a `human_transition` is defined
+
+Details: see human_transition_models.jl
+"""
+
+abstract type HumanBehaviorModel end
+@with_kw struct HumanConstantVelocityBehavior <: HumanBehaviorModel
+  velocity::Float64
+end
+
+@with_kw struct HumanPIDBehavior <: HumanBehaviorModel
+  human_target::Pose
+  max_speed::Float64 = 0.5
+end
+
+"""
+# State Representation
+"""
 @with_kw struct HSExternalState
   human_pose::Pose
   robot_pose::Pose
@@ -66,6 +100,9 @@ human_target(hm::HumanPIDBehavior) = hm.human_target
 human_pose(s::Union{HSState, HSExternalState}) = external(s).human_pose
 robot_pose(s::Union{HSState, HSExternalState}) = external(s).robot_pose
 
+"""
+# Action (Space) representation
+"""
 @with_kw struct HSAction <: FieldVector{2, Float64}
   d::Float64 = 0   # distance to travel
   phi::Float64 = 0 # angle of direction in which the distance is traveled
@@ -87,15 +124,8 @@ end
 apply_action(p::Pose, a::HSAction) = Pose(p.x + cos(a.phi)*a.d, p.y + sin(a.phi)*a.d, p.phi)
 
 """
-HSMDP
-
-The MDP representation of the fully observable HumanSwitching problem. This MDP
-formulation is used to derive the POMDP formulation for the partially
-observable problem.
-
-Parameters:
-
-- `AS` the type of the action space
+# POMDP and MDP Representation
+- implementing the POMDPs.jl interface
 """
 @with_kw struct HSMDP{AS} <: MDP{HSState, HSAction}
   room::RoomRep = RoomRep()
@@ -107,23 +137,6 @@ Parameters:
   known_external_initstate::Union{HSExternalState, Nothing} = nothing
 end
 
-"""
-HDPOMDP
-
-The POMDP representation (thus partially observable) formulation of the
-HumanSwitching problem.
-
-Fields:
-
-- `sensor::TS` a struct specifying the sensor used
-- `mdp::HSDMP` a MDP version of this problem
-
-Parameters:
-
-- `TS` the type of the sensor
-- `O` the type of of observations the sensor model returns
-- `M` the type of the underlying MDP
-"""
 @with_kw struct HSPOMDP{TS, O, M} <: POMDP{HSState, HSAction, O}
   sensor::TS = ExactPositionSensor()
   mdp::M = HSMDP()
@@ -144,15 +157,13 @@ post_transition_transform(m::HSModel) = mdp(m).post_transition_transform
 room(m::HSModel) = mdp(m).room
 agent_min_distance(m::HSModel) = mdp(m).agent_min_distance
 
+"""
+# Implementation of main POMDP Interface
+"""
 POMDPs.actions(m::HSModel) = mdp(m).aspace
 POMDPs.n_actions(m::HSModel) = length(mdp(m).aspace)
 POMDPs.discount(m::HSModel) = reward_model(m).discount_factor
 
-"""
-generate_s
-
-Generates the next state given the last state and the taken action
-"""
 # this simple forwards to the different transition models
 function POMDPs.generate_s(m::HSModel, s::HSState, a::HSAction, rng::AbstractRNG)::HSState
   @assert (a in actions(m))
@@ -172,12 +183,6 @@ function POMDPs.generate_s(m::HSModel, s::HSState, a::HSAction, rng::AbstractRNG
                                    rng::AbstractRNG)::HSState
 end
 
-"""
-generate_o
-
-Generates an observation for an observed transition
-"""
-
 # In this version the observation is a **deterministic** extraction of the observable part of the state
 POMDPs.generate_o(m::HSPOMDP{ExactPositionSensor, HSExternalState, <:Any},
                   s::HSState, a::HSAction, sp::HSState, rng::AbstractRNG)::HSExternalState = external(sp)
@@ -193,20 +198,10 @@ function POMDPs.observation(m::HSPOMDP{NoisyPositionSensor, HSExternalState, <:A
 end
 Distributions.pdf(distribution::MvNormal, sample::HSExternalState) = pdf(distribution, convert(Vector{Float64}, sample))
 
-"""
-isterminal
-
-checks if the state is a terminal state
-"""
 function POMDPs.isterminal(m::HSModel, s::HSState)
   robot_reached_target(m, s) || !isinroom(robot_pose(s), room(m)) || has_collision(m, s)
 end
 
-"""
-initialstate
-
-Sample an initial state and a target state for each agent.
-"""
 function POMDPs.initialstate(m::HSModel, rng::AbstractRNG)::HSState
   return rand_state(room(m), rng; known_external_state=mdp(m).known_external_initstate)
 end
