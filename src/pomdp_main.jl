@@ -50,7 +50,7 @@ end
 # Human Behavior Models
 For each behavior a `human_transition` is defined
 
-Details: see human_transition_models.jl
+Details: see `human_transition_models.jl`
 """
 
 abstract type HumanBehaviorModel end
@@ -61,6 +61,17 @@ end
 @with_kw struct HumanPIDBehavior <: HumanBehaviorModel
   human_target::Pose
   max_speed::Float64 = 0.5
+end
+
+"""
+# Behavior Generator
+A representation to generate / sample human behaviors from
+
+Details: see `human_behavior_generators.jl`
+"""
+
+@with_kw struct HumanBehaviorGenerator
+  behaviors::Array{DataType} = InteractiveUtils.subtypes(HumanBehaviorModel)
 end
 
 """
@@ -77,16 +88,6 @@ convert(::Type{V}, o::HSExternalState) where V <: AbstractVector = V([human_pose
 @with_kw struct HSState
   external::HSExternalState
   hbm::HumanBehaviorModel
-end
-
-function HSState(human_pose::Pose, human_target::Pose,
-                 robot_pose::Pose)
-
-  HSState(external=HSExternalState(human_pose,
-                                   robot_pose),
-          # TODO: humanBehavior - for now this is fixed but this should be
-          # selected dynamically from a list
-          hbm=HumanPIDBehavior(human_target=human_target))
 end
 
 external(s::HSState) = s.external
@@ -106,10 +107,6 @@ robot_pose(s::Union{HSState, HSExternalState}) = external(s).robot_pose
 @with_kw struct HSAction <: FieldVector{2, Float64}
   d::Float64 = 0   # distance to travel
   phi::Float64 = 0 # angle of direction in which the distance is traveled
-end
-
-struct HSActionSpace
-  actions::AbstractVector{HSAction}
 end
 
 # defining the default action space
@@ -133,6 +130,7 @@ apply_action(p::Pose, a::HSAction) = Pose(p.x + cos(a.phi)*a.d, p.y + sin(a.phi)
   reward_model = HSRewardModel()
   robot_target::Pose = rand_pose(room, Random.GLOBAL_RNG, forced_orientation=0.0)
   agent_min_distance::Float64 = 1.0
+  human_behavior_generator = HumanBehaviorGenerator()
   post_transition_transform::HSPostTransitionTransform = HSIdentityPTT()
   known_external_initstate::Union{HSExternalState, Nothing} = nothing
 end
@@ -153,9 +151,9 @@ mdp(m::HSPOMDP) = m.mdp
 robot_target(m::HSModel) = mdp(m).robot_target
 reward_model(m::HSModel) = mdp(m).reward_model
 post_transition_transform(m::HSModel) = mdp(m).post_transition_transform
-
 room(m::HSModel) = mdp(m).room
 agent_min_distance(m::HSModel) = mdp(m).agent_min_distance
+human_behavior_generator(m::HSModel) = mdp(m).human_behavior_generator
 
 """
 # Implementation of main POMDP Interface

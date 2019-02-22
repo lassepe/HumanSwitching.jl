@@ -6,6 +6,7 @@ using LinearAlgebra
 using Random
 using Distributions
 using Statistics
+using InteractiveUtils
 
 # visualization
 using Blink
@@ -77,6 +78,7 @@ export
 include("pomdp_main.jl")
 include("post_transition_transform.jl")
 include("reward_model.jl")
+include("human_behavior_generators.jl")
 include("human_transition_models.jl")
 
 export

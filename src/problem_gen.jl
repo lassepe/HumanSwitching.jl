@@ -4,6 +4,7 @@ function generate_hspomdp(sensor::HSSensor, post_transition_transform::HSPostTra
                           reward_model::HSRewardModel=HSRewardModel(),
                           robot_target::Pose=rand_pose(room, rng, forced_orientation=0.0),
                           agent_min_distance::Float64=1.0,
+                          human_behavior_generator = HumanBehaviorGenerator(),
                           known_external_initstate::HSExternalState=external(rand_state(room, rng)))
 
   mdp = HSMDP(;room=room,
@@ -12,6 +13,7 @@ function generate_hspomdp(sensor::HSSensor, post_transition_transform::HSPostTra
               reward_model=reward_model,
               robot_target=robot_target,
               agent_min_distance=agent_min_distance,
+              human_behavior_generator=human_behavior_generator,
               known_external_initstate=known_external_initstate)
 
   # if we generated our own init state then we also return it for external use
@@ -26,6 +28,7 @@ function generate_hspomdp(sensor::HSSensor, post_transition_transform::HSPostTra
                           reward_model=reward_model(template_model),
                           robot_target=robot_target(template_model),
                           agent_min_distance=agent_min_distance(template_model),
+                          human_behavior_generator=human_behavior_generator(template_model),
                           known_external_initstate=mdp(template_model).known_external_initstate)
 end
 
