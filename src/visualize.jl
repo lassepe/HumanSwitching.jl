@@ -134,16 +134,30 @@ function human_particle_node(human_pose::Pose, hbm::HumanConstantVelocityBehavio
                                 opacity=opacity)
 end
 
+# TODO: Broken on purose. Continue here.
+struct DiscreteDistribution
+  d = Dict()
 
 function belief_node(bp::AbstractParticleBelief)::Context
+  # computing the state belief distribution
   state_belief_dict = Dict()
+  model_belief_dict = Dict()
 
+  # compute some statistics on the belief
   weight_sum::Float64 = 0
   for (p, w) in weighted_particles(bp)
+    # TODO: Move this into a type that handles this implicitly
     if !haskey(state_belief_dict, p)
       state_belief_dict[p] = 0
     end
     state_belief_dict[p] += w
+
+    if !haskey(model_belief_dict, typeof(hbm(p)))
+      state_belief_dict[typeof(hbm(p))] = 0
+    end
+    state_belief_dict[typeof(hbm(p))] += w
+
+
     weight_sum += w
   end
   @assert(weight_sum > 0)
