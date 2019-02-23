@@ -71,7 +71,7 @@ Details: see `human_behavior_generators.jl`
 """
 
 @with_kw struct HumanBehaviorGenerator
-  behaviors::Array{DataType} = [HumanPIDBehavior] # = InteractiveUtils.subtypes(HumanBehaviorModel)
+  behaviors::Array{DataType} = InteractiveUtils.subtypes(HumanBehaviorModel)
 end
 
 """

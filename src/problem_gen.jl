@@ -1,10 +1,10 @@
-function generate_hspomdp(sensor::HSSensor, post_transition_transform::HSPostTransitionTransform, rng::AbstractRNG;
+function generate_hspomdp(sensor::HSSensor, post_transition_transform::HSPostTransitionTransform,
+                          human_behavior_generator::HumanBehaviorGenerator, rng::AbstractRNG;
                           room::RoomRep=RoomRep(),
                           aspace=HSActionSpace(),
                           reward_model::HSRewardModel=HSRewardModel(),
                           robot_target::Pose=rand_pose(room, rng, forced_orientation=0.0),
                           agent_min_distance::Float64=1.0,
-                          human_behavior_generator = HumanBehaviorGenerator(),
                           known_external_initstate::HSExternalState=external(rand_external_state(room, rng)))
 
   mdp = HSMDP(;room=room,
@@ -21,18 +21,20 @@ function generate_hspomdp(sensor::HSSensor, post_transition_transform::HSPostTra
   return HSPOMDP(sensor, mdp)
 end
 
-function generate_hspomdp(sensor::HSSensor, post_transition_transform::HSPostTransitionTransform, template_model::HSModel, rng::AbstractRNG)
-  return generate_hspomdp(sensor, post_transition_transform, rng;
+function generate_hspomdp(sensor::HSSensor, post_transition_transform::HSPostTransitionTransform,
+                          human_behavior_generator::HumanBehaviorGenerator, template_model::HSModel, rng::AbstractRNG)
+  return generate_hspomdp(sensor, post_transition_transform, human_behavior_generator, rng;
                           room=room(template_model),
                           aspace=mdp(template_model).aspace,
                           reward_model=reward_model(template_model),
                           robot_target=robot_target(template_model),
                           agent_min_distance=agent_min_distance(template_model),
-                          human_behavior_generator=human_behavior_generator(template_model),
                           known_external_initstate=mdp(template_model).known_external_initstate)
 end
 
-function generate_non_trivial_scenario(sensor::HSSensor, post_transition_transform::HSPostTransitionTransform, rng::AbstractRNG; kwargs...)
+function generate_non_trivial_scenario(sensor::HSSensor, post_transition_transform::HSPostTransitionTransform,
+                                       human_behavior_generator::HumanBehaviorGenerator, rng::AbstractRNG;
+                                       kwargs...)
   if get(kwargs, :known_external_initstate, nothing) !== nothing
     @error "Non-trivial scenarios can't be generated from fixed external init states."
   elseif get(kwargs, :robot_target, nothing) !== nothing
@@ -43,7 +45,7 @@ function generate_non_trivial_scenario(sensor::HSSensor, post_transition_transfo
 
   while true
     # sample a new, partially observable setup
-    po_model = generate_hspomdp(sensor, post_transition_transform, rng; kwargs...)
+    po_model = generate_hspomdp(sensor, post_transition_transform, human_behavior_generator, rng; kwargs...)
     # check if the trivial policy (go straight to goal, ignoring human) works well on the full
     # observable problem
     fo_model = mdp(po_model)

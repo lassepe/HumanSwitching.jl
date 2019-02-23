@@ -37,6 +37,7 @@ export
   HSGaussianNoisePTT,
 
   # human transition models
+  HumanBehaviorGenerator,
   HumanBehaviorModel,
   HumanConstantVelocityBehavior,
   HumanPIDBehavior,

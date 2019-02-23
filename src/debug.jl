@@ -86,14 +86,20 @@ function test_custom_particle_filter(runs)
   for i_run in runs
     rng = MersenneTwister(i_run)
     # setup models
+
+    # the simulation is fully running on PID human model
     simulation_model = generate_non_trivial_scenario(ExactPositionSensor(),
                                                      HSGaussianNoisePTT(pose_cov=[0.01, 0.01, 0.01],
                                                                         goal_change_prob=0.05),
-                                                     deepcopy(rng))
+                                                     HumanBehaviorGenerator([HumanPIDBehavior]),
+                                                     deepcopy(rng),
+                                                    )
 
+    # the palnner uses a mix of all models
     planning_model = generate_hspomdp(NoisyPositionSensor(),
                                       HSGaussianNoisePTT(pose_cov=[0.01, 0.01, 0.01],
                                                          goal_change_prob=0.1),
+                                      HumanBehaviorGenerator(),
                                       simulation_model,
                                       deepcopy(rng))
 
