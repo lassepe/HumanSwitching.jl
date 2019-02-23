@@ -84,7 +84,7 @@ end
 function agent_with_target_node(agent_pose::Pose, target::Pose;
                                 annotation::String="",
                                 target_size::Float64=0.2, has_orientation::Bool=true,
-                                agent_color="tomato", curve_color="green",
+                                external_color="tomato", curve_color="green",
                                 target_color="light green", opacity::Float64=1.0)::Context
   # the actual target of the human
   current_target_viz = target_node(target,
@@ -95,7 +95,7 @@ function agent_with_target_node(agent_pose::Pose, target::Pose;
   # the current pose of the human
   agent_pose_viz = pose_node(agent_pose,
                              has_orientation=has_orientation,
-                             fill_color=agent_color, opacity=opacity)
+                             fill_color=external_color, opacity=opacity)
   # a connection line between the human and the target
   target_curve_viz = start_target_curve_node(agent_pose, target,
                                              has_orientation=has_orientation,
@@ -104,35 +104,53 @@ function agent_with_target_node(agent_pose::Pose, target::Pose;
   compose(context(), agent_pose_viz, current_target_viz, target_curve_viz)
 end
 
-function human_node(human_pose::Pose, hbm::HumanPIDBehavior;
-                    agent_color="tomato", plan_color="green",
+function human_particle_node(human_pose::Pose, hbm::HumanPIDBehavior;
+                    external_color="light blue", internal_color="grey",
                     annotation::String="", opacity::Float64=1.0)
 
   return agent_with_target_node(human_pose,
                                 human_target(hbm),
-                                agent_color=agent_color,
-                                curve_color=plan_color,
+                                external_color=external_color,
+                                curve_color=internal_color,
                                 annotation=annotation,
-                                target_color=plan_color,
+                                target_color=internal_color,
                                 target_size=0.4,
                                 opacity=opacity)
 end
 
+function human_particle_node(human_pose::Pose, hbm::HumanConstantVelocityBehavior;
+                    external_color="light green", internal_color="blue",
+                    annotation::String="", opacity::Float64=1.0)
+
+  dp::Pose = Pose(cos(human_pose.phi), sin(human_pose.phi), 0) * hbm.velocity
+  next_step_target::Pose = human_pose + dp
+
+  return agent_with_target_node(human_pose,
+                                next_step_target,
+                                external_color=external_color,
+                                curve_color=internal_color,
+                                target_color=internal_color,
+                                target_size=0.4,
+                                opacity=opacity)
+end
+
+
 function belief_node(bp::AbstractParticleBelief)::Context
   state_belief_dict = Dict()
 
-  for p in particles(bp)
+  weight_sum::Float64 = 0
+  for (p, w) in weighted_particles(bp)
     if !haskey(state_belief_dict, p)
       state_belief_dict[p] = 0
     end
-    state_belief_dict[p] += 1
+    state_belief_dict[p] += w
+    weight_sum += w
   end
+  @assert(weight_sum > 0)
 
-  human_particles = [human_node(human_pose(p), hbm(p);
-                                agent_color="light blue",
-                                plan_color="grey",
-                                annotation=string(state_count/n_particles(bp)),
-                                opacity=sqrt(state_count/n_particles(bp)))
+  human_particles = [human_particle_node(human_pose(p), hbm(p);
+                                         annotation=string(round(state_count/weight_sum, digits=3)),
+                                         opacity=sqrt(round(state_count/weight_sum, digits=3)))
                      for (p, state_count) in state_belief_dict]
 
   robot_particles = [pose_node(robot_pose(p),
@@ -176,12 +194,13 @@ function render_step_compose(m::HSModel, step::NamedTuple)::Context
   potential_targets_viz = [target_node(pt) for pt in potential_targets]
 
   # the human and it's target
-  human_ground_truth_viz = human_node(human_pose(sp), hbm(sp))
+  human_ground_truth_viz = human_particle_node(human_pose(sp), hbm(sp);
+                                               external_color="tomato", internal_color="green")
 
   # the robot and it's target
   robot_with_target_viz = agent_with_target_node(robot_pose(sp), robot_target(m),
                                                  has_orientation=false,
-                                                 agent_color="pink", curve_color="steelblue")
+                                                 external_color="pink", curve_color="steelblue")
 
   belief_viz = haskey(step, :bp) && step[:bp] isa AbstractParticleBelief ? belief_node(step[:bp]) : context()
 

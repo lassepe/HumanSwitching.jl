@@ -54,6 +54,7 @@ Details: see `human_transition_models.jl`
 """
 
 abstract type HumanBehaviorModel end
+
 @with_kw struct HumanConstantVelocityBehavior <: HumanBehaviorModel
   velocity::Float64
 end
@@ -62,6 +63,8 @@ end
   human_target::Pose
   max_speed::Float64 = 0.5
 end
+
+human_target(hm::HumanPIDBehavior) = hm.human_target
 
 """
 # Behavior Generator
@@ -97,7 +100,6 @@ hbm(m::HumanBehaviorModel) = m
 internal(s::HSState) = hbm(s::HSState)
 compose_state(e::HSExternalState, i::HumanBehaviorModel) = HSState(external=e, hbm=i)
 
-human_target(hm::HumanPIDBehavior) = hm.human_target
 human_pose(s::Union{HSState, HSExternalState}) = external(s).human_pose
 robot_pose(s::Union{HSState, HSExternalState}) = external(s).robot_pose
 
