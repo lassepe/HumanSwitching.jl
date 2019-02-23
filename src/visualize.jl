@@ -104,8 +104,21 @@ function agent_with_target_node(agent_pose::Pose, target::Pose;
   compose(context(), agent_pose_viz, current_target_viz, target_curve_viz)
 end
 
-function belief_node(bp::AbstractParticleBelief)::Context
+function human_node(human_pose::Pose, hbm::HumanPIDBehavior;
+                    agent_color="tomato", plan_color="green",
+                    annotation::String="", opacity::Float64=1.0)
 
+  return agent_with_target_node(human_pose,
+                                human_target(hbm),
+                                agent_color=agent_color,
+                                curve_color=plan_color,
+                                annotation=annotation,
+                                target_color=plan_color,
+                                target_size=0.4,
+                                opacity=opacity)
+end
+
+function belief_node(bp::AbstractParticleBelief)::Context
   state_belief_dict = Dict()
 
   for p in particles(bp)
@@ -115,20 +128,16 @@ function belief_node(bp::AbstractParticleBelief)::Context
     state_belief_dict[p] += 1
   end
 
-  human_particles = [agent_with_target_node(human_pose(p),
-                                            human_target(p),
-                                            agent_color="light blue",
-                                            curve_color="gray",
-                                            target_color="light blue",
-                                            target_size=0.4,
-                                            annotation=string(state_count/n_particles(bp)),
-                                            opacity=sqrt(state_count/n_particles(bp)))
+  human_particles = [human_node(human_pose(p), hbm(p);
+                                agent_color="light blue",
+                                plan_color="grey",
+                                annotation=string(state_count/n_particles(bp)),
+                                opacity=sqrt(state_count/n_particles(bp)))
                      for (p, state_count) in state_belief_dict]
 
   robot_particles = [pose_node(robot_pose(p),
                                has_orientation=false, # TODO just for checking
-                               fill_color="light green",
-                               opacity=sqrt(state_count/n_particles(bp)))
+                               fill_color="light green")
                      for (p, state_count) in state_belief_dict]
 
   compose(context(), robot_particles, human_particles)
@@ -167,7 +176,7 @@ function render_step_compose(m::HSModel, step::NamedTuple)::Context
   potential_targets_viz = [target_node(pt) for pt in potential_targets]
 
   # the human and it's target
-  human_with_target_viz = agent_with_target_node(human_pose(sp), human_target(sp))
+  human_ground_truth_viz = human_node(human_pose(sp), hbm(sp))
 
   # the robot and it's target
   robot_with_target_viz = agent_with_target_node(robot_pose(sp), robot_target(m),
@@ -178,7 +187,7 @@ function render_step_compose(m::HSModel, step::NamedTuple)::Context
 
   compose(mirror, (base_scale,
                    robot_with_target_viz,
-                   human_with_target_viz, potential_targets_viz..., belief_viz,
+                   human_ground_truth_viz, potential_targets_viz..., belief_viz,
                    room_viz))
 end
 

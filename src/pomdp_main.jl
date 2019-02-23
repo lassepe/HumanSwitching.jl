@@ -71,7 +71,7 @@ Details: see `human_behavior_generators.jl`
 """
 
 @with_kw struct HumanBehaviorGenerator
-  behaviors::Array{DataType} = InteractiveUtils.subtypes(HumanBehaviorModel)
+  behaviors::Array{DataType} = [HumanPIDBehavior] # = InteractiveUtils.subtypes(HumanBehaviorModel)
 end
 
 """
@@ -167,14 +167,14 @@ function POMDPs.generate_s(m::HSModel, s::HSState, a::HSAction, rng::AbstractRNG
   @assert (a in actions(m))
 
   # compute the human transition - giving a new pose for the human and a new transition model
-  human_pose_p = human_transition(hbm(s), human_pose(s))
+  human_pose_p, hbm_p = human_transition(hbm(s), human_pose(s), m, rng)
 
   # compute the transition of the robot
   robot_pose_p = apply_action(robot_pose(s), a)
 
   sp::HSState = HSState(external=HSExternalState(human_pose_p,
                                                   robot_pose_p),
-                        hbm=hbm(s))
+                        hbm=hbm_p)
 
   # potentially add some noise to sp for numerical reasons
   return post_transition_transform(m, s, a, sp,
@@ -201,7 +201,7 @@ function POMDPs.isterminal(m::HSModel, s::HSState)
 end
 
 function POMDPs.initialstate(m::HSModel, rng::AbstractRNG)::HSState
-  return rand_state(room(m), rng; known_external_state=mdp(m).known_external_initstate)
+  return rand_state(m, rng; known_external_state=mdp(m).known_external_initstate)
 end
 
 struct HSInitialDistribution{ModelType<:HSModel}

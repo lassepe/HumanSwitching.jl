@@ -11,13 +11,15 @@ function post_transition_transform(model::HSModel, s::HSState, a::HSAction, sp::
   elseif pttm isa HSGaussianNoisePTT
     # add AWGN to the pose and have small likelyhood of chaning the target
     human_pose_p::Pose = human_pose(sp) + rand(rng, MvNormal([0, 0, 0], pttm.pose_cov))
-    do_resample = rand(rng) < pttm.goal_change_prob
-    human_target_p::Pose = do_resample ? rand(rng, corner_poses(room(model))) : human_target(sp)
     robot_pose_p::Pose = robot_pose(sp) + rand(rng, MvNormal([0, 0, 0], pttm.pose_cov))
+    external_state_p = HSExternalState(human_pose_p, robot_pose_p)
 
-    return HSState(human_pose_p,
-                   human_target_p,
-                   robot_pose_p)
+    # sample a new human behavior with with a small probability
+    do_resample = rand(rng) < pttm.goal_change_prob
+    hbm_p = do_resample ? generate_human_behavior(rng, model) : hbm(sp)
+
+    return HSState(external=external_state_p,
+                   hbm=hbm_p)
   else
     @error "Unknown PTTM"
   end

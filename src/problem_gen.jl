@@ -5,7 +5,7 @@ function generate_hspomdp(sensor::HSSensor, post_transition_transform::HSPostTra
                           robot_target::Pose=rand_pose(room, rng, forced_orientation=0.0),
                           agent_min_distance::Float64=1.0,
                           human_behavior_generator = HumanBehaviorGenerator(),
-                          known_external_initstate::HSExternalState=external(rand_state(room, rng)))
+                          known_external_initstate::HSExternalState=external(rand_external_state(room, rng)))
 
   mdp = HSMDP(;room=room,
               post_transition_transform=post_transition_transform,

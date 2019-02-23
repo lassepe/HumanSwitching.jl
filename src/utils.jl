@@ -50,22 +50,20 @@ function rand_pose(r::RoomRep, rng::AbstractRNG; forced_orientation::Union{Float
 end
 rand_pose(m::HSModel, rng::AbstractRNG; forced_orientation::Union{Float64, Nothing}=nothing)::Pose = rand_pose(room(m))
 
-function rand_state(r::RoomRep, rng::AbstractRNG; known_external_state::Union{HSExternalState, Nothing}=nothing)
-  if known_external_state === nothing
-    human_init_pose = rand_pose(r, rng)
-    robot_init_pose = rand_pose(r, rng; forced_orientation=0.0)
-  else
-    human_init_pose = human_pose(known_external_state)
-    robot_init_pose = robot_pose(known_external_state)
-  end
+function rand_external_state(r::RoomRep, rng::AbstractRNG)
+  human_pose = rand_pose(r, rng)
+  robot_pose = rand_pose(r, rng; forced_orientation=0.0)
+  return HSExternalState(human_pose, robot_pose)
+end
 
-  # the human target is always unknown
-  human_target_pose = rand(rng, corner_poses(r))
+function rand_state(m::HSModel, rng::AbstractRNG; known_external_state::Union{HSExternalState, Nothing}=nothing)
+  # generate external state
+  external_state = known_external_state === nothing ? rand_external_state(room(m), rng) : known_external_state
 
-  # TODO: refactorState
-  return HSState(human_init_pose,
-                 human_target_pose,
-                 robot_init_pose)
+  # generate human internal state
+  hbm = generate_human_behavior(rng, m)
+
+  return HSState(external=external_state, hbm=hbm)
 end
 
 function isinroom(p::Pose, r::RoomRep)

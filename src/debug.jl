@@ -88,7 +88,7 @@ function test_custom_particle_filter(runs)
     # setup models
     simulation_model = generate_non_trivial_scenario(ExactPositionSensor(),
                                                      HSGaussianNoisePTT(pose_cov=[0.01, 0.01, 0.01],
-                                                                        goal_change_prob=0.1),
+                                                                        goal_change_prob=0.05),
                                                      deepcopy(rng))
 
     planning_model = generate_hspomdp(NoisyPositionSensor(),
