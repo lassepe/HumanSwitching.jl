@@ -142,7 +142,7 @@ end
 
 
 # TODO: Figure out why this does not show up
-function belief_info_node(model_balance_counter::Counter, weight_sum::Float64, room_rep::RoomRep)
+function belief_info_node(model_balance_counter::Counter, weight_sum::Float64)
   cumulative_weight_share::Float64 = 0.0
 
   bar_elements::Array{Context, 1} = []
@@ -151,24 +151,26 @@ function belief_info_node(model_balance_counter::Counter, weight_sum::Float64, r
   for model_type in InteractiveUtils.subtypes(HumanBehaviorModel)
     weight::Float64 = model_balance_counter[model_type]
     weight_share::Float64 = weight / weight_sum
-    bar_start_x::Float64 = 0
-    bar_start_y::Float64 = room_rep.height * (1 - cumulative_weight_share)
-    bar_width::Float64 = room_rep.width / 30
-    bar_height::Float64 = weight_share * room_rep.height
+    bar_start_x::Float64 = cumulative_weight_share
+    bar_start_y::Float64 = 0
+    bar_width::Float64 = weight_share
+    bar_height::Float64 = 0.2
     cumulative_weight_share += weight_share
 
-    text_xy::Tuple{Float64, Float64} = (bar_start_x + bar_width / 2, bar_start_y - bar_height / 2)
+    text_xy::Tuple{Float64, Float64} = (bar_start_x + bar_width / 2, bar_start_y + bar_height / 2)
     push!(bar_elements, compose(context(),
-                                (context(), text(text_xy[1], text_xy[2], string(round(weight_share*100, digits=3), "%"), hcenter, vcenter, Rotation(-pi/2, text_xy)), fill("white")),
+                                (context(), text(text_xy[1], text_xy[2], string(round(weight_share*100, digits=3), "%"), hcenter, vcenter), fill("white")),
                                 (context(), rectangle(bar_start_x, bar_start_y, bar_width, bar_height), fill(HBMColors[model_type]), stroke("black"))
                                )
          )
   end
 
-  return compose(context(), bar_elements...)
+  return compose(context(),
+                 (context(), bar_elements...),
+                 (context(), rectangle(0, 0, 1, 1), fill("light grey")))
 end
 
-function belief_node(bp::AbstractParticleBelief, room_rep::RoomRep)::Context
+function belief_node(bp::AbstractParticleBelief, room_rep::RoomRep)::Tuple{Context, Context}
   # computing the state belief distribution
   state_belief_counter = Counter{HSState, Float64}()
   model_balance_counter = Counter{Type, Float64}()
@@ -191,9 +193,9 @@ function belief_node(bp::AbstractParticleBelief, room_rep::RoomRep)::Context
                                fill_color="light green")
                      for (p, state_count) in state_belief_counter]
 
-  belief_info = belief_info_node(model_balance_counter, weight_sum, room_rep)
+  belief_info = belief_info_node(model_balance_counter, weight_sum)
 
-  compose(context(), robot_particles, human_particles, belief_info)
+  return compose(context(), robot_particles, human_particles, belief_info), belief_info
 end
 
 """
@@ -211,7 +213,7 @@ Fields:
 - `step` the step to be rendered (containing the state, the belief, etc.)
 
 """
-function render_step_compose(m::HSModel, step::NamedTuple)::Context
+function render_step_compose(m::HSModel, step::NamedTuple, base_aspectratio::Float64)::Context
   # extract the relevant information from the step
   sp = step[:sp]
 
@@ -220,7 +222,11 @@ function render_step_compose(m::HSModel, step::NamedTuple)::Context
   # place mirror all children along the middle axis of the unit context
   mirror = context(mirror=Mirror(0, 0.5, 0.5))
   # scale all children to fit into the mirrored unit context
-  base_scale = context(0, 0, 1/room_rep.width, 1/room_rep.height)
+  if base_aspectratio < 1
+    base_scale = context(0, 0, 1/room_rep.width, 1/room_rep.height*base_aspectratio)
+  else
+    base_scale = context(0, 0, 1/room_rep.width/base_aspectratio, 1/room_rep.height)
+  end
 
   # the room background
   room_viz = room_node(room_rep)
@@ -237,12 +243,22 @@ function render_step_compose(m::HSModel, step::NamedTuple)::Context
                                                  has_orientation=false,
                                                  external_color="pink", curve_color="steelblue")
 
-  belief_viz = haskey(step, :bp) && step[:bp] isa AbstractParticleBelief ? belief_node(step[:bp], room_rep) : context()
+  belief_viz, belief_info_viz = haskey(step, :bp) && step[:bp] isa AbstractParticleBelief ? belief_node(step[:bp], room_rep) : (context() , context())
 
-  compose(mirror, (base_scale,
-                   robot_with_target_viz,
-                   human_ground_truth_viz, potential_targets_viz..., belief_viz,
-                   room_viz))
+  if base_aspectratio < 1
+    info_viz = compose(context(0, 0, 1, 1-base_aspectratio), belief_info_viz, fill("green"))
+  else
+    println(base_aspectratio)
+    info_viz = compose(context(1/base_aspectratio, 0, 1 - 1/base_aspectratio, 1), belief_info_viz, fill("green"))
+  end
+
+  compose(context(),
+          (context(), info_viz),
+          (mirror, (base_scale,
+                    robot_with_target_viz,
+                    human_ground_truth_viz, potential_targets_viz..., belief_viz,
+                    room_viz))
+          )
 end
 
 """
@@ -281,8 +297,9 @@ end
 render(m::HSModel, step::NamedTuple) = HSViz(m, step)
 
 function Base.show(io::IO, mime::MIME"image/png", v::HSViz)
-  c = render_step_compose(v.m, v.step)
-  surface = CairoRGBSurface(800, 800)
+  frame_dimensions::Tuple{Float64, Float64} = (800, 1000)
+  surface = CairoRGBSurface(frame_dimensions...)
+  c = render_step_compose(v.m, v.step, frame_dimensions[1]/frame_dimensions[2])
   draw(PNG(surface), c)
   write_to_png(surface, io)
 end
