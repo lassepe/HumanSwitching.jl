@@ -1,3 +1,8 @@
+HBMColors = Dict(t=>c for (t, c) in zip(InteractiveUtils.subtypes(HumanBehaviorModel),
+                                                  [get(ColorSchemes.deep, i)
+                                                   for i in range(1/3, stop=2/3, length=length(InteractiveUtils.subtypes(HumanBehaviorModel)))]))
+map_to_color(hbm::HumanBehaviorModel) = HBMColors[typeof(hbm)]
+
 """
 room node
 
@@ -10,6 +15,7 @@ function room_node(rr::RoomRep; fill_color="bisque", stroke_color="black")::Cont
   compose(context(), fill(fill_color), stroke(stroke_color),
           rectangle(0, rr.height, rr.width, rr.height))
 end
+
 """
 pose_node
 
@@ -105,7 +111,7 @@ function agent_with_target_node(agent_pose::Pose, target::Pose;
 end
 
 function human_particle_node(human_pose::Pose, hbm::HumanPIDBehavior;
-                    external_color="light blue", internal_color="grey",
+                             external_color="light blue", internal_color=map_to_color(hbm),
                     annotation::String="", opacity::Float64=1.0)
 
   return agent_with_target_node(human_pose,
@@ -119,7 +125,7 @@ function human_particle_node(human_pose::Pose, hbm::HumanPIDBehavior;
 end
 
 function human_particle_node(human_pose::Pose, hbm::HumanConstantVelocityBehavior;
-                    external_color="light green", internal_color="blue",
+                             external_color="light green", internal_color=map_to_color(hbm),
                     annotation::String="", opacity::Float64=1.0)
 
   dp::Pose = Pose(cos(human_pose.phi), sin(human_pose.phi), 0) * hbm.velocity
@@ -134,36 +140,47 @@ function human_particle_node(human_pose::Pose, hbm::HumanConstantVelocityBehavio
                                 opacity=opacity)
 end
 
-# TODO: Broken on purose. Continue here.
-@with_kw struct Counter
-  d = Dict()
-end
 
-function add(c::Counter, key::Any, val::Float64)
-  if !haskey(c.d, key)
-    c.d[key] = 0.0
+# TODO: Figure out why this does not show up
+function belief_info_node(model_balance_counter::Counter, weight_sum::Float64, room_rep::RoomRep)
+  cumulative_weight_share::Float64 = 0.0
+
+  bar_elements::Array{Context, 1} = []
+
+  # a vertical bar for the model balance
+  for model_type in InteractiveUtils.subtypes(HumanBehaviorModel)
+    weight::Float64 = model_balance_counter[model_type]
+    weight_share::Float64 = weight / weight_sum
+    bar_start_x::Float64 = 0
+    bar_start_y::Float64 = room_rep.height * (1 - cumulative_weight_share)
+    bar_width::Float64 = room_rep.width / 30
+    bar_height::Float64 = weight_share * room_rep.height
+    cumulative_weight_share += weight_share
+
+    text_xy::Tuple{Float64, Float64} = (bar_start_x + bar_width / 2, bar_start_y - bar_height / 2)
+    push!(bar_elements, compose(context(),
+                                (context(), text(text_xy[1], text_xy[2], string(round(weight_share*100, digits=3), "%"), hcenter, vcenter, Rotation(-pi/2, text_xy)), fill("white")),
+                                (context(), rectangle(bar_start_x, bar_start_y, bar_width, bar_height), fill(HBMColors[model_type]), stroke("black"))
+                               )
+         )
   end
-  c.d[key] += val
+
+  return compose(context(), bar_elements...)
 end
 
-Base.getindex(c::Counter, key::Any) = haskey(c.d, key) ? getindex(c.d, key) : (@warn "Accessing empty key"; 0.0)
-Base.iterate(c::Counter) = Base.iterate(c.d)
-Base.iterate(c::Counter, idx::Int64) = Base.iterate(c.d, idx::Int64)
-Base.length(c::Counter) = Base.length(c.d)
-
-function belief_node(bp::AbstractParticleBelief)::Context
+function belief_node(bp::AbstractParticleBelief, room_rep::RoomRep)::Context
   # computing the state belief distribution
-  state_belief_counter = Counter()
-  model_belief_counter = Counter()
+  state_belief_counter = Counter{HSState, Float64}()
+  model_balance_counter = Counter{Type, Float64}()
 
   # compute some statistics on the belief
   weight_sum::Float64 = 0
   for (p, w) in weighted_particles(bp)
     add(state_belief_counter, p, w)
+    add(model_balance_counter, typeof(hbm(p)), w)
     weight_sum += w
   end
   @assert(weight_sum > 0)
-
   human_particles = [human_particle_node(human_pose(p), hbm(p);
                                          annotation=string(round(state_count/weight_sum, digits=3)),
                                          opacity=sqrt(round(state_count/weight_sum, digits=3)))
@@ -174,7 +191,9 @@ function belief_node(bp::AbstractParticleBelief)::Context
                                fill_color="light green")
                      for (p, state_count) in state_belief_counter]
 
-  compose(context(), robot_particles, human_particles)
+  belief_info = belief_info_node(model_balance_counter, weight_sum, room_rep)
+
+  compose(context(), robot_particles, human_particles, belief_info)
 end
 
 """
@@ -218,7 +237,7 @@ function render_step_compose(m::HSModel, step::NamedTuple)::Context
                                                  has_orientation=false,
                                                  external_color="pink", curve_color="steelblue")
 
-  belief_viz = haskey(step, :bp) && step[:bp] isa AbstractParticleBelief ? belief_node(step[:bp]) : context()
+  belief_viz = haskey(step, :bp) && step[:bp] isa AbstractParticleBelief ? belief_node(step[:bp], room_rep) : context()
 
   compose(mirror, (base_scale,
                    robot_with_target_viz,

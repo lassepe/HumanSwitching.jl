@@ -17,8 +17,8 @@ function normalized_angle_diff(angle_diff::Float64)::Float64
 end
 
 # TODO: Broken on purose. Continue here.
-@with_kw struct Counter
-  d = Dict()
+@with_kw struct Counter{TK, TV}
+  d::Dict{TK, TV} = Dict()
 end
 
 function add(c::Counter, key::Any, val::Float64)
@@ -28,7 +28,7 @@ function add(c::Counter, key::Any, val::Float64)
   c.d[key] += val
 end
 
-Base.getindex(c::Counter, key::Any) = haskey(c.d, key) ? getindex(c.d, key) : (@warn "Accessing empty key"; 0.0)
+Base.getindex(c::Counter, key::Any) = haskey(c.d, key) ? getindex(c.d, key) : 0.0
 Base.iterate(c::Counter) = Base.iterate(c.d)
 Base.iterate(c::Counter, idx::Int64) = Base.iterate(c.d, idx::Int64)
 Base.length(c::Counter) = Base.length(c.d)
@@ -36,10 +36,12 @@ Base.length(c::Counter) = Base.length(c.d)
 function Base.isequal(a::HSState, b::HSState)
   isequal(external(a), external(b)) && isequal(hbm(a), hbm(b))
 end
+
 function Base.isequal(a::HSExternalState, b::HSExternalState)
   isequal(human_pose(a), human_pose(b)) &&
   isequal(robot_pose(a), robot_pose(b))
 end
+
 function Base.isequal(a::HumanPIDBehavior, b::HumanPIDBehavior)
   # TODO refactorState
   isequal(human_target(a), human_target(b))

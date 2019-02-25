@@ -14,6 +14,7 @@ using Cairo:
   CairoRGBSurface,
   write_to_png
 using Compose
+using ColorSchemes, Colors
 
 # POMDP libraries
 using POMDPs
@@ -83,19 +84,19 @@ include("human_behavior_generators.jl")
 include("human_transition_models.jl")
 
 export
-  render_step_compose,
-  render_step_svg,
-  render_step_blink,
-  render
-include("visualize.jl")
-
-export
   rand_astate,
   dist_to_pose,
   robot_dist_to_target,
   corner_poses,
   has_collision
 include("utils.jl")
+
+export
+  render_step_compose,
+  render_step_svg,
+  render_step_blink,
+  render
+include("visualize.jl")
 
 export
   AgentPerformance

@@ -1,5 +1,3 @@
-# This file is machine-generated - editing it directly is not advised
-
 [[AbstractFFTs]]
 deps = ["Compat", "LinearAlgebra"]
 git-tree-sha1 = "8d59c3b1463b5e0ad05a3698167f85fac90e184d"
@@ -105,6 +103,12 @@ git-tree-sha1 = "e3df104c84dfc108f0ca203fd7f5bbdc98641ae9"
 uuid = "944b1d66-785c-5afd-91f1-9de20f533193"
 version = "0.5.1"
 
+[[ColorSchemes]]
+deps = ["Colors", "Test"]
+git-tree-sha1 = "9a2c3afe9d6253c1e71931abfc258ccc99795ad3"
+uuid = "35d6a980-a343-548e-a6ea-1d62b119f2f4"
+version = "3.1.0"
+
 [[ColorTypes]]
 deps = ["FixedPointNumbers", "Random", "Test"]
 git-tree-sha1 = "f73b0e10f2a5756de7019818a41654686da06b09"
@@ -198,7 +202,7 @@ uuid = "b4f34e82-e78d-54a5-968a-f98e89d6e8f7"
 version = "0.8.0"
 
 [[Distributed]]
-deps = ["Random", "Serialization", "Sockets"]
+deps = ["LinearAlgebra", "Random", "Serialization", "Sockets"]
 uuid = "8ba89e20-285c-5b6f-9357-94700520ee1b"
 
 [[Distributions]]
@@ -377,7 +381,7 @@ uuid = "83e8ac13-25f8-5344-8a64-a9f2b223428f"
 version = "0.5.0"
 
 [[InteractiveUtils]]
-deps = ["Markdown"]
+deps = ["LinearAlgebra", "Markdown"]
 uuid = "b77e0a4c-d291-57a0-90e8-8db25a27a240"
 
 [[Interpolations]]
@@ -800,7 +804,7 @@ uuid = "30578b45-9adc-5946-b283-645ec420af67"
 version = "0.4.0"
 
 [[UUIDs]]
-deps = ["Random", "SHA"]
+deps = ["Random"]
 uuid = "cf7118a7-6976-5b1a-9a39-7adc72f591a4"
 
 [[Unicode]]
@@ -814,9 +818,9 @@ version = "1.1.3"
 
 [[VideoIO]]
 deps = ["BinDeps", "ColorTypes", "FileIO", "FixedPointNumbers", "Glob", "Homebrew", "ImageCore", "ImageView", "Libdl", "Requires", "Test"]
-git-tree-sha1 = "cd70744445ee40c8ef92801474adfa2ca7348930"
+git-tree-sha1 = "7bf337e203804eeec025c1904bb259ddf7c3f704"
 uuid = "d6d074c3-1acf-5d4c-9a43-ef38773959a2"
-version = "0.5.2"
+version = "0.5.3"
 
 [[WeakRefStrings]]
 deps = ["Missings", "Random", "Test"]
