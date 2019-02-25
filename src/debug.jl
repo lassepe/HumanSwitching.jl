@@ -116,7 +116,7 @@ function test_custom_particle_filter(runs)
     planner = solve(solver, planning_model)
 
     # the simulator uses the exact dynamics (not known to the belief_updater)
-    simulator = HistoryRecorder(max_steps=100, show_progress=true, rng=deepcopy(rng))
+    simulator = HistoryRecorder(max_steps=10, show_progress=true, rng=deepcopy(rng))
     sim_hist = simulate(simulator, simulation_model, planner, belief_updater)
 
     # a, info = action_info(planner, initialstate_distribution(model), tree_in_info=true)
@@ -130,5 +130,5 @@ function test_custom_particle_filter(runs)
 end
 
 function visualize(simulation_model, sim_hist)
-    makegif(simulation_model, sim_hist, filename=joinpath(@__DIR__, "../renderings/visualize_debug.gif"), extra_initial=true, show_progress=false)
+    makegif(simulation_model, sim_hist, filename=joinpath(@__DIR__, "../renderings/visualize_debug.gif"), extra_initial=true, show_progress=true)
 end

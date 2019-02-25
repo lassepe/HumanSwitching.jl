@@ -140,6 +140,13 @@ function human_particle_node(human_pose::Pose, hbm::HumanConstantVelocityBehavio
                                 opacity=opacity)
 end
 
+function gadfly_test()
+  iris = dataset("datasets", "iris")
+  spw = iris[:SepalLength]
+  p = Gadfly.render(plot(iris, x=spw, Geom.histogram,
+                         Guide.xlabel("spw")))
+  return p
+end
 
 # TODO: Figure out why this does not show up
 function belief_info_node(model_balance_counter::Counter, weight_sum::Float64)
@@ -160,14 +167,15 @@ function belief_info_node(model_balance_counter::Counter, weight_sum::Float64)
     text_xy::Tuple{Float64, Float64} = (bar_start_x + bar_width / 2, bar_start_y + bar_height / 2)
     push!(bar_elements, compose(context(),
                                 (context(), text(text_xy[1], text_xy[2], string(round(weight_share*100, digits=3), "%"), hcenter, vcenter), fill("white")),
-                                (context(), rectangle(bar_start_x, bar_start_y, bar_width, bar_height), fill(HBMColors[model_type]), stroke("black"))
+                                (context(), rectangle(bar_start_x, bar_start_y, bar_width, bar_height), fill(HBMColors[model_type]), stroke("black"),
+                                 context(), gadfly_test())
                                )
          )
   end
 
   return compose(context(),
                  (context(), bar_elements...),
-                 (context(), rectangle(0, 0, 1, 1), fill("light grey")))
+                 (context(), rectangle(0, 0, 1, 1), fill("white")))
 end
 
 function belief_node(bp::AbstractParticleBelief, room_rep::RoomRep)::Tuple{Context, Context}
