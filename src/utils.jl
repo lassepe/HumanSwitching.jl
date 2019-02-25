@@ -16,6 +16,23 @@ function normalized_angle_diff(angle_diff::Float64)::Float64
   end
 end
 
+# TODO: Broken on purose. Continue here.
+@with_kw struct Counter
+  d = Dict()
+end
+
+function add(c::Counter, key::Any, val::Float64)
+  if !haskey(c.d, key)
+    c.d[key] = 0.0
+  end
+  c.d[key] += val
+end
+
+Base.getindex(c::Counter, key::Any) = haskey(c.d, key) ? getindex(c.d, key) : (@warn "Accessing empty key"; 0.0)
+Base.iterate(c::Counter) = Base.iterate(c.d)
+Base.iterate(c::Counter, idx::Int64) = Base.iterate(c.d, idx::Int64)
+Base.length(c::Counter) = Base.length(c.d)
+
 function Base.isequal(a::HSState, b::HSState)
   isequal(external(a), external(b)) && isequal(hbm(a), hbm(b))
 end

@@ -135,29 +135,31 @@ function human_particle_node(human_pose::Pose, hbm::HumanConstantVelocityBehavio
 end
 
 # TODO: Broken on purose. Continue here.
-struct DiscreteDistribution
+@with_kw struct Counter
   d = Dict()
+end
+
+function add(c::Counter, key::Any, val::Float64)
+  if !haskey(c.d, key)
+    c.d[key] = 0.0
+  end
+  c.d[key] += val
+end
+
+Base.getindex(c::Counter, key::Any) = haskey(c.d, key) ? getindex(c.d, key) : (@warn "Accessing empty key"; 0.0)
+Base.iterate(c::Counter) = Base.iterate(c.d)
+Base.iterate(c::Counter, idx::Int64) = Base.iterate(c.d, idx::Int64)
+Base.length(c::Counter) = Base.length(c.d)
 
 function belief_node(bp::AbstractParticleBelief)::Context
   # computing the state belief distribution
-  state_belief_dict = Dict()
-  model_belief_dict = Dict()
+  state_belief_counter = Counter()
+  model_belief_counter = Counter()
 
   # compute some statistics on the belief
   weight_sum::Float64 = 0
   for (p, w) in weighted_particles(bp)
-    # TODO: Move this into a type that handles this implicitly
-    if !haskey(state_belief_dict, p)
-      state_belief_dict[p] = 0
-    end
-    state_belief_dict[p] += w
-
-    if !haskey(model_belief_dict, typeof(hbm(p)))
-      state_belief_dict[typeof(hbm(p))] = 0
-    end
-    state_belief_dict[typeof(hbm(p))] += w
-
-
+    add(state_belief_counter, p, w)
     weight_sum += w
   end
   @assert(weight_sum > 0)
@@ -165,12 +167,12 @@ function belief_node(bp::AbstractParticleBelief)::Context
   human_particles = [human_particle_node(human_pose(p), hbm(p);
                                          annotation=string(round(state_count/weight_sum, digits=3)),
                                          opacity=sqrt(round(state_count/weight_sum, digits=3)))
-                     for (p, state_count) in state_belief_dict]
+                     for (p, state_count) in state_belief_counter]
 
   robot_particles = [pose_node(robot_pose(p),
                                has_orientation=false, # TODO just for checking
                                fill_color="light green")
-                     for (p, state_count) in state_belief_dict]
+                     for (p, state_count) in state_belief_counter]
 
   compose(context(), robot_particles, human_particles)
 end
