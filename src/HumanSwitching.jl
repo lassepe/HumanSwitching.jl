@@ -15,12 +15,12 @@ using Cairo:
   write_to_png
 using Compose
 using ColorSchemes, Colors
+using DataFrames
 using Gadfly:
   Gadfly,
   Geom,
   Guide,
   plot
-using RDatasets # TODO: REMOVE!!!
 
 # POMDP libraries
 using POMDPs

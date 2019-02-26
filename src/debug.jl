@@ -123,7 +123,7 @@ function test_custom_particle_filter(runs)
     # inchrome(D3Tree(info[:tree], init_expand=3))
 
     println(AgentPerformance(simulation_model, sim_hist))
-    makegif(simulation_model, sim_hist, filename=joinpath(@__DIR__, "../renderings/out_pomcpow_$i_run.gif"), extra_initial=true, show_progress=true)
+    makegif(simulation_model, sim_hist, filename=joinpath(@__DIR__, "../renderings/visualize_debug.gif"), extra_initial=true, show_progress=true)
 
     return simulation_model, sim_hist
   end

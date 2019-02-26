@@ -140,54 +140,48 @@ function human_particle_node(human_pose::Pose, hbm::HumanConstantVelocityBehavio
                                 opacity=opacity)
 end
 
-function gadfly_test()
-  iris = dataset("datasets", "iris")
-  spw = iris[:SepalLength]
-  p = Gadfly.render(plot(iris, x=spw, Geom.histogram,
-                         Guide.xlabel("spw")))
-  return p
-end
+plot_compose(args...; kwargs...) = Gadfly.render(plot(args...; kwargs...))
 
 # TODO: Figure out why this does not show up
-function belief_info_node(model_balance_counter::Counter, weight_sum::Float64)
-  cumulative_weight_share::Float64 = 0.0
+function belief_info_node(b::ParticleCollection, weight_sum::Float64)
+  # filling some colums of the data frame for visualization
+  bdf = DataFrame()
+  bdf.hbms = [hbm(p) for p in particles(b)]
+  bdf.modelType = [typeof(hbm) for hbm in bdf.hbms]
+  bdf.velocity = [hbm isa HumanConstantVelocityBehavior ? hbm.velocity : missing for hbm in bdf.hbms]
 
-  bar_elements::Array{Context, 1} = []
+  # histogram of model types
+  model_types = InteractiveUtils.subtypes(HumanBehaviorModel)
+  model_names = [string(t) for t in model_types]
+  model_type_histogram = plot_compose(x=model_names,
+                                      y=[count(bdf.modelType .== t) for t in model_types],
+                                      color=model_names,
+                                      Geom.bar,
+                                      Gadfly.Theme(key_position=:top,
+                                                   key_max_columns=1,
+                                                   discrete_color_scale=Gadfly.Scale.color_discrete_manual([HBMColors[t] for t in model_types]...)
+                                                  ))
+  # histogram of constant velocity estimate
+  velocity_histogram = plot_compose(bdf, x=:velocity,
+                                    Geom.histogram(bincount=10, position=:stack, density=true))
 
-  # a vertical bar for the model balance
-  for model_type in InteractiveUtils.subtypes(HumanBehaviorModel)
-    weight::Float64 = model_balance_counter[model_type]
-    weight_share::Float64 = weight / weight_sum
-    bar_start_x::Float64 = cumulative_weight_share
-    bar_start_y::Float64 = 0
-    bar_width::Float64 = weight_share
-    bar_height::Float64 = 0.2
-    cumulative_weight_share += weight_share
 
-    text_xy::Tuple{Float64, Float64} = (bar_start_x + bar_width / 2, bar_start_y + bar_height / 2)
-    push!(bar_elements, compose(context(),
-                                (context(), text(text_xy[1], text_xy[2], string(round(weight_share*100, digits=3), "%"), hcenter, vcenter), fill("white")),
-                                (context(), rectangle(bar_start_x, bar_start_y, bar_width, bar_height), fill(HBMColors[model_type]), stroke("black"),
-                                 context(), gadfly_test())
-                               )
-         )
-  end
+  background = compose(context(), rectangle(0, 0, 1, 1), fill("white"))
 
   return compose(context(),
-                 (context(), bar_elements...),
-                 (context(), rectangle(0, 0, 1, 1), fill("white")))
+                 vstack(hstack(model_type_histogram),
+                        hstack(velocity_histogram, context())),
+                 background)
 end
 
-function belief_node(bp::AbstractParticleBelief, room_rep::RoomRep)::Tuple{Context, Context}
+function belief_node(b::ParticleCollection, room_rep::RoomRep)::Tuple{Context, Context}
   # computing the state belief distribution
   state_belief_counter = Counter{HSState, Float64}()
-  model_balance_counter = Counter{Type, Float64}()
 
   # compute some statistics on the belief
   weight_sum::Float64 = 0
-  for (p, w) in weighted_particles(bp)
+  for (p, w) in weighted_particles(b)
     add(state_belief_counter, p, w)
-    add(model_balance_counter, typeof(hbm(p)), w)
     weight_sum += w
   end
   @assert(weight_sum > 0)
@@ -201,7 +195,7 @@ function belief_node(bp::AbstractParticleBelief, room_rep::RoomRep)::Tuple{Conte
                                fill_color="light green")
                      for (p, state_count) in state_belief_counter]
 
-  belief_info = belief_info_node(model_balance_counter, weight_sum)
+  belief_info = belief_info_node(b, weight_sum)
 
   return compose(context(), robot_particles, human_particles, belief_info), belief_info
 end
@@ -251,12 +245,11 @@ function render_step_compose(m::HSModel, step::NamedTuple, base_aspectratio::Flo
                                                  has_orientation=false,
                                                  external_color="pink", curve_color="steelblue")
 
-  belief_viz, belief_info_viz = haskey(step, :bp) && step[:bp] isa AbstractParticleBelief ? belief_node(step[:bp], room_rep) : (context() , context())
+  belief_viz, belief_info_viz = haskey(step, :bp) && step[:bp] isa ParticleCollection ? belief_node(step[:bp], room_rep) : (context() , context())
 
   if base_aspectratio < 1
     info_viz = compose(context(0, 0, 1, 1-base_aspectratio), belief_info_viz, fill("green"))
   else
-    println(base_aspectratio)
     info_viz = compose(context(1/base_aspectratio, 0, 1 - 1/base_aspectratio, 1), belief_info_viz, fill("green"))
   end
 
@@ -305,7 +298,7 @@ end
 render(m::HSModel, step::NamedTuple) = HSViz(m, step)
 
 function Base.show(io::IO, mime::MIME"image/png", v::HSViz)
-  frame_dimensions::Tuple{Float64, Float64} = (800, 1000)
+  frame_dimensions::Tuple{Float64, Float64} = (1600, 800)
   surface = CairoRGBSurface(frame_dimensions...)
   c = render_step_compose(v.m, v.step, frame_dimensions[1]/frame_dimensions[2])
   draw(PNG(surface), c)
