@@ -142,7 +142,6 @@ end
 
 plot_compose(args...; kwargs...) = Gadfly.render(plot(args...; kwargs...))
 
-# TODO: Figure out why this does not show up
 function belief_info_node(b::ParticleCollection, weight_sum::Float64, r::RoomRep)::Context
   # filling some colums of the data frame for visualization
   hbms = [hbm(p) for p in particles(b)]
@@ -196,7 +195,7 @@ function belief_node(b::ParticleCollection, room_rep::RoomRep)::Tuple{Context, C
                      for (p, state_count) in state_belief_counter]
 
   robot_particles = [pose_node(robot_pose(p),
-                               has_orientation=false, # TODO just for checking
+                               has_orientation=false,
                                fill_color="light green")
                      for (p, state_count) in state_belief_counter]
 
