@@ -6,7 +6,7 @@ struct HSIdentityPTT <: HSPostTransitionTransform end
 
 @with_kw struct HSGaussianNoisePTT <: HSPostTransitionTransform
   pose_cov::Array{Float64, 1} = [0.15, 0.15, 0.01] # the diagonal of the transition noise covariance matrix
-  goal_change_prob::Float64 = 0.01 # probability of randomely changing goal
+  model_change_prob::Float64 = 0.01 # probability of randomely changing goal
 end
 
 function post_transition_transform(model::HSModel, s::HSState, a::HSAction, sp::HSState, rng::AbstractRNG)::HSState
@@ -17,7 +17,7 @@ function post_transition_transform(model::HSModel, s::HSState, a::HSAction, sp::
   elseif pttm isa HSGaussianNoisePTT
     # add AWGN to the pose and have small likelyhood of chaning the target
     human_pose_p::Pose = human_pose(sp) + rand(rng, MvNormal([0, 0, 0], pttm.pose_cov))
-    do_resample = rand(rng) < pttm.goal_change_prob
+    do_resample = rand(rng) < pttm.model_change_prob
     human_target_p::Pose = do_resample ? rand(rng, corner_poses(room(model))) : human_target(sp)
     robot_pose_p::Pose = robot_pose(sp) + rand(rng, MvNormal([0, 0, 0], pttm.pose_cov))
 

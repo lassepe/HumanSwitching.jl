@@ -94,6 +94,7 @@ export
   dist_to_pose,
   robot_dist_to_target,
   corner_poses,
+  target_index,
   has_collision
 include("utils.jl")
 

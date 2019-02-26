@@ -143,34 +143,39 @@ end
 plot_compose(args...; kwargs...) = Gadfly.render(plot(args...; kwargs...))
 
 # TODO: Figure out why this does not show up
-function belief_info_node(b::ParticleCollection, weight_sum::Float64)
+function belief_info_node(b::ParticleCollection, weight_sum::Float64, r::RoomRep)::Context
   # filling some colums of the data frame for visualization
-  bdf = DataFrame()
-  bdf.hbms = [hbm(p) for p in particles(b)]
-  bdf.modelType = [typeof(hbm) for hbm in bdf.hbms]
-  bdf.velocity = [hbm isa HumanConstantVelocityBehavior ? hbm.velocity : missing for hbm in bdf.hbms]
+  hbms = [hbm(p) for p in particles(b)]
+
+  model_types::Array{Type, 1} = [typeof(hbm) for hbm in hbms]
+  velocities::Array{Float64, 1} = [hbm.velocity for hbm in hbms if hbm isa HumanConstantVelocityBehavior]
+  target_indices::Array{Int, 1} = [target_index(r, hbm.human_target) for hbm in hbms if hbm isa HumanPIDBehavior]
 
   # histogram of model types
-  model_types = InteractiveUtils.subtypes(HumanBehaviorModel)
-  model_names = [string(t) for t in model_types]
+  all_model_types = InteractiveUtils.subtypes(HumanBehaviorModel)
+  model_names = [string(t) for t in all_model_types]
   model_type_histogram = plot_compose(x=model_names,
-                                      y=[count(bdf.modelType .== t) for t in model_types],
+                                      y=[count(model_types .== t) for t in all_model_types],
                                       color=model_names,
                                       Geom.bar,
                                       Gadfly.Theme(key_position=:top,
                                                    key_max_columns=1,
-                                                   discrete_color_scale=Gadfly.Scale.color_discrete_manual([HBMColors[t] for t in model_types]...)
+                                                   discrete_color_scale=Gadfly.Scale.color_discrete_manual([HBMColors[t] for t in all_model_types]...)
                                                   ))
+
   # histogram of constant velocity estimate
-  velocity_histogram = plot_compose(bdf, x=:velocity,
-                                    Geom.histogram(bincount=10, position=:stack, density=true))
+  velocity_histogram = plot_compose(x=length(velocities) > 1 ? velocities : Array{Float64, 1}([]),
+                                    Geom.histogram(bincount=30, density=true))
+
+  target_histogram = plot_compose(x=length(target_indices) > 1 ? target_indices : Array{Float64, 1}([]),
+                                  Geom.histogram(bincount=4, density=true))
 
 
   background = compose(context(), rectangle(0, 0, 1, 1), fill("white"))
 
   return compose(context(),
                  vstack(hstack(model_type_histogram),
-                        hstack(velocity_histogram, context())),
+                        hstack(velocity_histogram, target_histogram)),
                  background)
 end
 
@@ -195,7 +200,7 @@ function belief_node(b::ParticleCollection, room_rep::RoomRep)::Tuple{Context, C
                                fill_color="light green")
                      for (p, state_count) in state_belief_counter]
 
-  belief_info = belief_info_node(b, weight_sum)
+  belief_info = belief_info_node(b, weight_sum, room_rep)
 
   return compose(context(), robot_particles, human_particles, belief_info), belief_info
 end

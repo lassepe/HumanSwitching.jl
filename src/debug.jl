@@ -90,23 +90,21 @@ function test_custom_particle_filter(runs)
     # the simulation is fully running on PID human model
     simulation_model = generate_non_trivial_scenario(ExactPositionSensor(),
                                                      HSGaussianNoisePTT(pose_cov=[0.01, 0.01, 0.01],
-                                                                        goal_change_prob=0.05),
-                                                     HumanBehaviorGenerator([HumanPIDBehavior]),
+                                                                        model_change_prob=0.2),
+                                                     HumanBehaviorGenerator(),
                                                      deepcopy(rng),
                                                     )
 
     # the palnner uses a mix of all models
     planning_model = generate_hspomdp(NoisyPositionSensor(),
                                       HSGaussianNoisePTT(pose_cov=[0.01, 0.01, 0.01],
-                                                         goal_change_prob=0.1),
+                                                         model_change_prob=0.1),
                                       HumanBehaviorGenerator(),
                                       simulation_model,
                                       deepcopy(rng))
 
     n_particles = 2000
     # the blief updater is run with a stocahstic version of the world
-    # belief_updater = SIRParticleFilter(planning_model, n_particles, rng=deepcopy(rng))
-    # belief_updater = SharedExternalStateFilter(planning_model, n_particles, rng=deepcopy(rng))
     belief_updater = BasicParticleFilter(planning_model, SharedExternalStateResampler(n_particles), n_particles, deepcopy(rng))
     # the policy plannes without a model as it is always the same action
     solver = POMCPOWSolver(tree_queries=6000, max_depth=70, criterion=MaxUCB(80),
@@ -116,14 +114,14 @@ function test_custom_particle_filter(runs)
     planner = solve(solver, planning_model)
 
     # the simulator uses the exact dynamics (not known to the belief_updater)
-    simulator = HistoryRecorder(max_steps=10, show_progress=true, rng=deepcopy(rng))
-    sim_hist = simulate(simulator, simulation_model, planner, belief_updater)
+    simulator = HistoryRecorder(max_steps=100, show_progress=true, rng=deepcopy(rng))
+    sim_hist = simulate(simulator, simulation_model, planner, belief_updater, initialstate_distribution(planning_model))
 
     # a, info = action_info(planner, initialstate_distribution(model), tree_in_info=true)
     # inchrome(D3Tree(info[:tree], init_expand=3))
 
     println(AgentPerformance(simulation_model, sim_hist))
-    makegif(simulation_model, sim_hist, filename=joinpath(@__DIR__, "../renderings/visualize_debug.gif"), extra_initial=true, show_progress=true)
+    # makegif(simulation_model, sim_hist, filename=joinpath(@__DIR__, "../renderings/visualize_debug.gif"), extra_initial=true, show_progress=true)
 
     return simulation_model, sim_hist
   end

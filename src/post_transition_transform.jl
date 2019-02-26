@@ -15,7 +15,7 @@ function post_transition_transform(model::HSModel, s::HSState, a::HSAction, sp::
     external_state_p = HSExternalState(human_pose_p, robot_pose_p)
 
     # sample a new human behavior with with a small probability
-    do_resample = rand(rng) < pttm.goal_change_prob
+    do_resample = rand(rng) < pttm.model_change_prob
     hbm_p = do_resample ? generate_human_behavior(rng, model) : hbm(sp)
 
     return HSState(external=external_state_p,

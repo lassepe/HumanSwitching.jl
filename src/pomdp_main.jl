@@ -42,7 +42,7 @@ struct HSIdentityPTT <: HSPostTransitionTransform end
 
 @with_kw struct HSGaussianNoisePTT <: HSPostTransitionTransform
   pose_cov::Array{Float64, 1} = [0.15, 0.15, 0.01] # the diagonal of the transition noise covariance matrix
-  goal_change_prob::Float64 = 0.01 # probability of randomely changing goal
+  model_change_prob::Float64 = 0.01 # probability of randomely changing goal
 end
 
 
