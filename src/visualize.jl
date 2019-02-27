@@ -1,7 +1,7 @@
-HBMColors = Dict(t=>c for (t, c) in zip(InteractiveUtils.subtypes(HumanBehaviorModel),
+hbsColors = Dict(t=>c for (t, c) in zip(InteractiveUtils.subtypes(HumanBehaviorState),
                                                   [get(ColorSchemes.deep, i)
-                                                   for i in range(1/3, stop=2/3, length=length(InteractiveUtils.subtypes(HumanBehaviorModel)))]))
-map_to_color(hbm::HumanBehaviorModel) = HBMColors[typeof(hbm)]
+                                                   for i in range(1/3, stop=2/3, length=length(InteractiveUtils.subtypes(HumanBehaviorState)))]))
+map_to_color(hbs::HumanBehaviorState) = hbsColors[typeof(hbs)]
 
 """
 room node
@@ -110,12 +110,12 @@ function agent_with_target_node(agent_pose::Pose, target::Pose;
   compose(context(), agent_pose_viz, current_target_viz, target_curve_viz)
 end
 
-function human_particle_node(human_pose::Pose, hbm::HumanPIDBehavior;
-                             external_color="light blue", internal_color=map_to_color(hbm),
+function human_particle_node(human_pose::Pose, hbs::HumanPIDBState;
+                             external_color="light blue", internal_color=map_to_color(hbs),
                     annotation::String="", opacity::Float64=1.0)
 
   return agent_with_target_node(human_pose,
-                                human_target(hbm),
+                                human_target(hbs),
                                 external_color=external_color,
                                 curve_color=internal_color,
                                 annotation=annotation,
@@ -124,11 +124,11 @@ function human_particle_node(human_pose::Pose, hbm::HumanPIDBehavior;
                                 opacity=opacity)
 end
 
-function human_particle_node(human_pose::Pose, hbm::HumanConstantVelocityBehavior;
-                             external_color="light green", internal_color=map_to_color(hbm),
+function human_particle_node(human_pose::Pose, hbs::HumanConstVelBState;
+                             external_color="light green", internal_color=map_to_color(hbs),
                     annotation::String="", opacity::Float64=1.0)
 
-  dp::Pose = Pose(cos(human_pose.phi), sin(human_pose.phi), 0) * hbm.velocity
+  dp::Pose = Pose(cos(human_pose.phi), sin(human_pose.phi), 0) * hbs.velocity
   next_step_target::Pose = human_pose + dp
 
   return agent_with_target_node(human_pose,
@@ -142,25 +142,26 @@ end
 
 plot_compose(args...; kwargs...) = Gadfly.render(plot(args...; kwargs...))
 
-function belief_info_node(b::ParticleCollection, weight_sum::Float64, r::RoomRep)::Context
+function belief_info_node(b::ParticleCollection, weight_sum::Float64, m::HSPOMDP)::Context
   # filling some colums of the data frame for visualization
-  hbms = [hbm(p) for p in particles(b)]
+  human_behavior_states = [hbs(p) for p in particles(b)]
 
-  model_types::Array{Type, 1} = [typeof(hbm) for hbm in hbms]
-  velocities::Array{Float64, 1} = [hbm.velocity for hbm in hbms if hbm isa HumanConstantVelocityBehavior]
-  target_indices::Array{Int, 1} = [target_index(r, hbm.human_target) for hbm in hbms if hbm isa HumanPIDBehavior]
+  behavior_state_types::Array{Type, 1} = [typeof(hbs) for hbs in human_behavior_states]
+  velocities::Array{Float64, 1} = [hbs.velocity for hbs in human_behavior_states if hbs isa HumanConstVelBState]
+  # TODO: this does not work if the belief updater is using a different model I guess
+  target_indices::Array{Int, 1} = [target_index(human_behavior_model(m), hbs.human_target) for hbs in human_behavior_states if hbs isa HumanPIDBState]
 
   # histogram of model types
-  all_model_types = InteractiveUtils.subtypes(HumanBehaviorModel)
-  model_names = [string(t) for t in all_model_types]
-  model_type_histogram = plot_compose(x=model_names,
-                                      y=[count(model_types .== t) for t in all_model_types],
-                                      color=model_names,
-                                      Geom.bar,
-                                      Gadfly.Theme(key_position=:top,
-                                                   key_max_columns=1,
-                                                   discrete_color_scale=Gadfly.Scale.color_discrete_manual([HBMColors[t] for t in all_model_types]...)
-                                                  ))
+  all_behavior_state_types = InteractiveUtils.subtypes(HumanBehaviorState)
+  behavior_state_names = [string(t) for t in all_behavior_state_types]
+  behavior_state_type_histogram = plot_compose(x=behavior_state_names,
+                                               y=[count(behavior_state_types .== t) for t in all_behavior_state_types],
+                                               color=behavior_state_names,
+                                               Geom.bar,
+                                               Gadfly.Theme(key_position=:top,
+                                                            key_max_columns=1,
+                                                            discrete_color_scale=Gadfly.Scale.color_discrete_manual([hbsColors[t] for t in all_behavior_state_types]...)
+                                                           ))
 
   # histogram of constant velocity estimate
   velocity_histogram = plot_compose(x=length(velocities) > 1 ? velocities : Array{Float64, 1}([]),
@@ -173,12 +174,12 @@ function belief_info_node(b::ParticleCollection, weight_sum::Float64, r::RoomRep
   background = compose(context(), rectangle(0, 0, 1, 1), fill("white"))
 
   return compose(context(),
-                 vstack(hstack(model_type_histogram),
+                 vstack(hstack(behavior_state_type_histogram),
                         hstack(velocity_histogram, target_histogram)),
                  background)
 end
 
-function belief_node(b::ParticleCollection, room_rep::RoomRep)::Tuple{Context, Context}
+function belief_node(b::ParticleCollection, m::HSPOMDP)::Tuple{Context, Context}
   # computing the state belief distribution
   state_belief_counter = Counter{HSState, Float64}()
 
@@ -189,7 +190,7 @@ function belief_node(b::ParticleCollection, room_rep::RoomRep)::Tuple{Context, C
     weight_sum += w
   end
   @assert(weight_sum > 0)
-  human_particles = [human_particle_node(human_pose(p), hbm(p);
+  human_particles = [human_particle_node(human_pose(p), hbs(p);
                                          annotation=string(round(state_count/weight_sum, digits=3)),
                                          opacity=sqrt(round(state_count/weight_sum, digits=3)))
                      for (p, state_count) in state_belief_counter]
@@ -199,9 +200,10 @@ function belief_node(b::ParticleCollection, room_rep::RoomRep)::Tuple{Context, C
                                fill_color="light green")
                      for (p, state_count) in state_belief_counter]
 
-  belief_info = belief_info_node(b, weight_sum, room_rep)
+  belief_viz = compose(context(), robot_particles, human_particles)
+  belief_info_viz = belief_info_node(b, weight_sum, m)
 
-  return compose(context(), robot_particles, human_particles, belief_info), belief_info
+  return belief_viz, belief_info_viz
 end
 
 """
@@ -236,12 +238,9 @@ function render_step_compose(m::HSModel, step::NamedTuple, base_aspectratio::Flo
 
   # the room background
   room_viz = room_node(room_rep)
-  # all targets where humans might go
-  potential_targets = corner_poses(room_rep)
-  potential_targets_viz = [target_node(pt) for pt in potential_targets]
 
   # the human and it's target
-  human_ground_truth_viz = human_particle_node(human_pose(sp), hbm(sp);
+  human_ground_truth_viz = human_particle_node(human_pose(sp), hbs(sp);
                                                external_color="tomato", internal_color="green")
 
   # the robot and it's target
@@ -249,7 +248,7 @@ function render_step_compose(m::HSModel, step::NamedTuple, base_aspectratio::Flo
                                                  has_orientation=false,
                                                  external_color="pink", curve_color="steelblue")
 
-  belief_viz, belief_info_viz = haskey(step, :bp) && step[:bp] isa ParticleCollection ? belief_node(step[:bp], room_rep) : (context() , context())
+  belief_viz, belief_info_viz = haskey(step, :bp) && step[:bp] isa ParticleCollection ? belief_node(step[:bp], m) : (context(), context())
 
   if base_aspectratio < 1
     info_viz = compose(context(0, 0, 1, 1-base_aspectratio), belief_info_viz, fill("green"))
@@ -261,7 +260,8 @@ function render_step_compose(m::HSModel, step::NamedTuple, base_aspectratio::Flo
           (context(), info_viz),
           (mirror, (base_scale,
                     robot_with_target_viz,
-                    human_ground_truth_viz, potential_targets_viz..., belief_viz,
+                    human_ground_truth_viz,
+                    belief_viz,
                     room_viz))
           )
 end

@@ -62,7 +62,7 @@ end;
 # this test set checks whether everything is implemented to be pseudo-random.
 # Meaning that with the same rng we should get the same result!
 @testset "POMDP deterministic checks" begin
-  mdp = HSMDP(post_transition_transform=HSGaussianNoisePTT())
+  mdp = HSMDP(physical_transition_noise_model=HSGaussianNoisePTT())
   pomdp = HSPOMDP(sensor=NoisyPositionSensor(), mdp=mdp)
   a = HS.HSAction()
 
@@ -88,7 +88,7 @@ end;
 end;
 
 @testset "POMDP visualization" begin
-  mdp = HSMDP(post_transition_transform=HSIdentityPTT())
+  mdp = HSMDP(physical_transition_noise_model=HSIdentityPTT())
   pomdp = HSPOMDP(sensor=NoisyPositionSensor([0.1,0.1,0.01]), mdp=mdp)
   rng = MersenneTwister(42)
   belief_updater = NothingUpdater()

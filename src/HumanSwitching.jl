@@ -39,15 +39,14 @@ export
   RoomRep,
 
   # post transition transformations for particle filter
-  HSPostTransitionTransform,
-  HSIdentityPTT,
-  HSGaussianNoisePTT,
+  HSPhysicalTransitionNoiseModel,
+  HSIdentityPTNM,
+  HSGaussianNoisePTNM,
 
+  # TODO:
   # human transition models
-  HumanBehaviorGenerator,
+  HumanBehaviorState,
   HumanBehaviorModel,
-  HumanConstantVelocityBehavior,
-  HumanPIDBehavior,
 
   # Sensor / Observation Models
   HSSensor,
@@ -67,7 +66,8 @@ export
   # problem utilites
   mdp,
   room,
-  hbm,
+  hbs,
+  human_behavior_model,
   external,
   human_pose,
   human_target,
@@ -82,11 +82,17 @@ export
   reward_model,
   discount,
   apply_action
-
 include("pomdp_main.jl")
-include("post_transition_transform.jl")
+
+export
+  HumanConstVelBState,
+  HumanPIDBState,
+  HumanConstVelBehavior,
+  HumanPIDBehavior
+include("human_behaviors.jl")
+
+include("physical_transition_noise_model.jl")
 include("reward_model.jl")
-include("human_behavior_generators.jl")
 include("human_transition_models.jl")
 
 export

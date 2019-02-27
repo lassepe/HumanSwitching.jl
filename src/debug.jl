@@ -32,7 +32,7 @@ function test_mdp_solver(n_runs::Int=1)
   rng = MersenneTwister(1)
 
   mdp_exact = generate_non_trivial_scenario(ExactPositionSensor(),
-                                            HSGaussianNoisePTT(pose_cov=[0.003, 0.003, 0.003]),
+                                            HSGaussianNoisePTNM(pose_cov=[0.003, 0.003, 0.003]),
                                             deepcopy(rng)) |> mdp
 
   # @requirements_info MCTSSolver() mdp_awgn initialstate(mdp_awgn, rng)
@@ -56,10 +56,10 @@ function demo_pomdp(runs)
     rng = MersenneTwister(i_run)
     # setup models
     simulation_model = generate_non_trivial_scenario(ExactPositionSensor(),
-                                                     HSGaussianNoisePTT(pose_cov=[0.003, 0.003, 0.003]),
+                                                     HSGaussianNoisePTNM(pose_cov=[0.003, 0.003, 0.003]),
                                                      deepcopy(rng))
     planning_model = generate_hspomdp(NoisyPositionSensor(),
-                                      HSGaussianNoisePTT(pose_cov=[0.1, 0.1, 0.1]),
+                                      HSGaussianNoisePTNM(pose_cov=[0.1, 0.1, 0.1]),
                                       simulation_model,
                                       deepcopy(rng))
 
@@ -89,17 +89,13 @@ function test_custom_particle_filter(runs)
 
     # the simulation is fully running on PID human model
     simulation_model = generate_non_trivial_scenario(ExactPositionSensor(),
-                                                     HSGaussianNoisePTT(pose_cov=[0.01, 0.01, 0.01],
-                                                                        model_change_prob=0.2),
-                                                     HumanBehaviorGenerator(),
+                                                     HSGaussianNoisePTNM(pose_cov=[0.01, 0.01, 0.01]),
                                                      deepcopy(rng),
                                                     )
 
     # the palnner uses a mix of all models
     planning_model = generate_hspomdp(NoisyPositionSensor(),
-                                      HSGaussianNoisePTT(pose_cov=[0.01, 0.01, 0.01],
-                                                         model_change_prob=0.1),
-                                      HumanBehaviorGenerator(),
+                                      HSGaussianNoisePTNM(pose_cov=[0.01, 0.01, 0.01]),
                                       simulation_model,
                                       deepcopy(rng))
 

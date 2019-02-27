@@ -31,51 +31,46 @@ struct ExactPositionSensor <: HSSensor end
 end
 
 """
+# Robot reward model
+Describes the rewards the robot cares about
+"""
+
+@with_kw struct HSRewardModel
+  discount_factor::Float64 = 0.97
+  living_penalty::Float64 = -1
+  collision_penalty::Float64 = -50
+  left_room_penalty::Float64 = -50
+  target_reached_reward::Float64 = 40.0
+  dist_to_human_penalty::Float64 = -5
+  move_to_goal_reward::Float64 = 0
+  control_cost::Float64 = 0
+end
+
+"""
 # Post Transition Transformations
 For each type a post-processing step for the particle filter is defined (e.g adding noise)
 
-Details: `post_transition_transform.jl`
+Details: `physical_transition_noise_model.jl`
 """
-abstract type HSPostTransitionTransform end
+abstract type HSPhysicalTransitionNoiseModel end
 
-struct HSIdentityPTT <: HSPostTransitionTransform end
+struct HSIdentityPTNM <: HSPhysicalTransitionNoiseModel end
 
-@with_kw struct HSGaussianNoisePTT <: HSPostTransitionTransform
-  pose_cov::Array{Float64, 1} = [0.15, 0.15, 0.01] # the diagonal of the transition noise covariance matrix
-  model_change_prob::Float64 = 0.01 # probability of randomely changing goal
+@with_kw struct HSGaussianNoisePTNM <: HSPhysicalTransitionNoiseModel
+  pose_cov::Array{Float64} = [0.15, 0.15, 0.01] # the diagonal of the transition noise covariance matrix
 end
-
 
 """
 # Human Behavior Models
 For each behavior a `human_transition` is defined
 
-Details: see `human_transition_models.jl`
+Details:
+- behavior tree see `human_behavior_tree.jl`
+- transition models see `human_transition_models.jl`
 """
-
+abstract type HumanBehaviorState end
 abstract type HumanBehaviorModel end
-
-@with_kw struct HumanConstantVelocityBehavior <: HumanBehaviorModel
-  velocity::Float64
-end
-
-@with_kw struct HumanPIDBehavior <: HumanBehaviorModel
-  human_target::Pose
-  max_speed::Float64 = 0.5
-end
-
-human_target(hm::HumanPIDBehavior) = hm.human_target
-
-"""
-# Behavior Generator
-A representation to generate / sample human behaviors from
-
-Details: see `human_behavior_generators.jl`
-"""
-
-@with_kw struct HumanBehaviorGenerator
-  behaviors::Array{DataType} = InteractiveUtils.subtypes(HumanBehaviorModel)
-end
+function rand_hbs end
 
 """
 # State Representation
@@ -90,15 +85,15 @@ convert(::Type{V}, o::HSExternalState) where V <: AbstractVector = V([human_pose
 
 @with_kw struct HSState
   external::HSExternalState
-  hbm::HumanBehaviorModel
+  hbs::HumanBehaviorState
 end
 
 external(s::HSState) = s.external
 external(s::HSExternalState) = s
-hbm(s::HSState) = s.hbm
-hbm(m::HumanBehaviorModel) = m
-internal(s::HSState) = hbm(s::HSState)
-compose_state(e::HSExternalState, i::HumanBehaviorModel) = HSState(external=e, hbm=i)
+hbs(s::HSState) = s.hbs
+hbs(m::HumanBehaviorState) = m
+internal(s::HSState) = hbs(s::HSState)
+compose_state(e::HSExternalState, i::HumanBehaviorState) = HSState(external=e, hbs=i)
 
 human_pose(s::Union{HSState, HSExternalState}) = external(s).human_pose
 robot_pose(s::Union{HSState, HSExternalState}) = external(s).robot_pose
@@ -129,11 +124,11 @@ apply_action(p::Pose, a::HSAction) = Pose(p.x + cos(a.phi)*a.d, p.y + sin(a.phi)
 @with_kw struct HSMDP{AS} <: MDP{HSState, HSAction}
   room::RoomRep = RoomRep()
   aspace::AS = HSActionSpace()
-  reward_model = HSRewardModel()
+  reward_model::HSRewardModel = HSRewardModel()
+  human_behavior_model::HumanBehaviorModel = HumanPIDBehavior(potential_targets=corner_poses(room))
+  physical_transition_noise_model::HSPhysicalTransitionNoiseModel = HSIdentityPTNM()
   robot_target::Pose = rand_pose(room, Random.GLOBAL_RNG, forced_orientation=0.0)
   agent_min_distance::Float64 = 1.0
-  human_behavior_generator = HumanBehaviorGenerator()
-  post_transition_transform::HSPostTransitionTransform = HSIdentityPTT()
   known_external_initstate::Union{HSExternalState, Nothing} = nothing
 end
 
@@ -150,12 +145,12 @@ const HSModel = Union{HSMDP, HSPOMDP}
 
 mdp(m::HSMDP) = m
 mdp(m::HSPOMDP) = m.mdp
+human_behavior_model(m::HSModel) = mdp(m).human_behavior_model
 robot_target(m::HSModel) = mdp(m).robot_target
 reward_model(m::HSModel) = mdp(m).reward_model
-post_transition_transform(m::HSModel) = mdp(m).post_transition_transform
+physical_transition_noise_model(m::HSModel) = mdp(m).physical_transition_noise_model
 room(m::HSModel) = mdp(m).room
 agent_min_distance(m::HSModel) = mdp(m).agent_min_distance
-human_behavior_generator(m::HSModel) = mdp(m).human_behavior_generator
 
 """
 # Implementation of main POMDP Interface
@@ -168,19 +163,14 @@ POMDPs.discount(m::HSModel) = reward_model(m).discount_factor
 function POMDPs.generate_s(m::HSModel, s::HSState, a::HSAction, rng::AbstractRNG)::HSState
   @assert (a in actions(m))
 
-  # compute the human transition - giving a new pose for the human and a new transition model
-  human_pose_p, hbm_p = human_transition(hbm(s), human_pose(s), m, rng)
+  human_pose_intent, hbs_p = human_transition(hbs(s), human_behavior_model(m), m, human_pose(s), rng)
+  robot_pose_intent = apply_action(robot_pose(s), a)
+  external_intent::HSExternalState = HSExternalState(human_pose_intent, robot_pose_intent)
+  # the intended transition is augmented with the physical transition noise
+  external_p = apply_physical_transition_noise(physical_transition_noise_model(m), external_intent, rng)
 
-  # compute the transition of the robot
-  robot_pose_p = apply_action(robot_pose(s), a)
-
-  sp::HSState = HSState(external=HSExternalState(human_pose_p,
-                                                  robot_pose_p),
-                        hbm=hbm_p)
-
-  # potentially add some noise to sp for numerical reasons
-  return post_transition_transform(m, s, a, sp,
-                                   rng::AbstractRNG)::HSState
+  sp::HSState = HSState(external=external_p,
+                        hbs=hbs_p)
 end
 
 # In this version the observation is a **deterministic** extraction of the observable part of the state

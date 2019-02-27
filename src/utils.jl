@@ -34,7 +34,7 @@ Base.iterate(c::Counter, idx::Int64) = Base.iterate(c.d, idx::Int64)
 Base.length(c::Counter) = Base.length(c.d)
 
 function Base.isequal(a::HSState, b::HSState)
-  isequal(external(a), external(b)) && isequal(hbm(a), hbm(b))
+  isequal(external(a), external(b)) && isequal(hbs(a), hbs(b))
 end
 
 function Base.isequal(a::HSExternalState, b::HSExternalState)
@@ -42,14 +42,13 @@ function Base.isequal(a::HSExternalState, b::HSExternalState)
   isequal(robot_pose(a), robot_pose(b))
 end
 
-function Base.isequal(a::HumanPIDBehavior, b::HumanPIDBehavior)
+function Base.isequal(a::HumanPIDBState, b::HumanPIDBState)
   # TODO refactorState
   isequal(human_target(a), human_target(b))
 end
 
 # determines the corner poses of the room
 corner_poses(r::RoomRep) = [Pose(x, y, 0) for x in [0.1r.width, 0.9r.width], y in [0.1r.height, 0.9r.height]]
-target_index(r::RoomRep, p::Pose) = findfirst(x->x==p, vec(corner_poses(r)))
 
 # determines the 2D vector from p_start to p_end
 vec_from_to(p_start::Pose, p_end::Pose)::SVector{2} = p_end[1:2] - p_start[1:2]
@@ -81,9 +80,9 @@ function rand_state(m::HSModel, rng::AbstractRNG; known_external_state::Union{HS
   external_state = known_external_state === nothing ? rand_external_state(room(m), rng) : known_external_state
 
   # generate human internal state
-  hbm = generate_human_behavior(rng, m)
+  hbs = rand_hbs(rng, human_behavior_model(m))
 
-  return HSState(external=external_state, hbm=hbm)
+  return HSState(external=external_state, hbs=hbs)
 end
 
 function isinroom(p::Pose, r::RoomRep)
