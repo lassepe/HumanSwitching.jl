@@ -125,7 +125,7 @@ apply_action(p::Pose, a::HSAction) = Pose(p.x + cos(a.phi)*a.d, p.y + sin(a.phi)
   room::RoomRep = RoomRep()
   aspace::AS = HSActionSpace()
   reward_model::HSRewardModel = HSRewardModel()
-  human_behavior_model::HumanBehaviorModel = HumanPIDBehavior(potential_targets=corner_poses(room))
+  human_behavior_model::HumanBehaviorModel = HumanPIDBehavior(room)
   physical_transition_noise_model::HSPhysicalTransitionNoiseModel = HSIdentityPTNM()
   robot_target::Pose = rand_pose(room, Random.GLOBAL_RNG, forced_orientation=0.0)
   agent_min_distance::Float64 = 1.0

@@ -43,7 +43,9 @@ Each describe
 
 @with_kw struct HumanConstVelBehavior <: HumanBehaviorModel
   min_max_vel::Array{Float64} = [0.0, 1.0]
+  vel_sigma::Float64 = 0.01
 end
+bstate_type(hbm::HumanConstVelBehavior)::Type = HumanConstVelBState
 
 # this model randomely generates HumanConstVelBState from the min_max_vel range
 function rand_hbs(rng::AbstractRNG, hbm::HumanConstVelBehavior)::HumanConstVelBState
@@ -52,11 +54,35 @@ end
 
 @with_kw struct HumanPIDBehavior <: HumanBehaviorModel
   potential_targets::Array{Pose}
-  goal_change_likelyhood::Float64 = 0.01
+  goal_change_likelihood::Float64 = 0.01
 end
+HumanPIDBehavior(room::RoomRep; kwargs...) = HumanPIDBehavior(potential_targets=corner_poses(room); kwargs...)
+
+bstate_type(hbm::HumanBehaviorModel)::Type = HumanPIDBState
 
 function rand_hbs(rng::AbstractRNG, hbm::HumanPIDBehavior)::HumanPIDBState
   return HumanPIDBState(human_target=rand(rng, hbm.potential_targets))
 end
 
-target_index(hbm::HumanPIDBehavior, p::Pose) = findfirst(x->x==p, vec(hbm.potential_targets))
+function target_index(hbm::HumanPIDBehavior, p::Pose)
+  idx = findfirst(x->x==p, vec(hbm.potential_targets))
+  if idx === nothing
+    @warn "Lookup of unknown target!" maxlog=1
+  end
+  return idx
+end
+
+@with_kw struct HumanUniformModelMix <: HumanBehaviorModel
+  submodels::Array{HumanBehaviorModel}
+  bstate_change_likelihood::Float64
+end
+bstate_type(hbm::HumanUniformModelMix)::Type = Union{Iterators.flatten([[bstate_type(sm)] for sm in hbm.submodels])...}
+function select_submodel(hbm::HumanUniformModelMix, hbs::HumanBehaviorState)::HumanBehaviorModel
+  candidate_submodels = filter(x->(hbs isa bstate_type(x)), hbm.submodels)
+  @assert(length(candidate_submodels) == 1)
+  return first(candidate_submodels)
+end
+
+function rand_hbs(rng::AbstractRNG, hbm::HumanUniformModelMix)::HumanBehaviorState
+  return rand_hbs(rng::AbstractRNG, rand(rng, hbm.submodels))
+end

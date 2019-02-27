@@ -28,74 +28,28 @@ using D3Trees
 
 include("estimate_value_policies.jl")
 
-function test_mdp_solver(n_runs::Int=1)
-  rng = MersenneTwister(1)
-
-  mdp_exact = generate_non_trivial_scenario(ExactPositionSensor(),
-                                            HSGaussianNoisePTNM(pose_cov=[0.003, 0.003, 0.003]),
-                                            deepcopy(rng)) |> mdp
-
-  # @requirements_info MCTSSolver() mdp_awgn initialstate(mdp_awgn, rng)
-
-  # for now we run the ...
-  # - the planner with some stochastic version of the true dynamics
-  # - the simulator with the true dynamics unknown to the planner
-  solver = MCTSSolver(estimate_value=free_space_estimate, n_iterations=5000, depth=10, exploration_constant=40.0)
-  planner = solve(solver, mdp_exact)
-  simulator = HistoryRecorder(rng=rng, max_steps=100)
-
-  for i_run in 1:n_runs
-    sim_hist = simulate(simulator, mdp_exact, planner)
-    makegif(mdp_exact, sim_hist, filename=joinpath(@__DIR__, "../renderings/out_mcts$i_run.gif"), extra_initial=true, show_progress=true)
-    println("Discounted reward: $(discounted_reward(sim_hist))")
-  end
-end
-
-function demo_pomdp(runs)
-  for i_run in runs
-    rng = MersenneTwister(i_run)
-    # setup models
-    simulation_model = generate_non_trivial_scenario(ExactPositionSensor(),
-                                                     HSGaussianNoisePTNM(pose_cov=[0.003, 0.003, 0.003]),
-                                                     deepcopy(rng))
-    planning_model = generate_hspomdp(NoisyPositionSensor(),
-                                      HSGaussianNoisePTNM(pose_cov=[0.1, 0.1, 0.1]),
-                                      simulation_model,
-                                      deepcopy(rng))
-
-    # setup POMDP solver and belief updater
-    belief_updater = SIRParticleFilter(planning_model, 10000, rng=deepcopy(rng))
-    solver = POMCPOWSolver(tree_queries=5000, max_depth=100, criterion=MaxUCB(40),
-                           estimate_value=free_space_estimate, default_action=zero(HSAction), rng=deepcopy(rng))
-    planner = solve(solver, planning_model)
-
-    # run simulation and render gif
-    try
-      @info "Run #$i_run"
-      simulator = HistoryRecorder(max_steps=100, show_progress=true, rng=deepcopy(rng))
-      sim_hist = simulate(simulator, simulation_model, planner, belief_updater)
-      makegif(simulation_model, sim_hist, filename=joinpath(@__DIR__, "../renderings/out_pomcpow_$i_run.gif"), extra_initial=true, show_progress=true)
-      println(AgentPerformance(simulation_model, sim_hist))
-    catch ex
-      print(ex)
-    end
-  end
-end
-
 function test_custom_particle_filter(runs)
   for i_run in runs
     rng = MersenneTwister(i_run)
     # setup models
 
     # the simulation is fully running on PID human model
+    ptnm_cov = [0.1, 0.1, 0.1]
+    simulation_hbm = HumanPIDBehavior(RoomRep(); goal_change_likelihood=0.1)
     simulation_model = generate_non_trivial_scenario(ExactPositionSensor(),
-                                                     HSGaussianNoisePTNM(pose_cov=[0.01, 0.01, 0.01]),
-                                                     deepcopy(rng),
-                                                    )
+                                                     simulation_hbm,
+                                                     HSGaussianNoisePTNM(pose_cov=ptnm_cov),
+                                                     deepcopy(rng))
 
     # the palnner uses a mix of all models
-    planning_model = generate_hspomdp(NoisyPositionSensor(),
-                                      HSGaussianNoisePTNM(pose_cov=[0.01, 0.01, 0.01]),
+    # planning_hbm = HumanUniformModelMix(submodels=[HumanPIDBehavior(potential_targets=simulation_hbm.potential_targets[[1,3]];
+    #                                                                 goal_change_likelihood=0.1),
+    #                                                HumanConstVelBehavior()],
+    #                                     bstate_change_likelihood=0.1)
+    planning_hbm= HumanConstVelBehavior()
+    planning_model = generate_hspomdp(NoisyPositionSensor(ptnm_cov),
+                                      planning_hbm,
+                                      HSIdentityPTNM(),
                                       simulation_model,
                                       deepcopy(rng))
 
@@ -119,10 +73,10 @@ function test_custom_particle_filter(runs)
     println(AgentPerformance(simulation_model, sim_hist))
     # makegif(simulation_model, sim_hist, filename=joinpath(@__DIR__, "../renderings/visualize_debug.gif"), extra_initial=true, show_progress=true)
 
-    return simulation_model, sim_hist
+    return planning_model, sim_hist
   end
 end
 
-function visualize(simulation_model, sim_hist)
-    makegif(simulation_model, sim_hist, filename=joinpath(@__DIR__, "../renderings/visualize_debug.gif"), extra_initial=true, show_progress=true)
+function visualize(belief_updater_model, sim_hist)
+    makegif(belief_updater_model, sim_hist, filename=joinpath(@__DIR__, "../renderings/visualize_debug.gif"), extra_initial=true, show_progress=true)
 end

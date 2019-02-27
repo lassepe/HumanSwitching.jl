@@ -88,7 +88,8 @@ export
   HumanConstVelBState,
   HumanPIDBState,
   HumanConstVelBehavior,
-  HumanPIDBehavior
+  HumanPIDBehavior,
+  HumanUniformModelMix
 include("human_behaviors.jl")
 
 include("physical_transition_noise_model.jl")

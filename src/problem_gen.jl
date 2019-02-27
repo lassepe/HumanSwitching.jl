@@ -1,5 +1,5 @@
-function generate_hspomdp(sensor::HSSensor, physical_transition_noise_model::HSPhysicalTransitionNoiseModel,
-                          rng::AbstractRNG;
+function generate_hspomdp(sensor::HSSensor, human_behavior_model::HumanBehaviorModel,
+                          physical_transition_noise_model::HSPhysicalTransitionNoiseModel, rng::AbstractRNG;
                           room::RoomRep=RoomRep(),
                           aspace=HSActionSpace(),
                           reward_model::HSRewardModel=HSRewardModel(),
@@ -11,6 +11,7 @@ function generate_hspomdp(sensor::HSSensor, physical_transition_noise_model::HSP
               physical_transition_noise_model=physical_transition_noise_model,
               aspace=aspace,
               reward_model=reward_model,
+              human_behavior_model=human_behavior_model,
               robot_target=robot_target,
               agent_min_distance=agent_min_distance,
               known_external_initstate=known_external_initstate)
@@ -20,9 +21,9 @@ function generate_hspomdp(sensor::HSSensor, physical_transition_noise_model::HSP
   return HSPOMDP(sensor, mdp)
 end
 
-function generate_hspomdp(sensor::HSSensor, physical_transition_noise_model::HSPhysicalTransitionNoiseModel,
-                          template_model::HSModel, rng::AbstractRNG)
-  return generate_hspomdp(sensor, physical_transition_noise_model, rng;
+function generate_hspomdp(sensor::HSSensor, human_behavior_model::HumanBehaviorModel,
+                          physical_transition_noise_model::HSPhysicalTransitionNoiseModel, template_model::HSModel, rng::AbstractRNG)
+  return generate_hspomdp(sensor, human_behavior_model, physical_transition_noise_model, rng;
                           room=room(template_model),
                           aspace=mdp(template_model).aspace,
                           reward_model=reward_model(template_model),
@@ -31,8 +32,8 @@ function generate_hspomdp(sensor::HSSensor, physical_transition_noise_model::HSP
                           known_external_initstate=mdp(template_model).known_external_initstate)
 end
 
-function generate_non_trivial_scenario(sensor::HSSensor, physical_transition_noise_model::HSPhysicalTransitionNoiseModel,
-                                       rng::AbstractRNG;
+function generate_non_trivial_scenario(sensor::HSSensor, human_behavior_model::HumanBehaviorModel,
+                                       physical_transition_noise_model::HSPhysicalTransitionNoiseModel, rng::AbstractRNG;
                                        kwargs...)
   if get(kwargs, :known_external_initstate, nothing) !== nothing
     @error "Non-trivial scenarios can't be generated from fixed external init states."
@@ -44,7 +45,7 @@ function generate_non_trivial_scenario(sensor::HSSensor, physical_transition_noi
 
   while true
     # sample a new, partially observable setup
-    po_model = generate_hspomdp(sensor, physical_transition_noise_model, rng; kwargs...)
+    po_model = generate_hspomdp(sensor, human_behavior_model, physical_transition_noise_model, rng; kwargs...)
     # check if the trivial policy (go straight to goal, ignoring human) works well on the full
     # observable problem
     fo_model = mdp(po_model)
@@ -71,5 +72,4 @@ function generate_non_trivial_scenario(sensor::HSSensor, physical_transition_noi
       println("Was Trivial - Sampling Again!")
     end
   end
-
 end
