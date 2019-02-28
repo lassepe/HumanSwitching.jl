@@ -4,8 +4,8 @@ end
 
 function POMDPs.action(p::StraightToTarget, s::HSState)
   # take the action that moves me closest to goal as a rollout
-  best_action = reduce((a1, a2) -> dist_to_pose(apply_action(robot_pose(s), a1), robot_target(p.m))
-                       < dist_to_pose(apply_action(robot_pose(s), a2), robot_target(p.m)) ?
+  best_action = reduce((a1, a2) -> dist_to_pose(apply_robot_action(robot_pose(s), a1), robot_target(p.m))
+                       < dist_to_pose(apply_robot_action(robot_pose(s), a2), robot_target(p.m)) ?
                        a1 : a2,
                        HSActionSpace())
 end
@@ -13,8 +13,8 @@ end
 function POMDPs.action(p::StraightToTarget, b::AbstractParticleBelief)
   s = mode(b)
   # take the action that moves me closest to goal as a rollout
-  best_action = reduce((a1, a2) -> dist_to_pose(apply_action(robot_pose(s), a1), robot_target(p.m))
-                       < dist_to_pose(apply_action(robot_pose(s), a2), robot_target(p.m)) ?
+  best_action = reduce((a1, a2) -> dist_to_pose(apply_robot_action(robot_pose(s), a1), robot_target(p.m))
+                       < dist_to_pose(apply_robot_action(robot_pose(s), a2), robot_target(p.m)) ?
                        a1 : a2,
                        HSActionSpace())
 end

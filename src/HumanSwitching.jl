@@ -81,7 +81,7 @@ export
   reward,
   reward_model,
   discount,
-  apply_action
+  apply_robot_action
 include("pomdp_main.jl")
 
 export

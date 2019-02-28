@@ -104,6 +104,6 @@ end;
 
   # check whether the action space is symmetric
   isapproxin(container, external_it) = any(isapprox(it, external_it) for it in container)
-  reachable_states = (apply_action(zero(Pose), a) for a in HSActionSpace())
+  reachable_states = (apply_robot_action(zero(Pose), a) for a in HSActionSpace())
   @test all(isapproxin(reachable_states, -s) for s in reachable_states)
 end

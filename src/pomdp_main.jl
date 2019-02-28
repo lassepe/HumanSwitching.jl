@@ -115,7 +115,7 @@ function HSActionSpace()
   return vec([zero(HSAction()), (HSAction(d, phi) for d in dist_actions, phi in phi_actions)...])
 end
 
-apply_action(p::Pose, a::HSAction) = Pose(p.x + cos(a.phi)*a.d, p.y + sin(a.phi)*a.d, p.phi)
+apply_robot_action(p::Pose, a::HSAction) = Pose(p.x + cos(a.phi)*a.d, p.y + sin(a.phi)*a.d, p.phi)
 
 """
 # POMDP and MDP Representation
@@ -164,7 +164,7 @@ function POMDPs.generate_s(m::HSModel, s::HSState, a::HSAction, rng::AbstractRNG
   @assert (a in actions(m))
 
   human_pose_intent, hbs_p = human_transition(hbs(s), human_behavior_model(m), m, human_pose(s), rng)
-  robot_pose_intent = apply_action(robot_pose(s), a)
+  robot_pose_intent = apply_robot_action(robot_pose(s), a)
   external_intent::HSExternalState = HSExternalState(human_pose_intent, robot_pose_intent)
   # the intended transition is augmented with the physical transition noise
   external_p = apply_physical_transition_noise(physical_transition_noise_model(m), external_intent, rng)

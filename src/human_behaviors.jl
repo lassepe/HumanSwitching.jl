@@ -33,6 +33,10 @@ function free_evolution(hbs::HumanPIDBState, p::Pose)::Pose
   return human_pose_p
 end
 
+struct HumanBoltzmannBState
+  beta::Float64
+end
+
 """
 # HumanBehaviorModel
 
@@ -72,6 +76,31 @@ function target_index(hbm::HumanPIDBehavior, p::Pose)
     @warn "Lookup of unknown target!" maxlog=1
   end
   return idx
+end
+
+@with_kw struct HumanBoltzmannModel
+  # TODO: It might be a good idea to initialize with a rather low beta?
+  min_max_beta::Array{Float64} = [0, 100]
+  human_action_space::Array{Pose} = gen_human_aspace()
+end
+
+function gen_human_aspace()::Array{Pose, 1}
+  # parameters, TODO: move!
+  dphi_max::Float64 = pi/4
+  n_phi_steps::Int = 3
+  dphi_actions::Array{Float64} = range(-dphi_max, stop=dphi_max, length=n_phi_steps)
+
+  # parameters, TODO: move!
+  dist_actions::Array{Float64} = [0.6]
+  direction_actions::Array{Float64} = [-pi/4, 0.0, pi/4]
+  dxy_actions = vec([[0,0], ([dist, direction] for dist in dist_actions, direction in direction_actions)...])
+
+  return vec([Pose(dxy..., dphi) for dxy in dxy_actions, dphi in dphi_actions])
+end
+bstate_type(hbm::HumanBoltzmannModel)::Type = HumanBoltzmannBState
+
+function rand_hbs(rng::AbstractRNG, hbm::HumanBoltzmannModel)::HumanBoltzmannBState
+  return HumanBoltzmannBState(rand(rng, Uniform(min_max_beta...)))
 end
 
 @with_kw struct HumanUniformModelMix <: HumanBehaviorModel
