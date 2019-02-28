@@ -14,6 +14,7 @@ end
   human_target::Pose
   max_speed::Float64 = 0.5
 end
+
 human_target(hm::HumanPIDBState) = hm.human_target
 
 function free_evolution(hbs::HumanPIDBState, p::Pose)::Pose
@@ -33,7 +34,7 @@ function free_evolution(hbs::HumanPIDBState, p::Pose)::Pose
   return human_pose_p
 end
 
-struct HumanBoltzmannBState
+struct HumanBoltzmannBState <: HumanBehaviorState
   beta::Float64
 end
 
@@ -51,6 +52,7 @@ select_submodel(hbm::HumanBehaviorModel, hbs::HumanBehaviorState)::HumanBehavior
   min_max_vel::Array{Float64} = [0.0, 1.0]
   vel_sigma::Float64 = 0.01
 end
+
 bstate_type(hbm::HumanConstVelBehavior)::Type = HumanConstVelBState
 
 # this model randomely generates HumanConstVelBState from the min_max_vel range
@@ -62,6 +64,7 @@ end
   potential_targets::Array{Pose}
   goal_change_likelihood::Float64 = 0.01
 end
+
 HumanPIDBehavior(room::RoomRep; kwargs...) = HumanPIDBehavior(potential_targets=corner_poses(room); kwargs...)
 
 bstate_type(hbm::HumanBehaviorModel)::Type = HumanPIDBState
@@ -78,42 +81,64 @@ function target_index(hbm::HumanPIDBehavior, p::Pose)
   return idx
 end
 
-@with_kw struct HumanBoltzmannModel
+abstract type HumanRewardModel end
+
+@with_kw struct HumanBoltzmannModel{AT, RMT} <: HumanBehaviorModel
   # TODO: It might be a good idea to initialize with a rather low beta?
   min_max_beta::Array{Float64} = [0, 100]
-  human_action_space::Array{Pose} = gen_human_aspace()
+  aspace::Array{AT} = gen_human_aspace()
+  reward_model::RMT= HumanSingleTargetRewardModel()
 end
 
-function gen_human_aspace()::Array{Pose, 1}
-  # parameters, TODO: move!
-  dphi_max::Float64 = pi/4
-  n_phi_steps::Int = 3
-  dphi_actions::Array{Float64} = range(-dphi_max, stop=dphi_max, length=n_phi_steps)
-
-  # parameters, TODO: move!
-  dist_actions::Array{Float64} = [0.6]
-  direction_actions::Array{Float64} = [-pi/4, 0.0, pi/4]
-  dxy_actions = vec([[0,0], ([dist, direction] for dist in dist_actions, direction in direction_actions)...])
-
-  return vec([Pose(dxy..., dphi) for dxy in dxy_actions, dphi in dphi_actions])
-end
 bstate_type(hbm::HumanBoltzmannModel)::Type = HumanBoltzmannBState
 
 function rand_hbs(rng::AbstractRNG, hbm::HumanBoltzmannModel)::HumanBoltzmannBState
-  return HumanBoltzmannBState(rand(rng, Uniform(min_max_beta...)))
+  return HumanBoltzmannBState(rand(rng, Uniform(hbm.min_max_beta...)))
+end
+
+@with_kw struct HumanSingleTargetRewardModel
+  human_target::Pose = Pose(7.5, 7.5, 0)
+end
+
+@with_kw struct HumanBoltzmannAction <: FieldVector{2, Float64}
+  d::Float64 = 0 # distance
+  phi::Float64 = 0 # direction
+end
+
+function gen_human_aspace()::Array{HumanBoltzmannAction, 1}
+  dist_actions::Array{Float64}= [0.3, 0.6]
+  direction_resolution::Float64 = pi/4
+  direction_actions = (-pi:direction_resolution:(pi-direction_resolution))
+
+  return vec([zero(HumanBoltzmannAction),
+              (HumanBoltzmannAction(d, direction) for d in dist_actions, direction in direction_actions)...])
+end
+
+apply_human_action(p::Pose, a::HumanBoltzmannAction)::Pose = Pose(p.x + cos(a.phi)*a.d, p.y + sin(a.phi)*a.d, p.phi)
+
+function compute_qval(p::Pose, a::HumanBoltzmannAction, reward_model::HumanSingleTargetRewardModel)::Float64
+  # TODO: reason about whether this should be the 2 or 1 norm!
+  return -norm(a.d) - dist_to_pose(apply_human_action(p, a), reward_model.human_target; p=2)
+end
+
+function get_action_distribution(hbm::HumanBoltzmannModel, hbs::HumanBoltzmannBState,
+                                 p::Pose)::Categorical
+  qvals::Array{Float64} = [compute_qval(p, a, hbm.reward_model) for a in hbm.aspace]
+  action_props::Array{Float64} = normalize([exp(hbs.beta * q) for q in qvals], 1)
+  return Categorical(action_props)
 end
 
 @with_kw struct HumanUniformModelMix <: HumanBehaviorModel
   submodels::Array{HumanBehaviorModel}
   bstate_change_likelihood::Float64
 end
+
 bstate_type(hbm::HumanUniformModelMix)::Type = Union{Iterators.flatten([[bstate_type(sm)] for sm in hbm.submodels])...}
+
 function select_submodel(hbm::HumanUniformModelMix, hbs::HumanBehaviorState)::HumanBehaviorModel
   candidate_submodels = filter(x->(hbs isa bstate_type(x)), hbm.submodels)
   @assert(length(candidate_submodels) == 1)
   return first(candidate_submodels)
 end
 
-function rand_hbs(rng::AbstractRNG, hbm::HumanUniformModelMix)::HumanBehaviorState
-  return rand_hbs(rng::AbstractRNG, rand(rng, hbm.submodels))
-end
+rand_hbs(rng::AbstractRNG, hbm::HumanUniformModelMix)::HumanBehaviorState = rand_hbs(rng::AbstractRNG, rand(rng, hbm.submodels))

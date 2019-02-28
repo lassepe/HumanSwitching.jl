@@ -112,7 +112,7 @@ function HSActionSpace()
   phi_resolution = (pi/2)
   phi_actions = (-pi:phi_resolution:(pi-phi_resolution))
 
-  return vec([zero(HSAction()), (HSAction(d, phi) for d in dist_actions, phi in phi_actions)...])
+  return vec([zero(HSAction), (HSAction(d, phi) for d in dist_actions, phi in phi_actions)...])
 end
 
 apply_robot_action(p::Pose, a::HSAction) = Pose(p.x + cos(a.phi)*a.d, p.y + sin(a.phi)*a.d, p.phi)

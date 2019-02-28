@@ -89,6 +89,7 @@ export
   HumanPIDBState,
   HumanConstVelBehavior,
   HumanPIDBehavior,
+  HumanBoltzmannModel,
   HumanUniformModelMix,
   free_evolution
 include("human_behaviors.jl")
