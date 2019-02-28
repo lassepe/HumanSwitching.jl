@@ -1,7 +1,14 @@
 hbsColors = Dict(t=>c for (t, c) in zip(InteractiveUtils.subtypes(HumanBehaviorState),
                                         [get(ColorSchemes.deep, i)
                                          for i in range(1/3, stop=2/3, length=length(InteractiveUtils.subtypes(HumanBehaviorState)))]))
-map_to_color(hbs::HumanBehaviorState) = hbsColors[typeof(hbs)]
+
+
+function map_to_color(hbs::HumanBehaviorState)
+    # for parametric types we need to find this manually
+    fallback_key(hbs::HumanBehaviorState) = first(hbs_type for hbs_type in keys(hbsColors) if hbs isa hbs_type)
+    color_key = haskey(hbsColors, typeof(hbs)) ? typeof(hbs) : fallback_key(hbs)
+    return hbsColors[color_key]
+end
 
 map_to_opacity(normalized_weight::Float64) = sqrt(normalized_weight)
 map_to_opacity(weight::Float64, weight_sum::Float64) = map_to_opacity(weight/weight_sum)
@@ -152,7 +159,7 @@ function human_particle_node(human_pose::Pose, hbs::HumanBoltzmannBState;
                             )
     predicted_future_pose::Pose = human_pose
     # predict future position
-    n_samples::Int = 100
+    n_samples::Int = 1
     sampled_future_predictions = [free_evolution(hbs, predicted_future_pose, Random.GLOBAL_RNG) for i in 1:n_samples]
 
     return compose(context(), [agent_with_target_node(human_pose,
@@ -162,26 +169,33 @@ function human_particle_node(human_pose::Pose, hbs::HumanBoltzmannBState;
                                                       has_orientation=false,
                                                       target_color=internal_color,
                                                       target_size=0.4,
-                                                      opacity=map_to_opacity(1.0, Float64(n_samples)))
+                                                      opacity=opacity*map_to_opacity(1.0, Float64(n_samples)))
                                for p in sampled_future_predictions]...)
 end
 
 plot_compose(args...; kwargs...) = Gadfly.render(plot(args...; kwargs...))
 
+function parameter_histogram_node(values::Array, default_color, bincount)
+    return plot_compose(x=length(values) > 1 ? values : Array{Float64, 1}([]),
+                        Gadfly.Theme(default_color=default_color),
+                        Geom.histogram(bincount=bincount, density=true))
+end
+
 function belief_info_node(b::ParticleCollection, weight_sum::Float64, m::HSPOMDP)::Context
+    hbm = human_behavior_model(m)
     # filling some colums of the data frame for visualization
     human_behavior_states = [hbs(p) for p in particles(b)]
 
-    behavior_state_types::Array{Type, 1} = [typeof(hbs) for hbs in human_behavior_states]
+    betas = [hbs.beta for hbs in human_behavior_states if hbs isa HumanBoltzmannBState]
     velocities::Array{Float64, 1} = [hbs.velocity for hbs in human_behavior_states if hbs isa HumanConstVelBState]
-    target_indices::Array{Int, 1} = [target_index(select_submodel(human_behavior_model(m), hbs), hbs.human_target)
+    target_indices::Array{Int, 1} = [target_index(select_submodel(hbm, hbs), hbs.human_target)
                                      for hbs in human_behavior_states if hbs isa HumanPIDBState]
 
     # histogram of model types
     all_behavior_state_types = InteractiveUtils.subtypes(HumanBehaviorState)
     behavior_state_names = [string(t) for t in all_behavior_state_types]
     behavior_state_type_histogram = plot_compose(x=behavior_state_names,
-                                                 y=[count(behavior_state_types .== t) for t in all_behavior_state_types],
+                                                 y=[count(isa.(human_behavior_states, t)) for t in all_behavior_state_types],
                                                  color=behavior_state_names,
                                                  Geom.bar,
                                                  Gadfly.Theme(key_position=:top,
@@ -189,19 +203,18 @@ function belief_info_node(b::ParticleCollection, weight_sum::Float64, m::HSPOMDP
                                                               discrete_color_scale=Gadfly.Scale.color_discrete_manual([hbsColors[t] for t in all_behavior_state_types]...)
                                                              ))
 
-    # histogram of constant velocity estimate
-    velocity_histogram = plot_compose(x=length(velocities) > 1 ? velocities : Array{Float64, 1}([]),
-                                      Geom.histogram(bincount=30, density=true))
-
-    target_histogram = plot_compose(x=length(target_indices) > 1 ? target_indices : Array{Float64, 1}([]),
-                                    Geom.histogram(bincount=4, density=true))
+    # beta_histogram = plot_compose(x=length(betas) > 1 ? betas : Array{Float64, 1}([]),
+    #                               Geom.histogram(bincount=10, density=true))
+    beta_histogram = parameter_histogram_node(betas, hbsColors[HumanBoltzmannBState], 10)
+    velocity_histogram = parameter_histogram_node(velocities, hbsColors[HumanConstVelBState], 30)
+    target_histogram = parameter_histogram_node(target_indices, hbsColors[HumanPIDBState], 4)
 
 
     background = compose(context(), rectangle(0, 0, 1, 1), fill("white"))
 
     return compose(context(),
                    vstack(hstack(behavior_state_type_histogram),
-                          hstack(velocity_histogram, target_histogram)),
+                          hstack(beta_histogram, velocity_histogram, target_histogram)),
                    background)
 end
 

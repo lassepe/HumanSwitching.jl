@@ -35,17 +35,17 @@ function test_custom_particle_filter(runs)
 
         # the simulation is fully running on PID human model
         ptnm_cov = [0.01, 0.01, 0.01]
-        # simulation_hbm = HumanPIDBehavior(RoomRep(); goal_change_likelihood=0.01)
-        simulation_hbm = HumanBoltzmannModel(min_max_beta=[10, 11])
+        simulation_hbm = HumanPIDBehavior(RoomRep(); goal_change_likelihood=0.01)
         simulation_model = generate_non_trivial_scenario(ExactPositionSensor(),
                                                          simulation_hbm,
                                                          HSGaussianNoisePTNM(pose_cov=ptnm_cov),
                                                          deepcopy(rng))
 
         # the planner uses a mix of all models
-        planning_hbm = HumanUniformModelMix(submodels=[HumanPIDBehavior(RoomRep();
+        planning_hbm = HumanUniformModelMix(submodels=[HumanPIDBehavior(potential_targets=simulation_hbm.potential_targets[[1,4]];
                                                                         goal_change_likelihood=0.01),
-                                                       HumanConstVelBehavior()],
+                                                       #HumanConstVelBehavior(),
+                                                       HumanBoltzmannModel(min_max_beta=[0, 10])],
                                             bstate_change_likelihood=0.1)
         planning_model = generate_hspomdp(NoisyPositionSensor(ptnm_cov*10),
                                           planning_hbm,

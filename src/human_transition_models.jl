@@ -36,5 +36,11 @@ end
 
 function human_transition(hbs::HumanBoltzmannBState, hbm::HumanBoltzmannModel, m::HSModel,
                           p::Pose, rng::AbstractRNG)::Tuple{Pose, HumanBoltzmannBState}
-    return free_evolution(hbs, p, rng), hbs
+    # TODO Parametrize with model
+    beta_p = rand(rng, TruncatedNormal(hbs.beta, 1, 0, Inf))
+    hbs_p = HumanBoltzmannBState(beta=beta_p,
+                                 reward_model=hbs.reward_model,
+                                 aspace=hbs.aspace)
+
+    return free_evolution(hbs, p, rng), hbs_p
 end

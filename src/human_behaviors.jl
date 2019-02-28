@@ -93,7 +93,7 @@ end
 abstract type HumanRewardModel end
 
 @with_kw struct HumanBoltzmannModel{RMT, AT} <: HumanBehaviorModel
-    min_max_beta::Array{Float64} = [0, 50]
+    min_max_beta::Array{Float64} = [0, 10]
     reward_model::RMT= HumanSingleTargetRewardModel()
     aspace::Array{AT} = gen_human_aspace()
 end

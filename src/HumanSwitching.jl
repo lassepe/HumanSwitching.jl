@@ -88,6 +88,7 @@ export
     HumanConstVelBState,
     HumanPIDBState,
     HumanConstVelBehavior,
+    HumanBoltzmannBState,
     HumanPIDBehavior,
     HumanBoltzmannModel,
     HumanUniformModelMix,
