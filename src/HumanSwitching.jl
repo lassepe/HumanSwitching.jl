@@ -89,7 +89,8 @@ export
   HumanPIDBState,
   HumanConstVelBehavior,
   HumanPIDBehavior,
-  HumanUniformModelMix
+  HumanUniformModelMix,
+  free_evolution
 include("human_behaviors.jl")
 
 include("physical_transition_noise_model.jl")

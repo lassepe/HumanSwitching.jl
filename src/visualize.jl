@@ -128,11 +128,14 @@ function human_particle_node(human_pose::Pose, hbs::HumanConstVelBState;
                              external_color="light green", internal_color=map_to_color(hbs),
                     annotation::String="", opacity::Float64=1.0)
 
-  dp::Pose = Pose(cos(human_pose.phi), sin(human_pose.phi), 0) * hbs.velocity
-  next_step_target::Pose = human_pose + dp
+  predicted_future_pose::Pose = human_pose
+  # predict future position
+  for i in 1:4
+    predicted_future_pose = free_evolution(hbs, predicted_future_pose)
+  end
 
   return agent_with_target_node(human_pose,
-                                next_step_target,
+                                predicted_future_pose,
                                 external_color=external_color,
                                 curve_color=internal_color,
                                 target_color=internal_color,
