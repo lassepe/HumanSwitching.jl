@@ -40,6 +40,8 @@ Each describe
   - from which distribution HumanBehaviorState's are sampled
   - how HumanBehaviorState's evolve (see `human_transition_models.jl`)
 """
+# basic models don't have further submodels
+select_submodel(hbm::HumanBehaviorModel, hbs::HumanBehaviorState)::HumanBehaviorModel = hbm
 
 @with_kw struct HumanConstVelBehavior <: HumanBehaviorModel
   min_max_vel::Array{Float64} = [0.0, 1.0]

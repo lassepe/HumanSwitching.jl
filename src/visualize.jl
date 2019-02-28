@@ -151,8 +151,8 @@ function belief_info_node(b::ParticleCollection, weight_sum::Float64, m::HSPOMDP
 
   behavior_state_types::Array{Type, 1} = [typeof(hbs) for hbs in human_behavior_states]
   velocities::Array{Float64, 1} = [hbs.velocity for hbs in human_behavior_states if hbs isa HumanConstVelBState]
-  # TODO: this does not work if the belief updater is using a different model I guess
-  target_indices::Array{Int, 1} = [target_index(select_submodel(human_behavior_model(m), hbs), hbs.human_target) for hbs in human_behavior_states if hbs isa HumanPIDBState]
+  target_indices::Array{Int, 1} = [target_index(select_submodel(human_behavior_model(m), hbs), hbs.human_target)
+                                   for hbs in human_behavior_states if hbs isa HumanPIDBState]
 
   # histogram of model types
   all_behavior_state_types = InteractiveUtils.subtypes(HumanBehaviorState)
