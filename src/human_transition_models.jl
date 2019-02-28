@@ -3,13 +3,6 @@ Defnining some human transition models. (dynamics according to which human
 move)
 """
 
-# default: invariant hbs and free evolution of the external state according to the hbs
-function human_transition(hbs::HumanBehaviorState, hbm::HumanBehaviorModel, m::HSModel,
-                          p::Pose, rng::AbstractRNG)::Tuple{Pose, HumanBehaviorState}
-  @warn "Using Fallback" maxlog=1
-  return free_evolution(hbs, p), hbs
-end
-
 function human_transition(hbs::HumanConstVelBState, hbm::HumanConstVelBehavior, m::HSModel,
                           p::Pose, rng::AbstractRNG)::Tuple{Pose, HumanConstVelBState}
   human_pose_p = free_evolution(hbs, p)

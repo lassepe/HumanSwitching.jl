@@ -34,20 +34,19 @@ function test_custom_particle_filter(runs)
     # setup models
 
     # the simulation is fully running on PID human model
-    ptnm_cov = [0.1, 0.1, 0.1]
-    simulation_hbm = HumanPIDBehavior(RoomRep(); goal_change_likelihood=0.1)
+    ptnm_cov = [0.01, 0.01, 0.01]
+    simulation_hbm = HumanPIDBehavior(RoomRep(); goal_change_likelihood=0.01)
     simulation_model = generate_non_trivial_scenario(ExactPositionSensor(),
                                                      simulation_hbm,
                                                      HSGaussianNoisePTNM(pose_cov=ptnm_cov),
                                                      deepcopy(rng))
 
-    # the palnner uses a mix of all models
-    # planning_hbm = HumanUniformModelMix(submodels=[HumanPIDBehavior(potential_targets=simulation_hbm.potential_targets[[1,3]];
-    #                                                                 goal_change_likelihood=0.1),
-    #                                                HumanConstVelBehavior()],
-    #                                     bstate_change_likelihood=0.1)
-    planning_hbm= HumanConstVelBehavior()
-    planning_model = generate_hspomdp(NoisyPositionSensor(ptnm_cov),
+    # the planner uses a mix of all models
+    planning_hbm = HumanUniformModelMix(submodels=[HumanPIDBehavior(potential_targets=simulation_hbm.potential_targets[[1,3]];
+                                                                    goal_change_likelihood=0.01),
+                                                   HumanConstVelBehavior()],
+                                        bstate_change_likelihood=0.1)
+    planning_model = generate_hspomdp(NoisyPositionSensor(ptnm_cov*10),
                                       planning_hbm,
                                       HSIdentityPTNM(),
                                       simulation_model,
@@ -65,7 +64,7 @@ function test_custom_particle_filter(runs)
 
     # the simulator uses the exact dynamics (not known to the belief_updater)
     simulator = HistoryRecorder(max_steps=100, show_progress=true, rng=deepcopy(rng))
-    sim_hist = simulate(simulator, simulation_model, planner, belief_updater, initialstate_distribution(planning_model))
+    sim_hist = simulate(simulator, simulation_model, planner, belief_updater, initialstate_distribution(planning_model), initialstate(simulation_model, rng))
 
     # a, info = action_info(planner, initialstate_distribution(model), tree_in_info=true)
     # inchrome(D3Tree(info[:tree], init_expand=3))
