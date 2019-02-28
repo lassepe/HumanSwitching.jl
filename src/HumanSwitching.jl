@@ -11,16 +11,16 @@ using InteractiveUtils
 # visualization
 using Blink
 using Cairo:
-  CairoRGBSurface,
-  write_to_png
+    CairoRGBSurface,
+    write_to_png
 using Compose
 using ColorSchemes, Colors
 using DataFrames
 using Gadfly:
-  Gadfly,
-  Geom,
-  Guide,
-  plot
+    Gadfly,
+    Geom,
+    Guide,
+    plot
 
 # POMDP libraries
 using POMDPs
@@ -34,64 +34,64 @@ import POMDPs # modified in particle_filter.jl
 import POMDPModelTools: render # modified in visualization.jl
 
 export
-  # util types
-  Pose,
-  RoomRep,
+    # util types
+    Pose,
+    RoomRep,
 
-  # post transition transformations for particle filter
-  HSPhysicalTransitionNoiseModel,
-  HSIdentityPTNM,
-  HSGaussianNoisePTNM,
+    # post transition transformations for particle filter
+    HSPhysicalTransitionNoiseModel,
+    HSIdentityPTNM,
+    HSGaussianNoisePTNM,
 
-  # TODO:
-  # human transition models
-  HumanBehaviorState,
-  HumanBehaviorModel,
+    # TODO:
+    # human transition models
+    HumanBehaviorState,
+    HumanBehaviorModel,
 
-  # Sensor / Observation Models
-  HSSensor,
-  ExactPositionSensor,
-  NoisyPositionSensor,
+    # Sensor / Observation Models
+    HSSensor,
+    ExactPositionSensor,
+    NoisyPositionSensor,
 
-  # Core POMDP types for problem formulation
-  HSRewardModel,
-  HSExternalState,
-  HSState,
-  HSAction,
-  HSActionSpace,
-  HSMDP,
-  HSPOMDP,
-  HSModel,
+    # Core POMDP types for problem formulation
+    HSRewardModel,
+    HSExternalState,
+    HSState,
+    HSAction,
+    HSActionSpace,
+    HSMDP,
+    HSPOMDP,
+    HSModel,
 
-  # problem utilites
-  mdp,
-  room,
-  hbs,
-  human_behavior_model,
-  external,
-  human_pose,
-  human_target,
-  robot_pose,
-  robot_target,
+    # problem utilites
+    mdp,
+    room,
+    hbs,
+    human_behavior_model,
+    external,
+    human_pose,
+    human_target,
+    robot_pose,
+    robot_target,
 
-  # POMDP interface implementation
-  generate_s,
-  generate_o,
-  initialstate,
-  reward,
-  reward_model,
-  discount,
-  apply_robot_action
+    # POMDP interface implementation
+    generate_s,
+    generate_o,
+    initialstate,
+    reward,
+    reward_model,
+    discount,
+    apply_robot_action
 include("pomdp_main.jl")
 
 export
-  HumanConstVelBState,
-  HumanPIDBState,
-  HumanConstVelBehavior,
-  HumanPIDBehavior,
-  HumanBoltzmannModel,
-  HumanUniformModelMix,
-  free_evolution
+    HumanConstVelBState,
+    HumanPIDBState,
+    HumanConstVelBehavior,
+    HumanPIDBehavior,
+    HumanBoltzmannModel,
+    HumanUniformModelMix,
+    free_evolution
 include("human_behaviors.jl")
 
 include("physical_transition_noise_model.jl")
@@ -99,34 +99,34 @@ include("reward_model.jl")
 include("human_transition_models.jl")
 
 export
-  rand_astate,
-  dist_to_pose,
-  robot_dist_to_target,
-  corner_poses,
-  target_index,
-  has_collision
+    rand_astate,
+    dist_to_pose,
+    robot_dist_to_target,
+    corner_poses,
+    target_index,
+    has_collision
 include("utils.jl")
 
 export
-  render_step_compose,
-  render_step_svg,
-  render_step_blink,
-  render
+    render_step_compose,
+    render_step_svg,
+    render_step_blink,
+    render
 include("visualize.jl")
 
 export
-  AgentPerformance
+    AgentPerformance
 include("agent_performance_metrics.jl")
 
 export
-  SharedExternalStateBelief,
-  SharedExternalStateFilter,
-  SharedExternalStateResampler
+    SharedExternalStateBelief,
+    SharedExternalStateFilter,
+    SharedExternalStateResampler
 include("particle_filter.jl")
 
 export
-  generate_hspomdp,
-  generate_non_trivial_scenario
+    generate_hspomdp,
+    generate_non_trivial_scenario
 include("problem_gen.jl")
 
 end # module
