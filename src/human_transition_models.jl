@@ -36,8 +36,5 @@ end
 
 function human_transition(hbs::HumanBoltzmannBState, hbm::HumanBoltzmannModel, m::HSModel,
                           p::Pose, rng::AbstractRNG)::Tuple{Pose, HumanBoltzmannBState}
-  d = get_action_distribution(hbm, hbs, p)
-  sampled_action = hbm.aspace[rand(rng, d)]
-  # TODO: also rand beta
-  return apply_human_action(p, sampled_action), hbs
+  return free_evolution(hbs, p, rng), hbs
 end

@@ -34,8 +34,17 @@ function free_evolution(hbs::HumanPIDBState, p::Pose)::Pose
   return human_pose_p
 end
 
-struct HumanBoltzmannBState <: HumanBehaviorState
+@with_kw struct HumanBoltzmannBState{RMT, AT} <: HumanBehaviorState
   beta::Float64
+  reward_model::RMT
+  aspace::Array{AT}
+end
+
+function free_evolution(hbs::HumanBoltzmannBState, p::Pose, rng::AbstractRNG)::Pose
+  d = get_action_distribution(hbs, p)
+  sampled_action = hbs.aspace[rand(rng, d)]
+  # TODO: also rand beta
+  return apply_human_action(p, sampled_action)
 end
 
 """
@@ -83,17 +92,19 @@ end
 
 abstract type HumanRewardModel end
 
-@with_kw struct HumanBoltzmannModel{AT, RMT} <: HumanBehaviorModel
-  # TODO: It might be a good idea to initialize with a rather low beta?
-  min_max_beta::Array{Float64} = [0, 100]
-  aspace::Array{AT} = gen_human_aspace()
+@with_kw struct HumanBoltzmannModel{RMT, AT} <: HumanBehaviorModel
+  min_max_beta::Array{Float64} = [0, 50]
   reward_model::RMT= HumanSingleTargetRewardModel()
+  aspace::Array{AT} = gen_human_aspace()
 end
 
 bstate_type(hbm::HumanBoltzmannModel)::Type = HumanBoltzmannBState
 
 function rand_hbs(rng::AbstractRNG, hbm::HumanBoltzmannModel)::HumanBoltzmannBState
-  return HumanBoltzmannBState(rand(rng, Uniform(hbm.min_max_beta...)))
+  # TODO: Reward model parameters should be random as well, if one want's to estimate them
+  return HumanBoltzmannBState(beta=rand(rng, Uniform(hbm.min_max_beta...)),
+                                        reward_model=hbm.reward_model,
+                                        aspace=hbm.aspace)
 end
 
 @with_kw struct HumanSingleTargetRewardModel
@@ -121,9 +132,8 @@ function compute_qval(p::Pose, a::HumanBoltzmannAction, reward_model::HumanSingl
   return -norm(a.d) - dist_to_pose(apply_human_action(p, a), reward_model.human_target; p=2)
 end
 
-function get_action_distribution(hbm::HumanBoltzmannModel, hbs::HumanBoltzmannBState,
-                                 p::Pose)::Categorical
-  qvals::Array{Float64} = [compute_qval(p, a, hbm.reward_model) for a in hbm.aspace]
+function get_action_distribution(hbs::HumanBoltzmannBState, p::Pose)::Categorical
+  qvals::Array{Float64} = [compute_qval(p, a, hbs.reward_model) for a in hbs.aspace]
   action_props::Array{Float64} = normalize([exp(hbs.beta * q) for q in qvals], 1)
   return Categorical(action_props)
 end
