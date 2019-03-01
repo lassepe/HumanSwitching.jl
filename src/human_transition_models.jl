@@ -6,7 +6,7 @@ move)
 function human_transition(hbs::HumanConstVelBState, hbm::HumanConstVelBehavior, m::HSModel,
                           p::Pose, rng::AbstractRNG)::Tuple{Pose, HumanConstVelBState}
     human_pose_p = free_evolution(hbs, p)
-    hbs_p = HumanConstVelBState(rand(rng, Normal(hbs.velocity, hbm.vel_sigma)))
+    hbs_p = HumanConstVelBState(rand(rng, TruncatedNormal(hbs.velocity, hbm.vel_sigma, hbm.min_max_vel...)))
     return human_pose_p, hbs_p
 end
 
@@ -37,7 +37,7 @@ end
 function human_transition(hbs::HumanBoltzmannBState, hbm::HumanBoltzmannModel, m::HSModel,
                           p::Pose, rng::AbstractRNG)::Tuple{Pose, HumanBoltzmannBState}
     # TODO Parametrize with model
-    beta_p = rand(rng, TruncatedNormal(hbs.beta, 1, 0, Inf))
+    beta_p = rand(rng, TruncatedNormal(hbs.beta, hbm.beta_rasample_sigma, hbm.min_max_beta...))
     hbs_p = HumanBoltzmannBState(beta=beta_p,
                                  reward_model=hbs.reward_model,
                                  aspace=hbs.aspace)
