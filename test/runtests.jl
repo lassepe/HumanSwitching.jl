@@ -25,8 +25,9 @@ end;
 @testset "POMDP interface" begin
     # checking whether we can actually succesfully construct all those types
     rng = MersenneTwister(42)
-    hs_pomdp_exact_o = generate_hspomdp(ExactPositionSensor(), HSIdentityPTT(), rng)
-    hs_pomdp_noisy_o = generate_hspomdp(NoisyPositionSensor(), HSIdentityPTT(), rng)
+    hbm = HumanPIDBehavior(RoomRep(), goal_change_likelihood=0.01)
+    hs_pomdp_exact_o = generate_hspomdp(ExactPositionSensor(), hbm, HSIdentityPTNM(), rng)
+    hs_pomdp_noisy_o = generate_hspomdp(NoisyPositionSensor(), hbm, HSIdentityPTNM(), rng)
 
     s = initialstate(hs_pomdp_exact_o, rng)
     a = HS.HSAction()
@@ -47,7 +48,7 @@ end;
     # Initial state generation
     test_inits_data = [HS.initialstate(hs_pomdp_exact_o, rng) for i in 1:10000]
     r = HS.room(hs_pomdp_exact_o)
-    @test all(HS.isinroom(human_pose(td), r) && HS.isinroom(human_target(td), r) for td in test_inits_data)
+    @test all(HS.isinroom(human_pose(td), r) && HS.isinroom(robot_pose(td), r) for td in test_inits_data)
 
     # check whether the simulation terminates in finite time if we only observe
     policy = FunctionPolicy(x->HSAction())
@@ -56,13 +57,13 @@ end;
     # note that only sp is terminal, not s! (you never take an action from the
     # terminal state)
     last_s = last(collect(sp for sp in eachstep(history, "sp")))
-    @test_broken isterminal(hs_pomdp_noisy_o, last_s)
+    @test isterminal(hs_pomdp_noisy_o, last_s)
 end;
 
 # this test set checks whether everything is implemented to be pseudo-random.
 # Meaning that with the same rng we should get the same result!
 @testset "POMDP deterministic checks" begin
-    mdp = HSMDP(physical_transition_noise_model=HSGaussianNoisePTT())
+    mdp = HSMDP(physical_transition_noise_model=HSGaussianNoisePTNM())
     pomdp = HSPOMDP(sensor=NoisyPositionSensor(), mdp=mdp)
     a = HS.HSAction()
 
@@ -88,7 +89,7 @@ end;
 end;
 
 @testset "POMDP visualization" begin
-    mdp = HSMDP(physical_transition_noise_model=HSIdentityPTT())
+    mdp = HSMDP(physical_transition_noise_model=HSIdentityPTNM())
     pomdp = HSPOMDP(sensor=NoisyPositionSensor([0.1,0.1,0.01]), mdp=mdp)
     rng = MersenneTwister(42)
     belief_updater = NothingUpdater()
