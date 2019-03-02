@@ -26,6 +26,10 @@ using Random
 using ProgressMeter
 using D3Trees
 
+using Profile
+using ProfileView
+using Test
+
 include("estimate_value_policies.jl")
 
 function test_custom_particle_filter(runs)
@@ -79,4 +83,39 @@ end
 
 function visualize(belief_updater_model, sim_hist)
     makegif(belief_updater_model, sim_hist, filename=joinpath(@__DIR__, "../renderings/visualize_debug.gif"), extra_initial=true, show_progress=true)
+end
+
+function profile_testrun()
+    @time test_custom_particle_filter(4);
+    Profile.init(n=10^7)
+    Profile.clear()
+    Profile.clear_malloc_data()
+    @profile test_custom_particle_filter(4);
+    ProfileView.view()
+end
+
+function profile_detailed()
+    rng = MersenneTwister(1)
+    ptnm_cov = [0.01, 0.01, 0.01]
+    hbm = HumanUniformModelMix(submodels=[HumanPIDBehavior(RoomRep(),
+                                                           goal_change_likelihood=0.01),
+                                          HumanBoltzmannModel(min_max_beta=[0, 10])],
+                               bstate_change_likelihood=0.1)
+
+    planning_model = generate_hspomdp(NoisyPositionSensor(ptnm_cov*10),
+                                      hbm,
+                                      HSIdentityPTNM(),
+                                      deepcopy(rng))
+
+
+    @info "Initial State Profiling"
+    Profile.clear()
+    Profile.clear_malloc_data()
+    @time for i in 1:100000
+        initialstate(planning_model, rng)
+    end
+
+    # @info "code_warntype: human_behavior_model"
+    # @code_warntype human_behavior_model(planning_model)
+    # @code_warntype initialstate(planning_model, rng)
 end
