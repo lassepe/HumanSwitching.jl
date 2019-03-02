@@ -47,6 +47,7 @@ function test_custom_particle_filter(runs)
                                                        #HumanConstVelBehavior(),
                                                        HumanBoltzmannModel(min_max_beta=[0, 10])],
                                             bstate_change_likelihood=0.1)
+        # planning_hbm = HumanConstVelBehavior()
         planning_model = generate_hspomdp(NoisyPositionSensor(ptnm_cov*10),
                                           planning_hbm,
                                           HSIdentityPTNM(),
@@ -72,7 +73,6 @@ function test_custom_particle_filter(runs)
 
         println(AgentPerformance(simulation_model, sim_hist))
         # makegif(simulation_model, sim_hist, filename=joinpath(@__DIR__, "../renderings/visualize_debug.gif"), extra_initial=true, show_progress=true)
-
         return planning_model, sim_hist
     end
 end

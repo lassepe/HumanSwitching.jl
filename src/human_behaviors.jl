@@ -55,14 +55,15 @@ Each describe
 - how HumanBehaviorState's evolve (see `human_transition_models.jl`)
 """
 # basic models don't have further submodels
-select_submodel(hbm::HumanBehaviorModel, hbs::HumanBehaviorState)::HumanBehaviorModel = hbm
+select_submodel(hbm::HumanBehaviorModel, hbs::Type{<:HumanBehaviorState}) = hbm
+select_submodel(hbm::HumanBehaviorModel, hbs::HumanBehaviorState)::HumanBehaviorModel = select_submodel(hbm, typeof(hbs))
 
 @with_kw struct HumanConstVelBehavior <: HumanBehaviorModel
     min_max_vel::Array{Float64} = [0.0, 1.0]
     vel_sigma::Float64 = 0.01
 end
 
-bstate_type(hbm::HumanConstVelBehavior)::Type = HumanConstVelBState
+bstate_type(::HumanConstVelBehavior)::Type = HumanConstVelBState
 
 # this model randomely generates HumanConstVelBState from the min_max_vel range
 function rand_hbs(rng::AbstractRNG, hbm::HumanConstVelBehavior)::HumanConstVelBState
@@ -76,7 +77,7 @@ end
 
 HumanPIDBehavior(room::RoomRep; kwargs...) = HumanPIDBehavior(potential_targets=corner_poses(room); kwargs...)
 
-bstate_type(hbm::HumanBehaviorModel)::Type = HumanPIDBState
+bstate_type(::HumanBehaviorModel)::Type = HumanPIDBState
 
 function rand_hbs(rng::AbstractRNG, hbm::HumanPIDBehavior)::HumanPIDBState
     return HumanPIDBState(human_target=rand(rng, hbm.potential_targets))
@@ -99,7 +100,7 @@ abstract type HumanRewardModel end
     aspace::Array{AT} = gen_human_aspace()
 end
 
-bstate_type(hbm::HumanBoltzmannModel)::Type = HumanBoltzmannBState
+bstate_type(::HumanBoltzmannModel)::Type = HumanBoltzmannBState
 
 function rand_hbs(rng::AbstractRNG, hbm::HumanBoltzmannModel)::HumanBoltzmannBState
     # TODO: Reward model parameters should be random as well, if one want's to estimate them
@@ -146,8 +147,8 @@ end
 
 bstate_type(hbm::HumanUniformModelMix)::Type = Union{Iterators.flatten([[bstate_type(sm)] for sm in hbm.submodels])...}
 
-function select_submodel(hbm::HumanUniformModelMix, hbs::HumanBehaviorState)::HumanBehaviorModel
-    candidate_submodels = filter(x->(hbs isa bstate_type(x)), hbm.submodels)
+function select_submodel(hbm::HumanUniformModelMix, t::Type{<:HumanBehaviorState})::HumanBehaviorModel
+    candidate_submodels = filter(x->(t <: bstate_type(x)), hbm.submodels)
     @assert(length(candidate_submodels) == 1)
     return first(candidate_submodels)
 end

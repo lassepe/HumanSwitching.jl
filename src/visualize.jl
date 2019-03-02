@@ -1,6 +1,6 @@
-hbsColors = Dict(t=>c for (t, c) in zip(InteractiveUtils.subtypes(HumanBehaviorState),
-                                        [get(ColorSchemes.deep, i)
-                                         for i in range(1/3, stop=2/3, length=length(InteractiveUtils.subtypes(HumanBehaviorState)))]))
+const hbsColors = Dict(t=>c for (t, c) in zip(InteractiveUtils.subtypes(HumanBehaviorState),
+                                              [get(ColorSchemes.deep, i)
+                                               for i in range(1/3, stop=2/3, length=length(InteractiveUtils.subtypes(HumanBehaviorState)))]))
 
 
 function map_to_color(hbs::HumanBehaviorState)
@@ -175,10 +175,11 @@ end
 
 plot_compose(args...; kwargs...) = Gadfly.render(plot(args...; kwargs...))
 
-function parameter_histogram_node(values::Array, default_color, bincount)
+function parameter_histogram_node(values::Array, default_color, bincount::Int, args...)
     return plot_compose(x=length(values) > 1 ? values : Array{Float64, 1}([]),
                         Gadfly.Theme(default_color=default_color),
-                        Geom.histogram(bincount=bincount, density=true))
+                        Geom.histogram(bincount=bincount, density=true),
+                        args...)
 end
 
 function belief_info_node(b::ParticleCollection, weight_sum::Float64, m::HSPOMDP)::Context
@@ -186,36 +187,64 @@ function belief_info_node(b::ParticleCollection, weight_sum::Float64, m::HSPOMDP
     # filling some colums of the data frame for visualization
     human_behavior_states = [hbs(p) for p in particles(b)]
 
-    betas = [hbs.beta for hbs in human_behavior_states if hbs isa HumanBoltzmannBState]
-    velocities::Array{Float64, 1} = [hbs.velocity for hbs in human_behavior_states if hbs isa HumanConstVelBState]
-    target_indices::Array{Int, 1} = [target_index(select_submodel(hbm, hbs), hbs.human_target)
-                                     for hbs in human_behavior_states if hbs isa HumanPIDBState]
-
     # histogram of model types
-    all_behavior_state_types = InteractiveUtils.subtypes(HumanBehaviorState)
-    behavior_state_names = [string(t) for t in all_behavior_state_types]
-    behavior_state_type_histogram = plot_compose(x=behavior_state_names,
-                                                 y=[count(isa.(human_behavior_states, t)) for t in all_behavior_state_types],
-                                                 color=behavior_state_names,
-                                                 Geom.bar,
-                                                 Gadfly.Theme(key_position=:top,
-                                                              key_max_columns=1,
-                                                              discrete_color_scale=Gadfly.Scale.color_discrete_manual([hbsColors[t] for t in all_behavior_state_types]...)
-                                                             ))
+    known_behavior_state_types::Array{Type} = [t for t in InteractiveUtils.subtypes(HumanBehaviorState) if t <: bstate_type(hbm)]
 
-    # beta_histogram = plot_compose(x=length(betas) > 1 ? betas : Array{Float64, 1}([]),
-    #                               Geom.histogram(bincount=10, density=true))
-    beta_histogram = parameter_histogram_node(betas, hbsColors[HumanBoltzmannBState], 10)
-    velocity_histogram = parameter_histogram_node(velocities, hbsColors[HumanConstVelBState], 30)
-    target_histogram = parameter_histogram_node(target_indices, hbsColors[HumanPIDBState], 4)
+    # an array to collect all plots to be stacked vertically
+    vstack_list::Array{Context} = []
 
+    if length(known_behavior_state_types) > 1
+        behavior_state_names = [string(t) for t in known_behavior_state_types]
+        behavior_state_type_histogram = plot_compose(x=behavior_state_names,
+                                                     y=[count(isa.(human_behavior_states, t)) for t in known_behavior_state_types],
+                                                     color=behavior_state_names,
+                                                     Geom.bar,
+                                                     Gadfly.Theme(key_position=:top,
+                                                                  key_max_columns=1,
+                                                                  discrete_color_scale=Gadfly.Scale.color_discrete_manual([hbsColors[t] for t in known_behavior_state_types]...)
+                                                                 ))
+        push!(vstack_list, behavior_state_type_histogram)
+    end
+
+    # subplots for detailed visualization of the belief distribution within one bstate type
+    bstate_subplots::Context = compose(context(), hstack([bstate_subplot_node(t, human_behavior_states, select_submodel(hbm, t))
+                                                          for t in known_behavior_state_types]...))
+    push!(vstack_list, bstate_subplots)
 
     background = compose(context(), rectangle(0, 0, 1, 1), fill("white"))
+    return compose(context(), vstack(vstack_list...), background)
+end
 
-    return compose(context(),
-                   vstack(hstack(behavior_state_type_histogram),
-                          hstack(beta_histogram, velocity_histogram, target_histogram)),
-                   background)
+function bstate_subplot_node(::Type{HumanPIDBState},
+                             unfiltered_hbs_data::Array{<:HumanBehaviorState}, hbm::HumanBehaviorModel)::Context
+    # filter data and map to sortable type
+    target_indices = [target_index(hbm, hbs.human_target)-1
+                      for hbs in unfiltered_hbs_data if hbs isa HumanPIDBState]
+
+    # compose histogram
+    return parameter_histogram_node(target_indices, hbsColors[HumanPIDBState], 4,
+                                    Coord.Cartesian(xmin=0, xmax=length(hbm.potential_targets)),
+                                    Guide.xlabel("Target Index"))
+end
+
+function bstate_subplot_node(::Type{HumanConstVelBState},
+                             unfiltered_hbs_data::Array{<:HumanBehaviorState}, hbm::HumanBehaviorModel)::Context
+    # filter data
+    velocities = [hbs.velocity for hbs in unfiltered_hbs_data if hbs isa HumanConstVelBState]
+    # compose histogram
+    return parameter_histogram_node(velocities, hbsColors[HumanConstVelBState], 30,
+                                    Coord.Cartesian(xmin=hbm.min_max_vel[1], xmax=hbm.min_max_vel[1]),
+                                    Guide.xlabel("Velocity"))
+end
+
+function bstate_subplot_node(::Type{HumanBoltzmannBState},
+                             unfiltered_hbs_data::Array{<:HumanBehaviorState}, hbm::HumanBehaviorModel)::Context
+    # filter data
+    betas = [hbs.beta for hbs in unfiltered_hbs_data if hbs isa HumanBoltzmannBState]
+    # compose histogram
+    return parameter_histogram_node(betas, hbsColors[HumanBoltzmannBState], 10,
+                                    Coord.Cartesian(xmin=hbm.min_max_beta[1], xmax=hbm.min_max_beta[2]),
+                                    Guide.xlabel("beta"))
 end
 
 function belief_node(b::ParticleCollection, m::HSPOMDP)::Tuple{Context, Context}

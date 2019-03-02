@@ -20,6 +20,7 @@ using Gadfly:
     Gadfly,
     Geom,
     Guide,
+    Coord,
     plot
 
 # POMDP libraries
@@ -92,7 +93,8 @@ export
     HumanPIDBehavior,
     HumanBoltzmannModel,
     HumanUniformModelMix,
-    free_evolution
+    free_evolution,
+    bstate_type
 include("human_behaviors.jl")
 
 include("physical_transition_noise_model.jl")
