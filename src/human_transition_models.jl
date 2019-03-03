@@ -4,14 +4,14 @@ move)
 """
 
 function human_transition(hbs::HumanConstVelBState, hbm::HumanConstVelBehavior, m::HSModel,
-                          p::Pose, rng::AbstractRNG)::Tuple{Pose, HumanConstVelBState}
+                          p::Pose, rng::AbstractRNG)
     human_pose_p = free_evolution(hbs, p)
     hbs_p = HumanConstVelBState(rand(rng, TruncatedNormal(hbs.velocity, hbm.vel_sigma, hbm.min_max_vel...)))
     return human_pose_p, hbs_p
 end
 
 function human_transition(hbs::HumanPIDBState, hbm::HumanPIDBehavior, m::HSModel,
-                          p::Pose, rng::AbstractRNG)::Tuple{Pose, HumanPIDBState}
+                          p::Pose, rng::AbstractRNG)
     human_pose_p = free_evolution(hbs, p)
 
     hbs_p = (dist_to_pose(human_pose_p, human_target(hbs)) < agent_min_distance(m)
@@ -23,7 +23,7 @@ end
 
 # TODO: all of this could be typed more strongly to improve type stability. Avoid jusing abstract classes!
 function human_transition(hbs::HumanBehaviorState, hbm::HumanUniformModelMix, m::HSModel,
-                          p::Pose, rng::AbstractRNG)::Tuple{Pose, HumanBehaviorState}
+                          p::Pose, rng::AbstractRNG)
     # select the corresponding sub model
     hbm_sub = select_submodel(hbm, hbs)
     # propagate state according to this model
@@ -35,7 +35,7 @@ function human_transition(hbs::HumanBehaviorState, hbm::HumanUniformModelMix, m:
 end
 
 function human_transition(hbs::HumanBoltzmannBState, hbm::HumanBoltzmannModel, m::HSModel,
-                          p::Pose, rng::AbstractRNG)::Tuple{Pose, HumanBoltzmannBState}
+                          p::Pose, rng::AbstractRNG)
     # TODO Parametrize with model
     beta_p = rand(rng, TruncatedNormal(hbs.beta, hbm.beta_rasample_sigma, hbm.min_max_beta...))
     hbs_p = HumanBoltzmannBState(beta=beta_p,

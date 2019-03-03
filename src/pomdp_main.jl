@@ -160,7 +160,7 @@ POMDPs.n_actions(m::HSModel) = length(mdp(m).aspace)
 POMDPs.discount(m::HSModel) = reward_model(m).discount_factor
 
 # this simple forwards to the different transition models
-function POMDPs.generate_s(m::HSModel, s::HSState, a::HSAction, rng::AbstractRNG)::HSState
+function POMDPs.generate_s(m::HSModel, s::HSState, a::HSAction, rng::AbstractRNG)
     @assert (a in actions(m))
 
     human_pose_intent, hbs_p = human_transition(hbs(s), human_behavior_model(m), m, human_pose(s), rng)
@@ -175,9 +175,9 @@ end
 
 # In this version the observation is a **deterministic** extraction of the observable part of the state
 POMDPs.generate_o(m::HSPOMDP{ExactPositionSensor, HSExternalState, <:Any},
-                  s::HSState, a::HSAction, sp::HSState, rng::AbstractRNG)::HSExternalState = external(sp)
+                  s::HSState, a::HSAction, sp::HSState, rng::AbstractRNG) = external(sp)
 POMDPs.generate_o(m::HSPOMDP{NoisyPositionSensor, HSExternalState, <:Any},
-                  s::HSState, a::HSAction, sp::HSState, rng::AbstractRNG)::HSExternalState = HSExternalState(rand(rng, POMDPs.observation(m, sp)))
+                  s::HSState, a::HSAction, sp::HSState, rng::AbstractRNG) = HSExternalState(rand(rng, POMDPs.observation(m, sp)))
 
 # TODO: This is a bit ugly. There should be away to directly define a distribution type on a FieldVector
 # at least one should get away with less type conversion
