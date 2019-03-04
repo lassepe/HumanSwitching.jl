@@ -29,6 +29,7 @@ using D3Trees
 using Profile
 using ProfileView
 using Test
+using BenchmarkTools
 
 include("estimate_value_policies.jl")
 
@@ -92,31 +93,33 @@ function profile_testrun()
 end
 
 function profile_detailed()
+    ptnm_cov = [0.01, 0.01, 0.01]
+
+    hbms = [HumanBoltzmannModel(min_max_beta=[0, 10]),
+            HumanConstVelBehavior(),
+            HumanPIDBehavior(RoomRep(); goal_change_likelihood=0.01)]
+
+    push!(hbms, HumanUniformModelMix(hbms..., bstate_change_likelihood=0.1))
+
+    for hbm in hbms
+        profile_hbm(hbm)
+        println("\n\n")
+    end
+end
+
+function profile_hbm(hbm)
     rng = MersenneTwister(1)
     ptnm_cov = [0.01, 0.01, 0.01]
-    hbm = HumanUniformModelMix(submodels=[HumanPIDBehavior(RoomRep(),
-                                                           goal_change_likelihood=0.01),
-                                          HumanBoltzmannModel(min_max_beta=[0, 10])],
-                               bstate_change_likelihood=0.1)
+    model = generate_hspomdp(NoisyPositionSensor(ptnm_cov*10),
+                             hbm,
+                             HSIdentityPTNM(),
+                             deepcopy(rng))
 
-    planning_model = generate_hspomdp(NoisyPositionSensor(ptnm_cov*10),
-                                      hbm,
-                                      HSIdentityPTNM(),
-                                      deepcopy(rng))
+    @info string(typeof(hbm))
+    @info "initialstate"
+    @btime initialstate($model, $rng)
 
-
-    @info "Initial State Profiling"
-    Profile.clear()
-    Profile.clear_malloc_data()
-    @time for i in 1:100000
-        initialstate(planning_model, rng)
-    end
-
-    s = initialstate(planning_model, rng)
+    s = initialstate(model, rng)
     @info "generate_s profiling"
-    Profile.clear()
-    Profile.clear_malloc_data()
-    @time for i in 1:100000
-        s = generate_s(planning_model, s, rand(rng, HSActionSpace()), rng)
-    end
+    @btime generate_s($model, $s, rand($rng, HSActionSpace()), $rng)
 end
