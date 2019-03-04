@@ -10,9 +10,21 @@ using Statistics
 
 using BeliefUpdaters
 using POMDPs
+using POMDPModelTools
 using POMDPPolicies
 using POMDPSimulators
 using POMDPGifs
+
+macro testblock(ex)
+    quote
+        try
+            $(esc(eval(ex)))
+            true
+        catch err
+            isa(err, ErrorException) ? false : rethrow(err)
+        end
+    end
+end
 
 @testset "normalized_angle_diff" begin
     @test isapprox(HS.normalized_angle_diff(pi/2), pi/2)
@@ -107,4 +119,65 @@ end;
     isapproxin(container, external_it) = any(isapprox(it, external_it) for it in container)
     reachable_states = (apply_robot_action(zero(Pose), a) for a in HSActionSpace())
     @test all(isapproxin(reachable_states, -s) for s in reachable_states)
+end
+
+@testset "Type Inference tests" begin
+    # external state
+    rng = MersenneTwister(1)
+    e = @inferred HSExternalState(Pose(), Pose())
+
+    # Constant Velocity
+    @test @testblock quote
+        hbm = @inferred HumanConstVelBehavior()
+        hbs = @inferred HS.rand_hbs(rng, hbm)
+        s = @inferred HSState(external=e, hbs=hbs)
+    end
+
+    # PID
+    @test @testblock quote
+        hbm = @inferred HumanPIDBehavior(RoomRep(), goal_change_likelihood=0.1)
+        hbs = @inferred HS.rand_hbs(rng, hbm)
+        s = @inferred HSState(external=e, hbs=hbs)
+    end
+
+    # Boltzmann
+    @test @testblock quote
+        hbm = @inferred HumanBoltzmannModel()
+        hbs = @inferred HS.rand_hbs(rng, hbm)
+        s = @inferred HSState(external=e, hbs=hbs)
+    end
+
+    # Uniform Mix
+    # TODO: Stabilize type
+    @test_broken @testblock quote
+        hbm = HumanUniformModelMix(HumanPIDBehavior(RoomRep(), goal_change_likelihood=0.01),
+                                   HumanBoltzmannModel(min_max_beta=[0, 10]),
+                                   bstate_change_likelihood=0.1)
+        hbs = @inferred HS.rand_hbs(rng, hbm)
+        s = @inferred HSState(external=e, hbs=hbs)
+    end
+
+    @test @testblock quote
+        ptnm_cov = [0.01, 0.01, 0.01]
+        hbm = @inferred HumanBoltzmannModel()
+        hbs = HS.rand_hbs(rng, hbm)
+        s = HSState(external=e, hbs=hbs)
+        planning_model = generate_hspomdp(NoisyPositionSensor(ptnm_cov*10),
+                                          hbm,
+                                          HSIdentityPTNM(),
+                                          deepcopy(rng))
+
+        @inferred HS.rand_state(planning_model, rng, known_external_state=mdp(planning_model).known_external_initstate)
+        @inferred HS.rand_state(planning_model, rng)
+        @inferred mdp(planning_model.mdp)
+        @inferred initialstate(planning_model, rng)
+
+        @inferred HS.human_transition(hbs, hbm, planning_model, Pose(), rng)
+        a = rand(rng, HSActionSpace())
+        sp = @inferred HS.generate_s(planning_model, s, a, rng)
+        o = @inferred generate_o(planning_model, s, a, sp, rng)
+
+        d = @inferred observation(planning_model, s, a, sp)
+        w = @inferred obs_weight(planning_model, s, a, sp, o)
+    end
 end
