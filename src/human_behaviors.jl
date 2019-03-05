@@ -34,17 +34,8 @@ function free_evolution(hbs::HumanPIDBState, p::Pose)::Pose
     return human_pose_p
 end
 
-@with_kw struct HumanBoltzmannBState{RMT, NA, TA} <: HumanBehaviorState
+struct HumanBoltzmannBState <: HumanBehaviorState
     beta::Float64
-    reward_model::RMT
-    aspace::SVector{NA, TA}
-end
-
-function free_evolution(hbs::HumanBoltzmannBState, p::Pose, rng::AbstractRNG)
-    d = get_action_distribution(hbs, p)
-    sampled_action = hbs.aspace[rand(rng, d)]
-    # TODO: also rand beta
-    return apply_human_action(p, sampled_action)
 end
 
 """
@@ -98,15 +89,14 @@ abstract type HumanRewardModel end
     beta_rasample_sigma::Float64 = 1.0
     reward_model::RMT= HumanSingleTargetRewardModel()
     aspace::SVector{NA, TA} = gen_human_aspace()
+    _aprob_mem::MVector{NA, Float64} = @MVector(zeros(length(aspace)))
 end
 
 bstate_type(::HumanBoltzmannModel)::Type = HumanBoltzmannBState
 
 function rand_hbs(rng::AbstractRNG, hbm::HumanBoltzmannModel)
     # TODO: Reward model parameters should be random as well, if one want's to estimate them
-    return HumanBoltzmannBState(beta=rand(rng, Uniform(hbm.min_max_beta...)),
-                                reward_model=hbm.reward_model,
-                                aspace=hbm.aspace)
+    return HumanBoltzmannBState(rand(rng, Uniform(hbm.min_max_beta...)))
 end
 
 @with_kw struct HumanSingleTargetRewardModel
@@ -126,16 +116,22 @@ end
 
 apply_human_action(p::Pose, a::HumanBoltzmannAction)::Pose = Pose(p.x + cos(a.phi)*a.d, p.y + sin(a.phi)*a.d, p.phi)
 
-function compute_qval(p::Pose, a::HumanBoltzmannAction, reward_model::HumanSingleTargetRewardModel)::Float64
+function free_evolution(hbm::HumanBoltzmannModel, hbs::HumanBoltzmannBState, p::Pose, rng::AbstractRNG)
+    d = get_action_distribution(hbm, hbs, p)
+    sampled_action = hbm.aspace[rand(rng, d)]
+    p_p = apply_human_action(p, sampled_action)
+end
+
+function compute_qval(p::Pose, a::HumanBoltzmannAction, reward_model::HumanSingleTargetRewardModel)
     # TODO: reason about whether this should be the 2 or 1 norm!
     return -a.d - dist_to_pose(apply_human_action(p, a), reward_model.human_target; p=2)
 end
 
-function get_action_distribution(hbs::HumanBoltzmannBState, p::Pose)
-    qvals = (compute_qval(p, a, hbs.reward_model) for a in hbs.aspace)
-    action_props = exp.(hbs.beta .* qvals)
-
-    return Categorical(Array(action_props/sum(action_props)))
+function get_action_distribution(hbm::HumanBoltzmannModel, hbs::HumanBoltzmannBState, p::Pose)
+    for (i, a) in enumerate(hbm.aspace)
+        hbm._aprob_mem[i] = exp(hbs.beta * compute_qval(p, a, hbm.reward_model))
+    end
+    return Categorical(Array(normalize!(hbm._aprob_mem, 1)))
 end
 
 struct HumanUniformModelMix{T} <: HumanBehaviorModel
