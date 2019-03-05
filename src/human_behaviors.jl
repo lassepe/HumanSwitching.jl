@@ -140,12 +140,20 @@ function get_action_distribution(hbs::HumanBoltzmannBState, p::Pose)::Categorica
     return Categorical(action_props)
 end
 
-@with_kw struct HumanUniformModelMix <: HumanBehaviorModel
+struct HumanUniformModelMix <: HumanBehaviorModel
     submodels::Array{HumanBehaviorModel}
     bstate_change_likelihood::Float64
+    bstate_type::Type
 end
 
-bstate_type(hbm::HumanUniformModelMix)::Type = Union{Iterators.flatten([[bstate_type(sm)] for sm in hbm.submodels])...}
+function HumanUniformModelMix(models...; bstate_change_likelihood::Float64)
+    submodels = [models...]
+    return HumanUniformModelMix(submodels,
+                                bstate_change_likelihood,
+                                Union{Iterators.flatten([[bstate_type(sm)] for sm in submodels])...})
+end
+
+bstate_type(hbm::HumanUniformModelMix) = hbm.bstate_types
 
 function select_submodel(hbm::HumanUniformModelMix, t::Type{<:HumanBehaviorState})::HumanBehaviorModel
     candidate_submodels = filter(x->(t <: bstate_type(x)), hbm.submodels)

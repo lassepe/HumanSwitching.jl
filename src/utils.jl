@@ -48,7 +48,7 @@ function Base.isequal(a::HumanPIDBState, b::HumanPIDBState)
 end
 
 # determines the corner poses of the room
-corner_poses(r::RoomRep) = [Pose(x, y, 0) for x in [0.1r.width, 0.9r.width], y in [0.1r.height, 0.9r.height]]
+corner_poses(r::RoomRep) = vec([Pose(x, y, 0) for x in [0.1r.width, 0.9r.width], y in [0.1r.height, 0.9r.height]])
 
 # determines the 2D vector from p_start to p_end
 vec_from_to(p_start::Pose, p_end::Pose)::SVector{2} = p_end[1:2] - p_start[1:2]
