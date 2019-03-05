@@ -40,9 +40,9 @@ end
     aspace::SVector{NA, TA}
 end
 
-function free_evolution(hbs::HumanBoltzmannBState, p::Pose, rng::AbstractRNG)::Pose
+function free_evolution(hbs::HumanBoltzmannBState, p::Pose, rng::AbstractRNG)
     d = get_action_distribution(hbs, p)
-    sampled_action = rand(rng, d)
+    sampled_action = hbs.aspace[rand(rng, d)]
     # TODO: also rand beta
     return apply_human_action(p, sampled_action)
 end
@@ -128,13 +128,14 @@ apply_human_action(p::Pose, a::HumanBoltzmannAction)::Pose = Pose(p.x + cos(a.ph
 
 function compute_qval(p::Pose, a::HumanBoltzmannAction, reward_model::HumanSingleTargetRewardModel)::Float64
     # TODO: reason about whether this should be the 2 or 1 norm!
-    return -norm(a.d) - dist_to_pose(apply_human_action(p, a), reward_model.human_target; p=2)
+    return -a.d - dist_to_pose(apply_human_action(p, a), reward_model.human_target; p=2)
 end
 
 function get_action_distribution(hbs::HumanBoltzmannBState, p::Pose)
     qvals = (compute_qval(p, a, hbs.reward_model) for a in hbs.aspace)
-    action_props = (exp(hbs.beta * q) for q in qvals)
-    return SparseCat(hbs.aspace, action_props)
+    action_props = exp.(hbs.beta .* qvals)
+
+    return Categorical(Array(action_props/sum(action_props)))
 end
 
 struct HumanUniformModelMix{T} <: HumanBehaviorModel
