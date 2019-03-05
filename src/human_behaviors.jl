@@ -37,7 +37,7 @@ end
 @with_kw struct HumanBoltzmannBState{RMT, AT} <: HumanBehaviorState
     beta::Float64
     reward_model::RMT
-    aspace::Array{AT}
+    aspace::Array{AT, 1}
 end
 
 function free_evolution(hbs::HumanBoltzmannBState, p::Pose, rng::AbstractRNG)::Pose
@@ -59,7 +59,7 @@ select_submodel(hbm::HumanBehaviorModel, hbs::Type{<:HumanBehaviorState}) = hbm
 select_submodel(hbm::HumanBehaviorModel, hbs::HumanBehaviorState)::HumanBehaviorModel = select_submodel(hbm, typeof(hbs))
 
 @with_kw struct HumanConstVelBehavior <: HumanBehaviorModel
-    min_max_vel::Array{Float64} = [0.0, 1.0]
+    min_max_vel::Array{Float64, 1} = [0.0, 1.0]
     vel_sigma::Float64 = 0.01
 end
 
@@ -71,7 +71,7 @@ function rand_hbs(rng::AbstractRNG, hbm::HumanConstVelBehavior)::HumanConstVelBS
 end
 
 @with_kw struct HumanPIDBehavior <: HumanBehaviorModel
-    potential_targets::Array{Pose}
+    potential_targets::Array{Pose, 1}
     goal_change_likelihood::Float64 = 0.01
 end
 
@@ -94,15 +94,15 @@ end
 abstract type HumanRewardModel end
 
 @with_kw struct HumanBoltzmannModel{RMT, AT} <: HumanBehaviorModel
-    min_max_beta::Array{Float64} = [0, 10]
+    min_max_beta::Array{Float64, 1} = [0, 10]
     beta_rasample_sigma::Float64 = 1.0
     reward_model::RMT= HumanSingleTargetRewardModel()
-    aspace::Array{AT} = gen_human_aspace()
+    aspace::Array{AT, 1} = gen_human_aspace()
 end
 
 bstate_type(::HumanBoltzmannModel)::Type = HumanBoltzmannBState
 
-function rand_hbs(rng::AbstractRNG, hbm::HumanBoltzmannModel)::HumanBoltzmannBState
+function rand_hbs(rng::AbstractRNG, hbm::HumanBoltzmannModel)
     # TODO: Reward model parameters should be random as well, if one want's to estimate them
     return HumanBoltzmannBState(beta=rand(rng, Uniform(hbm.min_max_beta...)),
                                 reward_model=hbm.reward_model,
@@ -119,7 +119,7 @@ end
 end
 
 function gen_human_aspace()::Array{HumanBoltzmannAction, 1}
-    dist_actions::Array{Float64}= [0.3, 0.6]
+    dist_actions::Array{Float64, 1}= [0.3, 0.6]
     direction_resolution::Float64 = pi/4
     direction_actions = (-pi:direction_resolution:(pi-direction_resolution))
 
@@ -135,27 +135,27 @@ function compute_qval(p::Pose, a::HumanBoltzmannAction, reward_model::HumanSingl
 end
 
 function get_action_distribution(hbs::HumanBoltzmannBState, p::Pose)::Categorical
-    qvals::Array{Float64} = [compute_qval(p, a, hbs.reward_model) for a in hbs.aspace]
-    action_props::Array{Float64} = normalize([exp(hbs.beta * q) for q in qvals], 1)
+    qvals = (compute_qval(p, a, hbs.reward_model) for a in hbs.aspace)
+    action_props::Array{Float64, 1} = normalize([exp(hbs.beta * q) for q in qvals], 1)
     return Categorical(action_props)
 end
 
-struct HumanUniformModelMix <: HumanBehaviorModel
-    submodels::Array{HumanBehaviorModel}
+struct HumanUniformModelMix{T} <: HumanBehaviorModel
+    submodels::Array{T, 1}
     bstate_change_likelihood::Float64
     bstate_type::Type
 end
 
 function HumanUniformModelMix(models...; bstate_change_likelihood::Float64)
     submodels = [models...]
-    return HumanUniformModelMix(submodels,
-                                bstate_change_likelihood,
-                                Union{Iterators.flatten([[bstate_type(sm)] for sm in submodels])...})
+    return HumanUniformModelMix{Union{typeof.(models)...}}(submodels,
+                                                           bstate_change_likelihood,
+                                                           Union{Iterators.flatten([[bstate_type(sm)] for sm in submodels])...})
 end
 
 bstate_type(hbm::HumanUniformModelMix) = hbm.bstate_types
 
-function select_submodel(hbm::HumanUniformModelMix, t::Type{<:HumanBehaviorState})::HumanBehaviorModel
+function select_submodel(hbm::HumanUniformModelMix{T}, t::Type{<:HumanBehaviorState})::T where T
     candidate_submodels = filter(x->(t <: bstate_type(x)), hbm.submodels)
     @assert(length(candidate_submodels) == 1)
     return first(candidate_submodels)

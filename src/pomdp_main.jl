@@ -83,14 +83,14 @@ end
 HSExternalState(v::AbstractVector{Float64}) = HSExternalState(v[1:3], v[4:6])
 convert(::Type{V}, o::HSExternalState) where V <: AbstractVector = V([human_pose(o)..., robot_pose(o)...])
 
-@with_kw struct HSState
+@with_kw struct HSState{HBS<:HumanBehaviorState}
     external::HSExternalState
-    hbs::HumanBehaviorState
+    hbs::HBS
 end
 
 external(s::HSState) = s.external
 external(s::HSExternalState) = s
-hbs(s::HSState) = s.hbs
+hbs(s::HSState{HBS}) where HBS = s.hbs
 hbs(m::HumanBehaviorState) = m
 internal(s::HSState) = hbs(s::HSState)
 compose_state(e::HSExternalState, i::HumanBehaviorState) = HSState(external=e, hbs=i)
@@ -121,12 +121,12 @@ apply_robot_action(p::Pose, a::HSAction) = Pose(p.x + cos(a.phi)*a.d, p.y + sin(
 # POMDP and MDP Representation
 - implementing the POMDPs.jl interface
 """
-@with_kw struct HSMDP{AS} <: MDP{HSState, HSAction}
+@with_kw struct HSMDP{AS, HBM<:HumanBehaviorModel, PTNM<:HSPhysicalTransitionNoiseModel} <: MDP{HSState, HSAction}
     room::RoomRep = RoomRep()
     aspace::AS = HSActionSpace()
     reward_model::HSRewardModel = HSRewardModel()
-    human_behavior_model::HumanBehaviorModel = HumanPIDBehavior(room)
-    physical_transition_noise_model::HSPhysicalTransitionNoiseModel = HSIdentityPTNM()
+    human_behavior_model::HBM = HumanPIDBehavior(room)
+    physical_transition_noise_model::PTNM = HSIdentityPTNM()
     robot_target::Pose = rand_pose(room, Random.GLOBAL_RNG, forced_orientation=0.0)
     agent_min_distance::Float64 = 1.0
     known_external_initstate::Union{HSExternalState, Nothing} = nothing
