@@ -119,7 +119,17 @@ function profile_hbm(hbm)
     @info "initialstate"
     @btime initialstate($model, $rng)
 
+
     s = initialstate(model, rng)
     @info "generate_s profiling"
-    @btime generate_s($model, $s, rand($rng, HSActionSpace()), $rng)
+    if hbm isa HumanUniformModelMix
+        for submodel in hbm.submodels
+            hbs = HS.rand_hbs(rng, submodel)
+            println(typeof(hbs))
+            s = HSState(external=external(s), hbs=hbs)
+            @btime generate_s($model, $s, rand($rng, HSActionSpace()), $rng)
+        end
+    else
+        @btime generate_s($model, $s, rand($rng, HSActionSpace()), $rng)
+    end
 end
