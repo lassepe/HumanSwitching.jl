@@ -34,15 +34,15 @@ function free_evolution(hbs::HumanPIDBState, p::Pose)::Pose
     return human_pose_p
 end
 
-@with_kw struct HumanBoltzmannBState{RMT, AT} <: HumanBehaviorState
+@with_kw struct HumanBoltzmannBState{RMT, NA, TA} <: HumanBehaviorState
     beta::Float64
     reward_model::RMT
-    aspace::Array{AT, 1}
+    aspace::SVector{NA, TA}
 end
 
 function free_evolution(hbs::HumanBoltzmannBState, p::Pose, rng::AbstractRNG)::Pose
     d = get_action_distribution(hbs, p)
-    sampled_action = hbs.aspace[rand(rng, d)]
+    sampled_action = rand(rng, d)
     # TODO: also rand beta
     return apply_human_action(p, sampled_action)
 end
@@ -93,11 +93,11 @@ end
 
 abstract type HumanRewardModel end
 
-@with_kw struct HumanBoltzmannModel{RMT, AT} <: HumanBehaviorModel
+@with_kw struct HumanBoltzmannModel{RMT, NA, TA} <: HumanBehaviorModel
     min_max_beta::Array{Float64, 1} = [0, 10]
     beta_rasample_sigma::Float64 = 1.0
     reward_model::RMT= HumanSingleTargetRewardModel()
-    aspace::Array{AT, 1} = gen_human_aspace()
+    aspace::SVector{NA, TA} = gen_human_aspace()
 end
 
 bstate_type(::HumanBoltzmannModel)::Type = HumanBoltzmannBState
@@ -118,13 +118,10 @@ end
     phi::Float64 = 0 # direction
 end
 
-function gen_human_aspace()::Array{HumanBoltzmannAction, 1}
-    dist_actions::Array{Float64, 1}= [0.3, 0.6]
-    direction_resolution::Float64 = pi/4
-    direction_actions = (-pi:direction_resolution:(pi-direction_resolution))
-
-    return vec([zero(HumanBoltzmannAction),
-                (HumanBoltzmannAction(d, direction) for d in dist_actions, direction in direction_actions)...])
+function gen_human_aspace()
+    dist_actions = @SVector[0.3, 0.6]
+    direction_actions = @SVector[i for i in -pi:pi/4:(pi-pi/4)]
+    SVector{length(dist_actions)*length(direction_actions)+1, HumanBoltzmannAction}([zero(HumanBoltzmannAction),(HumanBoltzmannAction(d, direction) for d in dist_actions, direction in direction_actions)...])
 end
 
 apply_human_action(p::Pose, a::HumanBoltzmannAction)::Pose = Pose(p.x + cos(a.phi)*a.d, p.y + sin(a.phi)*a.d, p.phi)
@@ -134,10 +131,10 @@ function compute_qval(p::Pose, a::HumanBoltzmannAction, reward_model::HumanSingl
     return -norm(a.d) - dist_to_pose(apply_human_action(p, a), reward_model.human_target; p=2)
 end
 
-function get_action_distribution(hbs::HumanBoltzmannBState, p::Pose)::Categorical
+function get_action_distribution(hbs::HumanBoltzmannBState, p::Pose)
     qvals = (compute_qval(p, a, hbs.reward_model) for a in hbs.aspace)
-    action_props::Array{Float64, 1} = normalize([exp(hbs.beta * q) for q in qvals], 1)
-    return Categorical(action_props)
+    action_props = (exp(hbs.beta * q) for q in qvals)
+    return SparseCat(hbs.aspace, action_props)
 end
 
 struct HumanUniformModelMix{T} <: HumanBehaviorModel

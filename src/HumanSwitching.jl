@@ -25,6 +25,7 @@ using Gadfly:
 
 # POMDP libraries
 using POMDPs
+using POMDPModelTools
 using POMDPSimulators
 using POMDPPolicies
 using ParticleFilters
