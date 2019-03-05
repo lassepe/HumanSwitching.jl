@@ -95,16 +95,8 @@ end
 function profile_detailed()
     ptnm_cov = [0.01, 0.01, 0.01]
 
-    hbms = [HumanBoltzmannModel(min_max_beta=[0, 10]),
-            HumanConstVelBehavior(),
-            HumanPIDBehavior(RoomRep(); goal_change_likelihood=0.01)]
-
-    push!(hbms, HumanUniformModelMix(hbms..., bstate_change_likelihood=0.1))
-
-    for hbm in hbms
-        profile_hbm(hbm)
-        println("\n\n")
-    end
+    hbm = HumanBoltzmannModel(min_max_beta=[0, 10])
+    profile_hbm(hbm)
 end
 
 function profile_hbm(hbm)
@@ -117,8 +109,8 @@ function profile_hbm(hbm)
 
     @info string(typeof(hbm))
     @info "initialstate"
-    @btime initialstate($model, $rng)
-
+    b = @benchmark initialstate($model, $rng)
+    display(b)
 
     s = initialstate(model, rng)
     @info "generate_s profiling"
@@ -127,9 +119,18 @@ function profile_hbm(hbm)
             hbs = HS.rand_hbs(rng, submodel)
             println(typeof(hbs))
             s = HSState(external=external(s), hbs=hbs)
-            @btime generate_s($model, $s, rand($rng, HSActionSpace()), $rng)
+            b = @benchmark generate_s($model, $s, rand($rng, $HSActionSpace()), $rng)
         end
     else
-        @btime generate_s($model, $s, rand($rng, HSActionSpace()), $rng)
+        b = @benchmark generate_s($model, $s, rand($rng, $HSActionSpace()), $rng)
     end
+    display(b)
+
+    as = HSActionSpace()
+    Profile.clear()
+    Profile.clear_malloc_data()
+    @profile for i in 1:10000
+        s = generate_s(model, s, rand(rng, as), rng)
+    end
+    ProfileView.view()
 end
