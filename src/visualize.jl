@@ -120,7 +120,7 @@ function agent_with_target_node(agent_pose::Pose, target::Pose;
     compose(context(), agent_pose_viz, current_target_viz, target_curve_viz)
 end
 
-function human_particle_node(human_pose::Pose, hbs::HumanPIDBState;
+function human_particle_node(human_pose::Pose, hbm::HumanPIDBehavior, hbs::HumanPIDBState;
                              external_color="light blue", internal_color=map_to_color(hbs),
                              annotation::String="", opacity::Float64=1.0)
 
@@ -134,7 +134,7 @@ function human_particle_node(human_pose::Pose, hbs::HumanPIDBState;
                                   opacity=opacity)
 end
 
-function human_particle_node(human_pose::Pose, hbs::HumanConstVelBState;
+function human_particle_node(human_pose::Pose, hbm::HumanConstVelBehavior, hbs::HumanConstVelBState;
                              external_color="light green", internal_color=map_to_color(hbs),
                              annotation::String="", opacity::Float64=1.0)
 
@@ -153,14 +153,14 @@ function human_particle_node(human_pose::Pose, hbs::HumanConstVelBState;
                                   opacity=opacity)
 end
 
-function human_particle_node(human_pose::Pose, hbs::HumanBoltzmannBState;
+function human_particle_node(human_pose::Pose, hbm::HumanBoltzmannModel, hbs::HumanBoltzmannBState;
                              external_color="light green", internal_color=map_to_color(hbs),
                              annotation::String="", opacity::Float64=1.0
                             )
     predicted_future_pose::Pose = human_pose
     # predict future position
     n_samples::Int = 1
-    sampled_future_predictions = [free_evolution(hbs, predicted_future_pose, Random.GLOBAL_RNG) for i in 1:n_samples]
+    sampled_future_predictions = [free_evolution(hbm, hbs, predicted_future_pose, Random.GLOBAL_RNG) for i in 1:n_samples]
 
     return compose(context(), [agent_with_target_node(human_pose,
                                                       p,
@@ -233,7 +233,7 @@ function bstate_subplot_node(::Type{HumanConstVelBState},
     velocities = [hbs.velocity for hbs in unfiltered_hbs_data if hbs isa HumanConstVelBState]
     # compose histogram
     return parameter_histogram_node(velocities, hbsColors[HumanConstVelBState], 30,
-                                    Coord.Cartesian(xmin=hbm.min_max_vel[1], xmax=hbm.min_max_vel[1]),
+                                    Coord.Cartesian(xmin=hbm.vel_min, xmax=hbm.vel_max),
                                     Guide.xlabel("Velocity"))
 end
 
@@ -243,13 +243,14 @@ function bstate_subplot_node(::Type{HumanBoltzmannBState},
     betas = [hbs.beta for hbs in unfiltered_hbs_data if hbs isa HumanBoltzmannBState]
     # compose histogram
     return parameter_histogram_node(betas, hbsColors[HumanBoltzmannBState], 10,
-                                    Coord.Cartesian(xmin=hbm.min_max_beta[1], xmax=hbm.min_max_beta[2]),
+                                    Coord.Cartesian(xmin=hbm.beta_min, xmax=hbm.beta_max),
                                     Guide.xlabel("beta"))
 end
 
 function belief_node(b::ParticleCollection, m::HSPOMDP)::Tuple{Context, Context}
     # computing the state belief distribution
     state_belief_counter = Counter{HSState, Float64}()
+    hbm = human_behavior_model(m)
 
     # compute some statistics on the belief
     weight_sum::Float64 = 0
@@ -258,7 +259,7 @@ function belief_node(b::ParticleCollection, m::HSPOMDP)::Tuple{Context, Context}
         weight_sum += w
     end
     @assert(weight_sum > 0)
-    human_particles = [human_particle_node(human_pose(p), hbs(p);
+    human_particles = [human_particle_node(human_pose(p), select_submodel(hbm, hbs(p)), hbs(p);
                                            annotation=string(round(state_count/weight_sum, digits=3)),
                                            opacity=map_to_opacity(state_count, weight_sum))
                        for (p, state_count) in state_belief_counter]
@@ -308,8 +309,9 @@ function render_step_compose(m::HSModel, step::NamedTuple, base_aspectratio::Flo
     room_viz = room_node(room_rep)
 
     # the human and it's target
-    human_ground_truth_viz = human_particle_node(human_pose(sp), hbs(sp);
-                                                 external_color="tomato", internal_color="green")
+    human_ground_truth_viz = agent_pose_viz = pose_node(human_pose(sp),
+                                                        has_orientation=true,
+                                                        fill_color="tomato", opacity=1.0)
 
     # the robot and it's target
     robot_with_target_viz = agent_with_target_node(robot_pose(sp), robot_target(m),
