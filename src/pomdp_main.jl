@@ -113,11 +113,12 @@ end
 
 # defining the default action space
 function HSActionSpace()
-    dist_actions = (0.3)
-    phi_resolution = (pi/2)
-    phi_actions = (-pi:phi_resolution:(pi-phi_resolution))
+    dist_actions = 0.3
+    direction_actions = (-pi:pi/2:(pi-pi/2))
 
-    return vec([zero(HSAction), (HSAction(d, phi) for d in dist_actions, phi in phi_actions)...])
+    return SVector{length(dist_actions)*length(direction_actions)+1,
+                   HSAction}(vec([zero(HSAction),
+                                  (HSAction(d, phi) for d in dist_actions, phi in direction_actions)...]))
 end
 
 apply_robot_action(p::Pose, a::HSAction) = Pose(p.x + cos(a.phi)*a.d, p.y + sin(a.phi)*a.d, p.phi)
