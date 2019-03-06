@@ -88,7 +88,7 @@ abstract type HumanRewardModel end
 
 @with_kw struct HumanBoltzmannModel{RMT, NA, TA} <: HumanBehaviorModel
     beta_min::Float64 = 0.0
-    beta_max::Float64 = 1.0
+    beta_max::Float64 = 10.0
     beta_rasample_sigma::Float64 = 1.0
     reward_model::RMT= HumanSingleTargetRewardModel()
     aspace::SVector{NA, TA} = gen_human_aspace()
