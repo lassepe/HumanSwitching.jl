@@ -47,7 +47,7 @@ function test_custom_particle_filter(runs)
                                                          deepcopy(rng))
 
         # the planner uses a mix of all models
-        planning_hbm = HumanBoltzmannModel(min_max_beta=[0, 10])
+        planning_hbm = HumanBoltzmannModel()
 
         # planning_hbm = HumanConstVelBehavior()
         planning_model = generate_hspomdp(NoisyPositionSensor(ptnm_cov*10),
@@ -95,7 +95,7 @@ end
 function profile_detailed()
     ptnm_cov = [0.01, 0.01, 0.01]
 
-    hbm = HumanBoltzmannModel(min_max_beta=[0, 10])
+    hbm = HumanBoltzmannModel()
     profile_hbm(hbm)
 end
 
@@ -129,8 +129,12 @@ function profile_hbm(hbm)
     as = HSActionSpace()
     Profile.clear()
     Profile.clear_malloc_data()
-    @profile for i in 1:10000
-        s = generate_s(model, s, rand(rng, as), rng)
+    function f(s, model, as, rng)
+        for i in 1:10000
+            s = generate_s(model, s, rand(rng, as), rng)
+        end
+        return s
     end
+    @profile f(s, model, as, rng)
     ProfileView.view()
 end
