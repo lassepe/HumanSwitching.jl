@@ -41,7 +41,7 @@ function test_pomdp_run(runs; render_gif::Bool=false)
 
         # the simulation is fully running on PID human model
         ptnm_cov = [0.01, 0.01, 0.01]
-        simulation_hbm = HumanPIDBehavior(RoomRep(); goal_change_likelihood=0.01)
+        simulation_hbm = HumanPIDBehavior(potential_targets=[Pose(7.5, 7.5, 0)], goal_change_likelihood=0.01)
         simulation_model = generate_non_trivial_scenario(ExactPositionSensor(),
                                                          simulation_hbm,
                                                          HSGaussianNoisePTNM(pose_cov=ptnm_cov),
@@ -68,7 +68,7 @@ function test_pomdp_run(runs; render_gif::Bool=false)
 
         default_policy = StraightToTarget(planning_model)
         bounds = IndependentBounds(DefaultPolicyLB(default_policy), free_space_estimate, check_terminal=true)
-        solver = DESPOTSolver(T_max=1, bounds=bounds, rng=deepcopy(rng), default_action=default_policy)
+        solver = DESPOTSolver(T_max=1, bounds=bounds, rng=deepcopy(rng), default_action=default_policy, tree_in_info=true)
 
         planner = solve(solver, planning_model)
 
@@ -76,19 +76,22 @@ function test_pomdp_run(runs; render_gif::Bool=false)
         simulator = HistoryRecorder(max_steps=100, show_progress=true, rng=deepcopy(rng))
         sim_hist = simulate(simulator, simulation_model, planner, belief_updater, initialstate_distribution(planning_model), initialstate(simulation_model, rng))
 
-        a, info = action_info(planner, initialstate_distribution(planning_model), tree_in_info=true)
-        inbrowseinbrowserr(D3Tree(info[:tree], init_expand=3))
-
         println(AgentPerformance(simulation_model, sim_hist))
         if render_gif
             makegif(simulation_model, sim_hist, filename=joinpath(@__DIR__, "../renderings/$i_run-out.gif"), extra_initial=true, show_progress=true)
         end
-        return planning_model, sim_hist
+        return planning_model, sim_hist, planner
     end
 end
 
-function visualize(belief_updater_model, sim_hist)
-    makegif(belief_updater_model, sim_hist, filename=joinpath(@__DIR__, "../renderings/visualize_debug.gif"), extra_initial=true, show_progress=true)
+function visualize(model, sim_hist, planner)
+    makegif(model, sim_hist, filename=joinpath(@__DIR__, "../renderings/visualize_debug.gif"),
+            extra_initial=true, show_progress=true)
+end
+
+function tree(model, sim_hist, planner)
+    a, info = action_info(planner, initialstate_distribution(model))
+    inbrowser(D3Tree(info[:tree], init_expand=20), "chromium")
 end
 
 function profile_testrun()
