@@ -68,7 +68,7 @@ function test_pomdp_run(runs; render_gif::Bool=false)
 
         default_policy = StraightToTarget(planning_model)
         bounds = IndependentBounds(DefaultPolicyLB(default_policy), free_space_estimate, check_terminal=true)
-        solver = DESPOTSolver(T_max=1, bounds=bounds, rng=deepcopy(rng), default_action=default_policy, tree_in_info=true)
+        solver = DESPOTSolver(bounds=bounds, rng=deepcopy(rng), default_action=default_policy, tree_in_info=true)
 
         planner = solve(solver, planning_model)
 
@@ -148,4 +148,38 @@ function profile_hbm(hbm)
     end
     @profile f(s, model, as, rng)
     ProfileView.view()
+end
+
+function profile_rollout(run::Int)
+    rng = MersenneTwister(run)
+    ptnm_cov = [0.01, 0.01, 0.01]
+    hbm = HumanPIDBehavior(potential_targets=[Pose(7.5, 7.5, 0)], goal_change_likelihood=0.01)
+    model = generate_non_trivial_scenario(ExactPositionSensor(),
+                                          hbm,
+                                          HSGaussianNoisePTNM(pose_cov=ptnm_cov),
+                                          deepcopy(rng))
+    n_particles = 2000
+    belief_updater = BasicParticleFilter(model, SharedExternalStateResampler(n_particles), n_particles, deepcopy(rng))
+
+
+    K = 10
+    rng = MersenneTwister(14)
+    rs = MemorizingSource(K, 50)
+    Random.seed!(rs, 10)
+    b_0 = initialstate_distribution(model)
+    scenarios = [i=>rand(rng, b_0) for i in 1:K]
+    b = ScenarioBelief(scenarios, rs, 0, false)
+
+    @info "\n\n POMDPs.action"
+    rollout_policy = StraightToTarget(model)
+    # @code_warntype POMDPs.action(rollout_policy, b)
+    bench = @benchmark POMDPs.action($rollout_policy, $b)
+    display(bench)
+
+    @info "\n\n generate_sor"
+    s = rand(rng, b_0)
+    a = POMDPs.action(rollout_policy, b)
+    # @code_warntype generate_sor(model, s, a, rng)
+    bench = @benchmark generate_sor($model, $s, $a, $rng)
+    display(bench)
 end
