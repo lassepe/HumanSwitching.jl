@@ -50,7 +50,8 @@ select_submodel(hbm::HumanBehaviorModel, hbs::Type{<:HumanBehaviorState}) = hbm
 select_submodel(hbm::HumanBehaviorModel, hbs::HumanBehaviorState)::HumanBehaviorModel = select_submodel(hbm, typeof(hbs))
 
 @with_kw struct HumanConstVelBehavior <: HumanBehaviorModel
-    min_max_vel::Array{Float64, 1} = [0.0, 1.0]
+    vel_min::Float64 = 0.0
+    vel_max::Float64 = 1.0
     vel_sigma::Float64 = 0.01
 end
 
@@ -58,7 +59,8 @@ bstate_type(::HumanConstVelBehavior)::Type = HumanConstVelBState
 
 # this model randomely generates HumanConstVelBState from the min_max_vel range
 function rand_hbs(rng::AbstractRNG, hbm::HumanConstVelBehavior)::HumanConstVelBState
-    return HumanConstVelBState(rand(rng, Uniform(hbm.min_max_vel...)))
+    return HumanConstVelBState(rand(rng, Uniform(hbm.vel_min,
+                                                 hbm.vel_max)))
 end
 
 @with_kw struct HumanPIDBehavior <: HumanBehaviorModel
@@ -85,7 +87,8 @@ end
 abstract type HumanRewardModel end
 
 @with_kw struct HumanBoltzmannModel{RMT, NA, TA} <: HumanBehaviorModel
-    min_max_beta::Array{Float64, 1} = [0, 10]
+    beta_min::Float64 = 0.0
+    beta_max::Float64 = 1.0
     beta_rasample_sigma::Float64 = 1.0
     reward_model::RMT= HumanSingleTargetRewardModel()
     aspace::SVector{NA, TA} = gen_human_aspace()
@@ -96,7 +99,8 @@ bstate_type(::HumanBoltzmannModel)::Type = HumanBoltzmannBState
 
 function rand_hbs(rng::AbstractRNG, hbm::HumanBoltzmannModel)
     # TODO: Reward model parameters should be random as well, if one want's to estimate them
-    return HumanBoltzmannBState(rand(rng, Uniform(hbm.min_max_beta...)))
+    return HumanBoltzmannBState(rand(rng, Uniform(hbm.beta_min,
+                                                  hbm.beta_max)))
 end
 
 @with_kw struct HumanSingleTargetRewardModel

@@ -51,7 +51,7 @@ end
 corner_poses(r::RoomRep) = vec([Pose(x, y, 0) for x in [0.1r.width, 0.9r.width], y in [0.1r.height, 0.9r.height]])
 
 # determines the 2D vector from p_start to p_end
-vec_from_to(p_start::Pose, p_end::Pose) = p_end[1:2] - p_start[1:2]
+vec_from_to(p_start::Pose, p_end::Pose) = SVector(p_end.x - p_start.x, p_end.y - p_start.y)
 # computes the 2-norm distance between p1 and p2 (orientation ignored)
 dist_to_pose(p1::Pose, p2::Pose; p=1)::Float64 = norm(vec_from_to(p1, p2), p)
 # computes the distance between the robot and it's target

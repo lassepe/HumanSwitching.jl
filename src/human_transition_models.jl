@@ -6,7 +6,7 @@ move)
 function human_transition(hbs::HumanConstVelBState, hbm::HumanConstVelBehavior, m::HSModel,
                           p::Pose, rng::AbstractRNG)
     human_pose_p = free_evolution(hbs, p)
-    hbs_p = HumanConstVelBState(rand(rng, TruncatedNormal(hbs.velocity, hbm.vel_sigma, hbm.min_max_vel...)))
+    hbs_p = HumanConstVelBState(rand(rng, TruncatedNormal(hbs.velocity, hbm.vel_sigma, hbm.vel_min, hbm.vel_max)))
     return human_pose_p, hbs_p
 end
 
@@ -36,7 +36,9 @@ end
 
 function human_transition(hbs::HumanBoltzmannBState, hbm::HumanBoltzmannModel, m::HSModel,
                           p::Pose, rng::AbstractRNG)
-    beta_p = rand(rng, TruncatedNormal(hbs.beta, hbm.beta_rasample_sigma, hbm.min_max_beta...))
+    beta_p = rand(rng, TruncatedNormal(hbs.beta, hbm.beta_rasample_sigma,
+                                       hbm.beta_min,
+                                       hbm.beta_max))
     hbs_p = HumanBoltzmannBState(beta_p)
 
     # compute the new external state of the human

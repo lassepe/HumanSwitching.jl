@@ -80,8 +80,13 @@ function rand_hbs end
     robot_pose::Pose
 end
 
-HSExternalState(v::AbstractVector{Float64}) = HSExternalState(v[1:3], v[4:6])
-convert(::Type{V}, o::HSExternalState) where V <: AbstractVector = V([human_pose(o)..., robot_pose(o)...])
+HSExternalState(v::T) where T<:AbstractVector{Float64} = HSExternalState(v[1:3], v[4:6])
+
+function convert(::Type{V}, e::HSExternalState) where V <: AbstractVector
+    hp = human_pose(e)
+    rp = robot_pose(e)
+    return V([hp[1], hp[2], hp[3], rp[1], rp[2], rp[3]])
+end
 
 @with_kw struct HSState{HBS<:HumanBehaviorState}
     external::HSExternalState
@@ -183,8 +188,11 @@ POMDPs.generate_o(m::HSPOMDP{NoisyPositionSensor, HSExternalState, <:Any},
 # at least one should get away with less type conversion
 function POMDPs.observation(m::HSPOMDP{NoisyPositionSensor, HSExternalState, <:Any}, s::HSState)
     # TODO: do this properly
-    return MvNormal(Array{Float64, 1}([human_pose(s)..., robot_pose(s)...]),
-                    Array{Float64, 1}([m.sensor.measurement_cov..., m.sensor.measurement_cov...]))
+    hp = human_pose(s)
+    rp = robot_pose(s)
+    mc  = m.sensor.measurement_cov
+    return MvNormal([hp[1], hp[2], hp[3], rp[1], rp[2], rp[3]],
+                    [mc[1], mc[2], mc[3], mc[1], mc[2], mc[3]])
 end
 Distributions.pdf(distribution::MvNormal, sample::HSExternalState) = pdf(distribution, convert(Vector{Float64}, sample))
 

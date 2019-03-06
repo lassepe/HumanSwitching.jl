@@ -151,7 +151,7 @@ end
     # TODO: Stabilize type
     @test_broken @testblock quote
         hbm = HumanUniformModelMix(HumanPIDBehavior(RoomRep(), goal_change_likelihood=0.01),
-                                   HumanBoltzmannModel(min_max_beta=[0, 10]),
+                                   HumanBoltzmannModel(),
                                    bstate_change_likelihood=0.1)
         hbs = @inferred HS.rand_hbs(rng, hbm)
         s = @inferred HSState(external=e, hbs=hbs)
