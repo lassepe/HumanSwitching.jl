@@ -14,6 +14,7 @@ using POMDPSimulators
 using POMDPGifs
 using BeliefUpdaters
 using POMCPOW
+using ARDESPOT
 using MCTS
 
 using Blink
@@ -33,7 +34,7 @@ using BenchmarkTools
 
 include("estimate_value_policies.jl")
 
-function test_custom_particle_filter(runs)
+function test_pomdp_run(runs; render_gif::Bool=false)
     for i_run in runs
         rng = MersenneTwister(i_run)
         # setup models
@@ -60,21 +61,28 @@ function test_custom_particle_filter(runs)
         # the blief updater is run with a stocahstic version of the world
         belief_updater = BasicParticleFilter(planning_model, SharedExternalStateResampler(n_particles), n_particles, deepcopy(rng))
         # the policy plannes without a model as it is always the same action
-        solver = POMCPOWSolver(tree_queries=6000, max_depth=70, criterion=MaxUCB(80),
-                               k_action=4, alpha_action=0.1,
-                               k_observation=1, alpha_observation=0,
-                               estimate_value=free_space_estimate, default_action=zero(HSAction), rng=deepcopy(rng))
+        # solver = POMCPOWSolver(tree_queries=6000, max_depth=70, criterion=MaxUCB(80),
+        #                        k_action=4, alpha_action=0.1,
+        #                        k_observation=1, alpha_observation=0,
+        #                        estimate_value=free_space_estimate, default_action=zero(HSAction), rng=deepcopy(rng))
+
+        default_policy = StraightToTarget(planning_model)
+        bounds = IndependentBounds(DefaultPolicyLB(default_policy), free_space_estimate, check_terminal=true)
+        solver = DESPOTSolver(T_max=1, bounds=bounds, rng=deepcopy(rng), default_action=default_policy)
+
         planner = solve(solver, planning_model)
 
         # the simulator uses the exact dynamics (not known to the belief_updater)
         simulator = HistoryRecorder(max_steps=100, show_progress=true, rng=deepcopy(rng))
         sim_hist = simulate(simulator, simulation_model, planner, belief_updater, initialstate_distribution(planning_model), initialstate(simulation_model, rng))
 
-        # a, info = action_info(planner, initialstate_distribution(model), tree_in_info=true)
-        # inchrome(D3Tree(info[:tree], init_expand=3))
+        a, info = action_info(planner, initialstate_distribution(planning_model), tree_in_info=true)
+        inbrowseinbrowserr(D3Tree(info[:tree], init_expand=3))
 
         println(AgentPerformance(simulation_model, sim_hist))
-        # makegif(simulation_model, sim_hist, filename=joinpath(@__DIR__, "../renderings/visualize_debug.gif"), extra_initial=true, show_progress=true)
+        if render_gif
+            makegif(simulation_model, sim_hist, filename=joinpath(@__DIR__, "../renderings/$i_run-out.gif"), extra_initial=true, show_progress=true)
+        end
         return planning_model, sim_hist
     end
 end
@@ -84,11 +92,11 @@ function visualize(belief_updater_model, sim_hist)
 end
 
 function profile_testrun()
-    @time test_custom_particle_filter(4);
+    @time test_pomdp_run(4);
     Profile.init(n=10^7)
     Profile.clear()
     Profile.clear_malloc_data()
-    @profile test_custom_particle_filter(4);
+    @profile test_pomdp_run(4);
     ProfileView.view()
 end
 
