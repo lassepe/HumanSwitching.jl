@@ -182,7 +182,7 @@ function parameter_histogram_node(values::Array, default_color, bincount::Int, a
                         args...)
 end
 
-function belief_info_node(b::ParticleCollection, weight_sum::Float64, m::HSPOMDP)::Context
+function belief_info_node(b::ParticleCollection, m::HSPOMDP)::Context
     hbm = human_behavior_model(m)
     # filling some colums of the data frame for visualization
     human_behavior_states = [hbs(p) for p in particles(b)]
@@ -211,8 +211,7 @@ function belief_info_node(b::ParticleCollection, weight_sum::Float64, m::HSPOMDP
                                                           for t in known_behavior_state_types]...))
     push!(vstack_list, bstate_subplots)
 
-    background = compose(context(), rectangle(0, 0, 1, 1), fill("white"))
-    return compose(context(), vstack(vstack_list...), background)
+    return compose(context(), vstack(vstack_list...))
 end
 
 function bstate_subplot_node(::Type{HumanPIDBState},
@@ -224,6 +223,7 @@ function bstate_subplot_node(::Type{HumanPIDBState},
     # compose histogram
     return parameter_histogram_node(target_indices, hbsColors[HumanPIDBState], 4,
                                     Coord.Cartesian(xmin=0, xmax=length(hbm.potential_targets)),
+                                    Guide.title("PID Human: Target Index Belief"),
                                     Guide.xlabel("Target Index"))
 end
 
@@ -234,6 +234,7 @@ function bstate_subplot_node(::Type{HumanConstVelBState},
     # compose histogram
     return parameter_histogram_node(velocities, hbsColors[HumanConstVelBState], 30,
                                     Coord.Cartesian(xmin=hbm.vel_min, xmax=hbm.vel_max),
+                                    Guide.title("Constant Velocity Belief"),
                                     Guide.xlabel("Velocity"))
 end
 
@@ -244,10 +245,11 @@ function bstate_subplot_node(::Type{HumanBoltzmannBState},
     # compose histogram
     return parameter_histogram_node(betas, hbsColors[HumanBoltzmannBState], 10,
                                     Coord.Cartesian(xmin=hbm.beta_min, xmax=hbm.beta_max),
+                                    Guide.title("Boltzmann Beta Belief"),
                                     Guide.xlabel("beta"))
 end
 
-function belief_node(b::ParticleCollection, m::HSPOMDP)::Tuple{Context, Context}
+function belief_node(b::ParticleCollection, m::HSPOMDP)::Context
     # computing the state belief distribution
     state_belief_counter = Counter{HSState, Float64}()
     hbm = human_behavior_model(m)
@@ -270,14 +272,24 @@ function belief_node(b::ParticleCollection, m::HSPOMDP)::Tuple{Context, Context}
                        for (p, state_count) in state_belief_counter]
 
     belief_viz = compose(context(), robot_particles, human_particles)
-    belief_info_viz = belief_info_node(b, weight_sum, m)
 
-    return belief_viz, belief_info_viz
+    return belief_viz
 end
 
-function reward_node(step::NamedTuple, m::HSModel)
-    reward_string = "Reward: $(get(step, :r, 0))"
-    return compose(context(), text(0.1, 0.1, reward_string), fontsize(30pt), fill("black"))
+function reward_node(step::NamedTuple, sim_hist::T) where T<:POMDPHistory
+    cumulative_reward_history = cumsum([r for (t, r) in eachstep(sim_hist, ":t, :r") if t <= step.t])
+    if !isempty(cumulative_reward_history)
+        return plot_compose(x=(1:length(cumulative_reward_history)),
+                            y=cumulative_reward_history,
+                            Guide.title("Cumulative Reward"),
+                            Guide.xlabel("time"),
+                            Guide.ylabel("cumulative reward"),
+                            Geom.line,
+                            Geom.point,
+                            Coord.Cartesian(xmin=0, xmax=length(sim_hist)))
+    else
+        return context()
+    end
 end
 
 """
@@ -295,7 +307,8 @@ Fields:
 - `step` the step to be rendered (containing the state, the belief, etc.)
 
 """
-function render_step_compose(m::HSModel, step::NamedTuple, base_aspectratio::Float64)::Context
+function render_step_compose(m::HSModel, step::NamedTuple, sim_hist::T,
+                             show_info::Bool, base_aspectratio::Float64)::Context where T<:POMDPHistory
     # extract the relevant information from the step
     sp = step[:sp]
 
@@ -323,24 +336,31 @@ function render_step_compose(m::HSModel, step::NamedTuple, base_aspectratio::Flo
                                                    has_orientation=false,
                                                    external_color="pink", curve_color="steelblue")
 
-    belief_viz, belief_info_viz = haskey(step, :bp) && step[:bp] isa ParticleCollection ? belief_node(step[:bp], m) : (context(), context())
-
-    reward_info_viz = reward_node(step, m)
-
-    if base_aspectratio < 1
-        info_viz = compose(context(0, 0, 1, 1-base_aspectratio), belief_info_viz, fill("green"))
+    belief_viz = (haskey(step, :bp) && step[:bp] isa ParticleCollection ?
+                  belief_node(step[:bp], m) : context())
+    # the info area
+    background = compose(context(), rectangle(0, 0, 1, 1), fill("white"))
+    info_position_context = (base_aspectratio < 1 ?
+                             context(0, 0, 1, 1-base_aspectratio) :
+                             context(1/base_aspectratio, 0, 1 - 1/base_aspectratio, 1))
+    if show_info
+        belief_info_viz = (haskey(step, :bp) && step[:bp] isa ParticleCollection ?
+                           belief_info_node(step[:bp], m) : context())
+        reward_info_viz = reward_node(step, sim_hist)
+        info_stack = [belief_info_viz, reward_info_viz]
+        info_viz = compose(info_position_context, vstack(info_stack...), background)
     else
-        info_viz = compose(context(1/base_aspectratio, 0, 1 - 1/base_aspectratio, 1), belief_info_viz, fill("green"))
+        info_viz = compose(info_position_context, background)
     end
 
-    compose(context(),
-            (context(), reward_info_viz, info_viz),
-            (mirror, (base_scale,
-                      robot_with_target_viz,
-                      human_ground_truth_viz,
-                      belief_viz,
-                      room_viz))
-           )
+compose(context(),
+        (context(), info_viz),
+        (mirror, (base_scale,
+                  robot_with_target_viz,
+                  human_ground_truth_viz,
+                  belief_viz,
+                  room_viz))
+       )
 end
 
 """
@@ -371,17 +391,23 @@ function blink!(c::Context, win::Blink.Window = Blink.Window())
 end
 
 # Some interface code to use the POMDPGifs package. This basically needs to im
-struct HSViz
+struct HSViz{H <: POMDPHistory}
     m::HSModel
     step::NamedTuple
+    sim_hist::H
+    show_info::Bool
 end
 
-render(m::HSModel, step::NamedTuple) = HSViz(m, step)
+render(m::HSModel, step::NamedTuple; sim_hist, show_info=true) = HSViz(m, step, sim_hist, show_info)
 
 function Base.show(io::IO, mime::MIME"image/png", v::HSViz)
     frame_dimensions::Tuple{Float64, Float64} = (1600, 800)
     surface = CairoRGBSurface(frame_dimensions...)
-    c = render_step_compose(v.m, v.step, frame_dimensions[1]/frame_dimensions[2])
+    c = render_step_compose(v.m,
+                            v.step,
+                            v.sim_hist,
+                            v.show_info,
+                            frame_dimensions[1]/frame_dimensions[2])
     draw(PNG(surface), c)
     write_to_png(surface, io)
 end

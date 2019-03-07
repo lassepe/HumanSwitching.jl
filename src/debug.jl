@@ -85,7 +85,7 @@ end
 
 function visualize(model, sim_hist, planner)
     makegif(model, sim_hist, filename=joinpath(@__DIR__, "../renderings/visualize_debug.gif"),
-            extra_initial=true, show_progress=true)
+            extra_initial=true, show_progress=true, render_kwargs=(sim_hist=sim_hist, show_info=true))
 end
 
 function tree(model, sim_hist, planner, step=1)
