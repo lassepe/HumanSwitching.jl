@@ -24,7 +24,7 @@ const robot_max_speed = maximum(a[1] for a in HSActionSpace())
 # depth is the solver `depth` parameter less the number of timesteps that have already passed (it can be ignored in many cases)
 function free_space_estimate(mdp::HSMDP, s::HSState, steps::Int=0)::Float64
     rm = reward_model(mdp)
-    dist = robot_dist_to_target(mdp, s)
+    dist = robot_dist_to_target(mdp, s, p=1)
     remaining_step_estimate = div(dist, robot_max_speed)
 
     # stage cost

@@ -77,9 +77,11 @@ function test_pomdp_run(runs; render_gif::Bool=false)
 
         println(AgentPerformance(simulation_model, sim_hist))
         if render_gif
-            makegif(simulation_model, sim_hist, filename=joinpath(@__DIR__, "../renderings/$i_run-out.gif"), extra_initial=true, show_progress=true)
+            makegif(planning_model, sim_hist, filename=joinpath(@__DIR__, "../renderings/$i_run-out.gif"),
+                    extra_initial=true, show_progress=true, render_kwargs=(sim_hist=sim_hist, show_info=true))
+        else
+            return planning_model, sim_hist, planner
         end
-        return planning_model, sim_hist, planner
     end
 end
 

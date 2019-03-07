@@ -55,7 +55,7 @@ vec_from_to(p_start::Pose, p_end::Pose) = SVector(p_end.x - p_start.x, p_end.y -
 # computes the 2-norm distance between p1 and p2 (orientation ignored)
 dist_to_pose(p1::Pose, p2::Pose; p=1)::Float64 = norm(vec_from_to(p1, p2), p)
 # computes the distance between the robot and it's target
-robot_dist_to_target(m::HSModel, s::HSState; p=1)::Float64 = dist_to_pose(robot_pose(s), robot_target(m))
+robot_dist_to_target(m::HSModel, s::HSState; p=1)::Float64 = dist_to_pose(robot_pose(s), robot_target(m), p=p)
 # checks if the state currently has a collision between the robot and some other agent
 has_collision(m::HSModel, s::HSState)::Bool = dist_to_pose(human_pose(s), robot_pose(s)) < agent_min_distance(m)
 

@@ -108,7 +108,11 @@ end;
     policy = FunctionPolicy(x->HSAction())
     # this only checks wether the calls work without error (@test_nowarn doesn't
     # work due to progressbar I assume)
-    @test_nowarn makegif(pomdp, policy, belief_updater, filename=joinpath(@__DIR__, "test_renderings", "makegif_test.gif"), rng=rng, max_steps=100, show_progress=false)
+    simulator = HistoryRecorder(max_steps=100, show_progress=false, rng=rng)
+    sim_hist = simulate(simulator, pomdp, policy, belief_updater)
+
+    @test_nowarn makegif(pomdp, sim_hist, filename=joinpath(@__DIR__, "test_renderings", "makegif_test.gif"),
+                         extra_initial=true, show_progress=false, render_kwargs=(sim_hist=sim_hist, show_info=true))
 end;
 
 @testset "POMDP Actions" begin
