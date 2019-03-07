@@ -63,8 +63,10 @@ function test_pomdp_run(runs; render_gif::Bool=false)
         belief_updater = BasicParticleFilter(planning_model, SharedExternalStateResampler(n_particles), n_particles, deepcopy(rng))
         # the policy plannes without a model as it is always the same action
         solver = POMCPOWSolver(tree_queries=12000, max_depth=70, criterion=MaxUCB(80),
-                               k_action=4, alpha_action=0.1,
-                               k_observation=4, alpha_observation=0.1,
+                               k_action=5, alpha_action=0.1,
+                               k_observation=3, alpha_observation=0.15,
+                               check_repeat_obs=true,
+                               check_repeat_act=true,
                                estimate_value=free_space_estimate, default_action=zero(HSAction), rng=deepcopy(rng))
 
         planner = solve(solver, planning_model)
