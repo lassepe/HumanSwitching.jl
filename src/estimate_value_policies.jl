@@ -1,5 +1,5 @@
-struct StraightToTarget <: Policy
-    m::HSModel
+struct StraightToTarget{MT<:HSModel} <: Policy
+    m::MT
 end
 
 function POMDPs.action(p::StraightToTarget, s::HSState)
