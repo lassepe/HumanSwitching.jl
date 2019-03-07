@@ -61,19 +61,15 @@ function test_pomdp_run(runs; render_gif::Bool=false)
         # the blief updater is run with a stocahstic version of the world
         belief_updater = BasicParticleFilter(planning_model, SharedExternalStateResampler(n_particles), n_particles, deepcopy(rng))
         # the policy plannes without a model as it is always the same action
-        # solver = POMCPOWSolver(tree_queries=6000, max_depth=70, criterion=MaxUCB(80),
-        #                        k_action=4, alpha_action=0.1,
-        #                        k_observation=1, alpha_observation=0,
-        #                        estimate_value=free_space_estimate, default_action=zero(HSAction), rng=deepcopy(rng))
-
-        default_policy = StraightToTarget(planning_model)
-        bounds = IndependentBounds(DefaultPolicyLB(default_policy), free_space_estimate, check_terminal=true)
-        solver = DESPOTSolver(bounds=bounds, rng=deepcopy(rng), default_action=default_policy, tree_in_info=true)
+        solver = POMCPOWSolver(tree_queries=12000, max_depth=70, criterion=MaxUCB(80),
+                               k_action=4, alpha_action=0.1,
+                               k_observation=1, alpha_observation=0.1,
+                               estimate_value=free_space_estimate, default_action=zero(HSAction), rng=deepcopy(rng))
 
         planner = solve(solver, planning_model)
 
         # the simulator uses the exact dynamics (not known to the belief_updater)
-        simulator = HistoryRecorder(max_steps=100, show_progress=true, rng=deepcopy(rng))
+        simulator = HistoryRecorder(max_steps=50, show_progress=true, rng=deepcopy(rng))
         sim_hist = simulate(simulator, simulation_model, planner, belief_updater, initialstate_distribution(planning_model), initialstate(simulation_model, rng))
 
         println(AgentPerformance(simulation_model, sim_hist))
@@ -90,8 +86,10 @@ function visualize(model, sim_hist, planner)
 end
 
 function tree(model, sim_hist, planner)
-    a, info = action_info(planner, initialstate_distribution(model))
-    inbrowser(D3Tree(info[:tree], init_expand=20), "chromium")
+    beliefs = collect(eachstep(sim_hist, "bp"))
+    b = beliefs[20]
+    a, info = action_info(planner, b, tree_in_info=true)
+    inbrowser(D3Tree(info[:tree], init_expand=10), "chromium")
 end
 
 function profile_testrun()
