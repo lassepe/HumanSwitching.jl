@@ -86,9 +86,9 @@ function visualize(model, sim_hist, planner)
             extra_initial=true, show_progress=true)
 end
 
-function tree(model, sim_hist, planner)
-    beliefs = collect(eachstep(sim_hist, "bp"))
-    b = beliefs[20]
+function tree(model, sim_hist, planner, step=1)
+    beliefs = collect(eachstep(sim_hist, "b"))
+    b = beliefs[step]
     a, info = action_info(planner, b, tree_in_info=true)
     inbrowser(D3Tree(info[:tree], init_expand=1), "chromium")
 end
