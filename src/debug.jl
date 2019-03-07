@@ -154,7 +154,7 @@ end
 function profile_rollout(run::Int)
     rng = MersenneTwister(run)
     ptnm_cov = [0.01, 0.01, 0.01]
-    hbm = HumanPIDBehavior(potential_targets=[Pose(7.5, 7.5, 0)], goal_change_likelihood=0.01)
+    hbm = HumanPIDBehavior(potential_targets=[Pose(5, 5, 0)], goal_change_likelihood=0.01)
     model = generate_non_trivial_scenario(ExactPositionSensor(),
                                           hbm,
                                           HSGaussianNoisePTNM(pose_cov=ptnm_cov),
