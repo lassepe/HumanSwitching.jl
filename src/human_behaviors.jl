@@ -88,8 +88,8 @@ abstract type HumanRewardModel end
 
 @with_kw struct HumanBoltzmannModel{RMT, NA, TA} <: HumanBehaviorModel
     beta_min::Float64 = 0.0
-    beta_max::Float64 = 10.0
-    beta_rasample_sigma::Float64 = 1.0
+    beta_max::Float64 = 15.0
+    beta_resample_sigma::Float64 = 1
     reward_model::RMT= HumanSingleTargetRewardModel()
     aspace::SVector{NA, TA} = gen_human_aspace()
     _aprob_mem::MVector{NA, Float64} = @MVector(zeros(length(aspace)))
@@ -104,7 +104,7 @@ function rand_hbs(rng::AbstractRNG, hbm::HumanBoltzmannModel)
 end
 
 @with_kw struct HumanSingleTargetRewardModel
-    human_target::Pose = Pose(7.5, 7.5, 0)
+    human_target::Pose = Pose(5, 5, 0)
 end
 
 @with_kw struct HumanBoltzmannAction <: FieldVector{2, Float64}
