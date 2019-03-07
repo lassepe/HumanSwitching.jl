@@ -34,7 +34,7 @@ function free_space_estimate(mdp::HSMDP, s::HSState, steps::Int=0)::Float64
     # terminal cost for reaching the goal
     reward_estimate += rm.target_reached_reward*(rm.discount_factor^remaining_step_estimate)
 
-    return reward_estimate + 10
+    return reward_estimate
 end
 
 function free_space_estimate(pomdp::HSPOMDP, s::HSState, b::Any, ::Int)
