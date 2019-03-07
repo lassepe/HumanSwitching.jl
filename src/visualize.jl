@@ -275,6 +275,11 @@ function belief_node(b::ParticleCollection, m::HSPOMDP)::Tuple{Context, Context}
     return belief_viz, belief_info_viz
 end
 
+function reward_node(step::NamedTuple, m::HSModel)
+    reward_string = "Reward: $(get(step, :r, 0))"
+    return compose(context(), text(0.1, 0.1, reward_string), fontsize(30pt), fill("black"))
+end
+
 """
 render_step_compose
 
@@ -320,6 +325,8 @@ function render_step_compose(m::HSModel, step::NamedTuple, base_aspectratio::Flo
 
     belief_viz, belief_info_viz = haskey(step, :bp) && step[:bp] isa ParticleCollection ? belief_node(step[:bp], m) : (context(), context())
 
+    reward_info_viz = reward_node(step, m)
+
     if base_aspectratio < 1
         info_viz = compose(context(0, 0, 1, 1-base_aspectratio), belief_info_viz, fill("green"))
     else
@@ -327,7 +334,7 @@ function render_step_compose(m::HSModel, step::NamedTuple, base_aspectratio::Flo
     end
 
     compose(context(),
-            (context(), info_viz),
+            (context(), reward_info_viz, info_viz),
             (mirror, (base_scale,
                       robot_with_target_viz,
                       human_ground_truth_viz,
