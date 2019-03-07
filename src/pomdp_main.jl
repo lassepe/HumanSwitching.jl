@@ -116,9 +116,8 @@ function HSActionSpace()
     dist_actions = 0.3
     direction_actions = (-pi:pi/2:(pi-pi/2))
 
-    return SVector{length(dist_actions)*length(direction_actions)+1,
-                   HSAction}(vec([zero(HSAction),
-                                  (HSAction(d, phi) for d in dist_actions, phi in direction_actions)...]))
+    return vec([zero(HSAction),
+                (HSAction(d, phi) for d in dist_actions, phi in direction_actions)...])
 end
 
 apply_robot_action(p::Pose, a::HSAction) = Pose(p.x + cos(a.phi)*a.d, p.y + sin(a.phi)*a.d, p.phi)
