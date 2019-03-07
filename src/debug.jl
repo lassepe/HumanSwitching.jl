@@ -37,11 +37,12 @@ include("estimate_value_policies.jl")
 function test_pomdp_run(runs; render_gif::Bool=false)
     for i_run in runs
         rng = MersenneTwister(i_run)
+        scenario_rng = MersenneTwister(i_run+1)
         # setup models
 
         # the simulation is fully running on PID human model
         ptnm_cov = [0.01, 0.01, 0.01]
-        simulation_hbm = HumanPIDBehavior(potential_targets=[Pose(7.5, 7.5, 0)], goal_change_likelihood=0.01)
+        simulation_hbm = HumanPIDBehavior(potential_targets=[HS.rand_pose(RoomRep(), scenario_rng) for i=1:10], goal_change_likelihood=0.01)
         simulation_model = generate_non_trivial_scenario(ExactPositionSensor(),
                                                          simulation_hbm,
                                                          HSGaussianNoisePTNM(pose_cov=ptnm_cov),
@@ -63,13 +64,13 @@ function test_pomdp_run(runs; render_gif::Bool=false)
         # the policy plannes without a model as it is always the same action
         solver = POMCPOWSolver(tree_queries=12000, max_depth=70, criterion=MaxUCB(80),
                                k_action=4, alpha_action=0.1,
-                               k_observation=1, alpha_observation=0.1,
+                               k_observation=4, alpha_observation=0.1,
                                estimate_value=free_space_estimate, default_action=zero(HSAction), rng=deepcopy(rng))
 
         planner = solve(solver, planning_model)
 
         # the simulator uses the exact dynamics (not known to the belief_updater)
-        simulator = HistoryRecorder(max_steps=50, show_progress=true, rng=deepcopy(rng))
+        simulator = HistoryRecorder(max_steps=100, show_progress=true, rng=deepcopy(rng))
         sim_hist = simulate(simulator, simulation_model, planner, belief_updater, initialstate_distribution(planning_model), initialstate(simulation_model, rng))
 
         println(AgentPerformance(simulation_model, sim_hist))
@@ -89,7 +90,7 @@ function tree(model, sim_hist, planner)
     beliefs = collect(eachstep(sim_hist, "bp"))
     b = beliefs[20]
     a, info = action_info(planner, b, tree_in_info=true)
-    inbrowser(D3Tree(info[:tree], init_expand=10), "chromium")
+    inbrowser(D3Tree(info[:tree], init_expand=1), "chromium")
 end
 
 function profile_testrun()
