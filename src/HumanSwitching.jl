@@ -29,6 +29,7 @@ using POMDPModelTools
 using POMDPSimulators
 using POMDPPolicies
 using ParticleFilters
+using ARDESPOT
 
 # packages that are extended by this module
 import ParticleFilters # modified in particle_fitler.jl
@@ -132,5 +133,9 @@ export
     generate_hspomdp,
     generate_non_trivial_scenario
 include("problem_gen.jl")
+
+export
+    free_space_estimate
+include("estimate_value_policies.jl")
 
 end # module

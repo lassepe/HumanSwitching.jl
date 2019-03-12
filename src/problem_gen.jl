@@ -68,8 +68,6 @@ function generate_non_trivial_scenario(sensor::HSSensor, human_behavior_model::H
 
         if has_collision(fo_model, last_state)
             return po_model
-        else
-            println("Was Trivial - Sampling Again!")
         end
     end
 end

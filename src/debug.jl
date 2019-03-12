@@ -1,11 +1,6 @@
-using Pkg
-
-if !haskey(Pkg.installed(), "HumanSwitching")
-    # load the environment if not yet done
-    jenv = joinpath(dirname(@__FILE__()), "../.")
-    Pkg.activate(jenv)
-    @info("Activated Environment")
-end
+using Distributed
+@everywhere using Pkg
+@everywhere Pkg.activate(".")
 
 using ParticleFilters
 using POMDPs
@@ -31,8 +26,6 @@ using Profile
 using ProfileView
 using Test
 using BenchmarkTools
-
-include("estimate_value_policies.jl")
 
 function test_pomdp_run(runs; render_gif::Bool=false)
     for i_run in runs
