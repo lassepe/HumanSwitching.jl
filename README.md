@@ -2,35 +2,44 @@
 
 Partially Observable Motion Planning written in Julia.
 
-## Example
+## Installation Instructions
 
-### Human
+Make use you have installed:
+- julia (preferably version 1.1.0)
+- imagemagick (used for rendering gifs)
 
-- The true human state is visualized in *red*.
-- A *green* line connects the human with it's true (*light green*) target.
-- The human is going to one of the known targets (small *deep blue* circles).
-- A human has a small likelihood of changing it's walk target mid way
-- When having reached the current goal the human immediately samples a new
-  target uniformly at random from the set of known goals
+**Setup POMDPs.jl**
 
-### Robot
+First you need to setup the POMDPs.jl registry so that all dependencies can be found:
 
- - The robot -- marked with a cross -- tries to reach it's goal (*green*) in
-minimum time without colliding with the human.
-- The robot has a good sensor for the human's position but does not know the
-  humans *walk target* (internal state) and exact transition model
+To install POMDPs.jl, run the following from the Julia REPL: 
+```julia
+Pkg.add("POMDPs")
+```
 
-**Inference:**
+To install supported JuliaPOMDP packages including various solvers, first run:
+```julia
+using POMDPs
+POMDPs.add_registry()
+```
 
-- The robot uses a particle filter to reason about the humans hidden states
-- Particle filter models the human as walking towards a fixed goal according to
-  a simple, stochastic policy (P-controller with `AWGN`)
+**Install Julia Dependencies**
 
-**Planning:**
+Start a julia REPL in project mode from the root directory of this repo that you cloned to your machine.
 
-- *for now:* the robot planes with the *true* state of the human and solves
-  the fully observable `MDP` using `MCTS`.
+```bash
+julia --project
+```
 
-![example](readme_media/updater_and_mcts_example.gif)
+Hit the `]` key to enter package mode and install the package dependencies (listed in `Project.toml`) by running
 
-![example](readme_media/join_observation_example.gif)
+```julia
+instantiate
+```
+## Testing
+
+This package comes with a bunch of unit tests that can be run to see whether the setup was succesfull. In order to run these tests from a julia REPL in project mode enter `]` to enter package mode. Then simply type:
+
+```julia
+test
+```
