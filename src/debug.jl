@@ -30,6 +30,31 @@ using BenchmarkTools
 
 using DataFrames
 
+# TODO: move this to a package / module
+
+@everywhere begin
+    using POMDPModelTools
+    using CPUTime
+
+    """
+    TimedPolicy
+
+    A thin planner/policy wrapper to add the time to the action info.
+    """
+    struct TimedPolicy{P <: Policy} <: Policy
+        p::P
+    end
+
+    POMDPs.action(timed_policy::TimedPolicy, x) = action(timed_policy.p, x)
+
+    function POMDPModelTools.action_info(timed_policy::TimedPolicy, x; kwargs...)
+        start_us = CPUtime_us()
+        action, info = action_info(timed_policy.p, x; kwargs...)
+        info[:planning_cpu_time_us] = CPUtime_us() - start_us
+        return action, info
+    end
+end
+
 """
 current_commit_id
 
@@ -108,6 +133,7 @@ function setup_test_scenario(planner_key::String, i_run::Int)
                            check_repeat_act=true,
                            estimate_value=free_space_estimate, default_action=zero(HSAction), rng=deepcopy(rng))
     planner = solve(solver, planning_model)
+    timed_planner = TimedPolicy(planner)
 
     # compose metadata
     git_commit_id = current_commit_id()
@@ -117,7 +143,7 @@ function setup_test_scenario(planner_key::String, i_run::Int)
 
     # compose the sim object for the `run_parallel` queue
     return Sim(simulation_model,
-               planner,
+               timed_planner,
                belief_updater,
                initialstate_distribution(planning_model),
                initialstate(simulation_model, deepcopy(rng)),
@@ -154,7 +180,8 @@ function test_parallel_sim(runs::UnitRange{Int}; planner_hbms=planner_hbm_map())
     data = run_parallel(sims) do sim::Sim, hist::SimHistory
         return [:n_steps => n_steps(hist),
                 :discounted_reward => discounted_reward(hist),
-                :hist_validation_hash => validation_hash(hist)]
+                :hist_validation_hash => validation_hash(hist),
+                :mean_planning_time => 1e-6*mean(ai[:planning_cpu_time_us] for ai in eachstep(hist, "ai"))]
     end
     return data
 end
