@@ -1,21 +1,22 @@
 using Distributed
-@everywhere using Pkg
-@everywhere Pkg.activate(".")
-
-using ParticleFilters
-using POMDPs
-using POMDPPolicies
-using POMDPSimulators
-using POMDPGifs
-using BeliefUpdaters
-using POMCPOW
-using ARDESPOT
-using MCTS
+@everywhere begin
+    using Pkg
+    Pkg.activate(".")
+    using ParticleFilters
+    using POMDPs
+    using POMDPPolicies
+    using POMDPSimulators
+    using POMDPGifs
+    using BeliefUpdaters
+    using POMCPOW
+    using ARDESPOT
+    using MCTS
+    using HumanSwitching
+    const HS = HumanSwitching
+end
 
 using Blink
 using Revise
-using HumanSwitching
-const HS = HumanSwitching
 using Printf
 using Compose
 using Random
@@ -45,14 +46,35 @@ function reproduce_scenario(scenario_data::DataFrameRow;
                             render_gif::Bool=false, ignore_commit_id::Bool=false)
     # verify that the correct commit was checked out (because behavior of code
     # might have changed)
-    if !ignore_commit_id && current_commit_id() !== scenario_data.git_commit_id
+    if !ignore_commit_id && current_commit_id() != scenario_data.git_commit_id
         return @error "Reproducing scenario with wrong commit ID!.
         If you are sure that this is still a good idea to do this, pass
         `ignore_commit_id=true` as kwarg to the call of `reproduce_scenario`."
     end
 
-    return setup_test_scenario(scenario_data[:planner_key],
+    sim = setup_test_scenario(scenario_data[:planner_key],
                                scenario_data[:i_run])
+
+    # some sanity checks on the hist
+    hist = simulate(sim)
+    if discounted_reward(hist) != scenario_data.discounted_reward
+        @warn "Reproduced reward differs from saved reward.
+        Are you sure, no files changed since this was recorded?"
+    else
+        @info "Reproduced reward machtes with saved data. Seems correct."
+    end
+
+    if validation_hash(hist) != scenario_data[:hist_validation_hash]
+        @warn "Reproduced sim hist had differend hash.
+        Are you sure, no files changed since this was recorded?"
+    else
+        @info "Reproduced `hist` hash machtes with save data. Seems correct."
+    end
+
+    planner_model = sim.policy.problem
+    hist = simulate(sim)
+
+    return planner_model, hist
 end
 
 function setup_test_scenario(planner_key::String, i_run::Int)
@@ -112,6 +134,8 @@ Maps a planner_key to a corresponding model instance. (to avoid storing the whol
 planner_hbm_map() = Dict{String, HumanBehaviorModel}(
                                                      "HumanBoltzmannModel1" => HumanBoltzmannModel()
                                                     )
+
+validation_hash(hist::SimHistory) = string(hash(collect(eachstep(hist, "s,a,sp,r,o"))))
 """
 test_parallel_sim
 
@@ -127,17 +151,21 @@ function test_parallel_sim(runs::UnitRange{Int}; planner_hbms=planner_hbm_map())
     # Simulation is launched in parallel mode. In order for this to work, julia
     # musst be started as: `julia -p n`, where n is the number of
     # workers/processes
-    data = run_parallel(sims)
+    data = run(sims) do sim::Sim, hist::SimHistory
+        return [:n_steps => n_steps(hist),
+                :discounted_reward => discounted_reward(hist),
+                :hist_validation_hash => validation_hash(hist)]
+    end
     return data
 end
 
-function visualize(model, sim_hist, planner)
-    makegif(model, sim_hist, filename=joinpath(@__DIR__, "../renderings/visualize_debug.gif"),
-            extra_initial=true, show_progress=true, render_kwargs=(sim_hist=sim_hist, show_info=true))
+function visualize(planner_model, hist; filename::String="visualize_debug")
+    makegif(planner_model, hist, filename=joinpath(@__DIR__, "../renderings/$filename.gif"),
+            extra_initial=true, show_progress=true, render_kwargs=(hist=hist, show_info=true))
 end
 
-function tree(model, sim_hist, planner, step=1)
-    beliefs = collect(eachstep(sim_hist, "b"))
+function tree(model, hist, planner, step=1)
+    beliefs = collect(eachstep(hist, "b"))
     b = beliefs[step]
     a, info = action_info(planner, b, tree_in_info=true)
     inbrowser(D3Tree(info[:tree], init_expand=1), "chromium")
