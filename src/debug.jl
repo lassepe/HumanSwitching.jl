@@ -61,14 +61,14 @@ function reproduce_scenario(scenario_data::DataFrameRow;
         @warn "Reproduced reward differs from saved reward.
         Are you sure, no files changed since this was recorded?"
     else
-        @info "Reproduced reward machtes with saved data. Seems correct."
+        @info "Reproduced reward matches with saved data. Seems correct."
     end
 
     if validation_hash(hist) != scenario_data[:hist_validation_hash]
         @warn "Reproduced sim hist had differend hash.
         Are you sure, no files changed since this was recorded?"
     else
-        @info "Reproduced `hist` hash machtes with save data. Seems correct."
+        @info "Reproduced `hist` hash matches with save data. Seems correct."
     end
 
     planner_model = sim.policy.problem
@@ -135,7 +135,7 @@ planner_hbm_map() = Dict{String, HumanBehaviorModel}(
                                                      "HumanBoltzmannModel1" => HumanBoltzmannModel()
                                                     )
 
-validation_hash(hist::SimHistory) = string(hash(collect(eachstep(hist, "s,a,sp,r,o"))))
+@everywhere validation_hash(hist::SimHistory) = string(hash(collect(eachstep(hist, "s,a,sp,r,o"))))
 """
 test_parallel_sim
 
@@ -151,7 +151,7 @@ function test_parallel_sim(runs::UnitRange{Int}; planner_hbms=planner_hbm_map())
     # Simulation is launched in parallel mode. In order for this to work, julia
     # musst be started as: `julia -p n`, where n is the number of
     # workers/processes
-    data = run(sims) do sim::Sim, hist::SimHistory
+    data = run_parallel(sims) do sim::Sim, hist::SimHistory
         return [:n_steps => n_steps(hist),
                 :discounted_reward => discounted_reward(hist),
                 :hist_validation_hash => validation_hash(hist)]
@@ -161,7 +161,7 @@ end
 
 function visualize(planner_model, hist; filename::String="visualize_debug")
     makegif(planner_model, hist, filename=joinpath(@__DIR__, "../renderings/$filename.gif"),
-            extra_initial=true, show_progress=true, render_kwargs=(hist=hist, show_info=true))
+            extra_initial=true, show_progress=true, render_kwargs=(sim_hist=hist, show_info=true))
 end
 
 function tree(model, hist, planner, step=1)
