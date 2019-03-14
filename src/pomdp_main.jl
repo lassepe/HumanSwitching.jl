@@ -184,6 +184,8 @@ POMDPs.generate_o(m::HSPOMDP{ExactPositionSensor, HSExternalState, <:Any},
 POMDPs.generate_o(m::HSPOMDP{NoisyPositionSensor, HSExternalState, <:Any},
                   s::HSState, a::HSAction, sp::HSState, rng::AbstractRNG) = HSExternalState(rand(rng, POMDPs.observation(m, sp)))
 
+POMDPs.observation(m::HSPOMDP{ExactPositionSensor, HSExternalState, <:Any}, s::HSState) = Deterministic(s)
+
 # TODO: This is a bit ugly. There should be away to directly define a distribution type on a FieldVector
 # at least one should get away with less type conversion
 function POMDPs.observation(m::HSPOMDP{NoisyPositionSensor, HSExternalState, <:Any}, s::HSState)

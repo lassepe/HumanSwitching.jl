@@ -2,7 +2,6 @@ const hbsColors = Dict(t=>c for (t, c) in zip(InteractiveUtils.subtypes(HumanBeh
                                               [get(ColorSchemes.deep, i)
                                                for i in range(1/3, stop=2/3, length=length(InteractiveUtils.subtypes(HumanBehaviorState)))]))
 
-
 function map_to_color(hbs::HumanBehaviorState)
     # for parametric types we need to find this manually
     fallback_key(hbs::HumanBehaviorState) = first(hbs_type for hbs_type in keys(hbsColors) if hbs isa hbs_type)
