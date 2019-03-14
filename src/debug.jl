@@ -1,4 +1,13 @@
 using Distributed
+
+const desired_nworkers = 10
+
+if nworkers() != desired_nworkers
+    wait(rmprocs(workers()))
+    addprocs(desired_nworkers)
+end
+@show nworkers()
+
 @everywhere begin
     using Pkg
     Pkg.activate(".")
@@ -13,26 +22,23 @@ using Distributed
     using MCTS
     using HumanSwitching
     const HS = HumanSwitching
+    using Revise
+    using Statistics
 end
 
+using DataFrames
 using Blink
-using Revise
 using Printf
 using Compose
 using Random
 using ProgressMeter
 using D3Trees
 
-using Profile
-using ProfileView
-using Test
-using BenchmarkTools
-
-using DataFrames
-
 # TODO: move this to a package / module
+@everywhere validation_hash(hist::SimHistory) = string(hash(collect(eachstep(hist, "s,a,sp,r,o"))))
 
 @everywhere begin
+    using POMDPs
     using POMDPModelTools
     using CPUTime
 
@@ -48,9 +54,9 @@ using DataFrames
     POMDPs.action(timed_policy::TimedPolicy, x) = action(timed_policy.p, x)
 
     function POMDPModelTools.action_info(timed_policy::TimedPolicy, x; kwargs...)
-        start_us = CPUtime_us()
+        CPUtic()
         action, info = action_info(timed_policy.p, x; kwargs...)
-        info[:planning_cpu_time_us] = CPUtime_us() - start_us
+        info[:planning_cpu_time_us] = CPUtoq()
         return action, info
     end
 end
@@ -160,8 +166,6 @@ Maps a planner_key to a corresponding model instance. (to avoid storing the whol
 planner_hbm_map() = Dict{String, HumanBehaviorModel}(
                                                      "HumanBoltzmannModel1" => HumanBoltzmannModel()
                                                     )
-
-@everywhere validation_hash(hist::SimHistory) = string(hash(collect(eachstep(hist, "s,a,sp,r,o"))))
 """
 test_parallel_sim
 
@@ -181,7 +185,7 @@ function test_parallel_sim(runs::UnitRange{Int}; planner_hbms=planner_hbm_map())
         return [:n_steps => n_steps(hist),
                 :discounted_reward => discounted_reward(hist),
                 :hist_validation_hash => validation_hash(hist),
-                :mean_planning_time => 1e-6*mean(ai[:planning_cpu_time_us] for ai in eachstep(hist, "ai"))]
+                :median_planning_time => median(ai[:planning_cpu_time_us] for ai in eachstep(hist, "ai"))]
     end
     return data
 end
