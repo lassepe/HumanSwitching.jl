@@ -109,7 +109,9 @@ export
     robot_dist_to_target,
     corner_poses,
     target_index,
-    has_collision
+    has_collision,
+    issuccess,
+    isfailure
 include("utils.jl")
 
 export

@@ -35,7 +35,20 @@ using ProgressMeter
 using D3Trees
 
 # TODO: move this to a package / module
-@everywhere validation_hash(hist::SimHistory) = string(hash(collect(eachstep(hist, "s,a,sp,r,o"))))
+@everywhere begin
+    validation_hash(hist::SimHistory) = string(hash(collect(eachstep(hist, "s,a,sp,r,o"))))
+
+    function final_state_type(m::HSModel, hist::SimHistory)
+        final_state = last(collect(eachstep(hist, "sp")))
+        if issuccess(m, final_state)
+            return "success"
+        elseif isfailure(m, final_state)
+            return "failure"
+        else
+            return "nonterminal"
+        end
+    end
+end
 
 @everywhere begin
     using POMDPs
@@ -194,7 +207,8 @@ function test_parallel_sim(runs::UnitRange{Int}; planner_hbms=planner_hbm_map())
         return [:n_steps => n_steps(hist),
                 :discounted_reward => discounted_reward(hist),
                 :hist_validation_hash => validation_hash(hist),
-                :median_planning_time => median(ai[:planning_cpu_time_us] for ai in eachstep(hist, "ai"))]
+                :median_planning_time => median(ai[:planning_cpu_time_us] for ai in eachstep(hist, "ai")),
+                :final_state_type => final_state_type(problem(sim), hist)]
     end
     return data
 end

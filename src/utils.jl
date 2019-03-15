@@ -58,6 +58,10 @@ dist_to_pose(p1::Pose, p2::Pose; p=1)::Float64 = norm(vec_from_to(p1, p2), p)
 robot_dist_to_target(m::HSModel, s::HSState; p=1)::Float64 = dist_to_pose(robot_pose(s), robot_target(m), p=p)
 # checks if the state currently has a collision between the robot and some other agent
 has_collision(m::HSModel, s::HSState)::Bool = dist_to_pose(human_pose(s), robot_pose(s)) < agent_min_distance(m)
+# check if the state is a failure terminal state
+isfailure(m::HSModel, s::HSState)::Bool = has_collision(m, s) || !isinroom(robot_pose(s), room(m))
+# check if the state is a success success terminal state
+issuccess(m::HSModel, s::HSState)::Bool = !isfailure(m, s) && robot_reached_target(m ,s)
 
 robot_reached_target(m::HSModel, s::HSState)::Bool = robot_dist_to_target(m, s) < 0.6
 
