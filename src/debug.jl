@@ -1,6 +1,6 @@
 using Distributed
 
-const desired_nworkers = 10
+const desired_nworkers = 1
 
 if nworkers() != desired_nworkers
     wait(rmprocs(workers()))
@@ -128,14 +128,25 @@ function setup_test_scenario(hbm_key::String, i_run::Int)
     rng = MersenneTwister(i_run)
     scenario_rng = MersenneTwister(i_run + 1)
 
+    room = RoomRep()
+    human_init_pose = Pose(room.width/2, 1/10 * room.height, 0)
+    robot_init_pose = Pose(room.width/2, 9/10 * room.height, 0)
+    human_target_pose = robot_init_pose
+    robot_target_pose = human_init_pose
+
     # the model of the "true" human...
-    simulation_hbm = HumanPIDBehavior(potential_targets=[HS.rand_pose(RoomRep(), scenario_rng) for i=1:10], goal_change_likelihood=0.01)
+    simulation_hbm = HumanBoltzmannModel(reward_model=HumanSingleTargetRewardModel(human_target_pose), beta_min=10.0, beta_max=10.0, beta_resample_sigma=0.0)
     # ...and the "true" world model (used for generating samples)
+
     ptnm_cov = [0.01, 0.01, 0.01]
-    simulation_model = generate_non_trivial_scenario(ExactPositionSensor(),
-                                                     simulation_hbm,
-                                                     HSGaussianNoisePTNM(pose_cov=ptnm_cov),
-                                                     deepcopy(rng))
+    simulation_model = generate_hspomdp(ExactPositionSensor(),
+                                        simulation_hbm,
+                                        HSGaussianNoisePTNM(pose_cov=ptnm_cov),
+                                        deepcopy(rng),
+                                        known_external_initstate=HSExternalState(human_init_pose,
+                                                                                 robot_init_pose),
+                                        robot_target=robot_target_pose)
+
 
     # compose the corresponding planning model
     belief_updater_model = generate_hspomdp(NoisyPositionSensor(ptnm_cov*9),  # using transition noise for observation weighting
@@ -154,7 +165,7 @@ function setup_test_scenario(hbm_key::String, i_run::Int)
     # the blief updater is run with a stocahstic version of the world
     belief_updater = BasicParticleFilter(belief_updater_model, SharedExternalStateResampler(n_particles), n_particles, deepcopy(rng))
     # the policy plannes without a model as it is always the same action
-    solver = POMCPOWSolver(tree_queries=6000, max_depth=70, criterion=MaxUCB(80),
+    solver = POMCPOWSolver(tree_queries=12000, max_depth=70, criterion=MaxUCB(80),
                            k_action=5, alpha_action=0.1,
                            k_observation=5, alpha_observation=0.15,
                            check_repeat_obs=true,
@@ -186,7 +197,9 @@ planner_hbm
 Maps a hbm_key to a corresponding model instance. (to avoid storing the whole complex object)
 """
 planner_hbm_map() = Dict{String, HumanBehaviorModel}(
-                                                     "HumanBoltzmannModel1" => HumanBoltzmannModel()
+                                                     "HumanBoltzmannModel1" =>
+                                                     HumanBoltzmannModel(reward_model=HumanSingleTargetRewardModel(Pose(RoomRep().width/2, 9/10 * RoomRep().height, 0)),
+                                                                         beta_resample_sigma=0.0)
                                                     )
 """
 test_parallel_sim
@@ -198,7 +211,7 @@ function test_parallel_sim(runs::UnitRange{Int}; planner_hbms=planner_hbm_map())
     sims::Array{Sim, 1} = []
     # filled with scenarios for different hbms and runs
     for (hbm_key, planner_hbm) in planner_hbms, i_run in runs
-        sim = push!(sims, setup_test_scenario(hbm_key, i_run))
+        push!(sims, setup_test_scenario(hbm_key, i_run))
     end
     # Simulation is launched in parallel mode. In order for this to work, julia
     # musst be started as: `julia -p n`, where n is the number of
@@ -223,4 +236,9 @@ function tree(model::POMDP, hist::SimHistory, policy::Policy, step=30)
     b = beliefs[step]
     a, info = action_info(policy, b, tree_in_info=true)
     inbrowser(D3Tree(info[:tree], init_expand=1), "chromium")
+end
+
+function debug(data, idx)
+    viz = reproduce_scenario(data[idx, :])
+    visualize(viz[1:2]...)
 end

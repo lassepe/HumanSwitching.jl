@@ -174,8 +174,7 @@ function POMDPs.generate_s(m::HSModel, s::HSState, a::HSAction, rng::AbstractRNG
     # the intended transition is augmented with the physical transition noise
     external_p = apply_physical_transition_noise(physical_transition_noise_model(m), external_intent, rng)
 
-    sp::HSState = HSState(external=external_p,
-                          hbs=hbs_p)
+    sp::HSState = HSState(external=external_p, hbs=hbs_p)
 end
 
 # In this version the observation is a **deterministic** extraction of the observable part of the state

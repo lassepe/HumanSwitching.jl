@@ -86,21 +86,29 @@ end
 
 abstract type HumanRewardModel end
 
-@with_kw struct HumanBoltzmannModel{RMT, NA, TA} <: HumanBehaviorModel
-    beta_min::Float64 = 0.0
-    beta_max::Float64 = 15.0
-    beta_resample_sigma::Float64 = 1
-    reward_model::RMT= HumanSingleTargetRewardModel()
-    aspace::SVector{NA, TA} = gen_human_aspace()
-    _aprob_mem::MVector{NA, Float64} = @MVector(zeros(length(aspace)))
+struct HumanBoltzmannModel{RMT, NA, TA} <: HumanBehaviorModel
+    beta_min::Float64
+    beta_max::Float64
+    beta_resample_sigma::Float64
+    reward_model::RMT
+
+    aspace::SVector{NA, TA}
+    _aprob_mem::MVector{NA, Float64}
+end
+
+function HumanBoltzmannModel(;beta_min=0.0, beta_max=15.0, beta_resample_sigma=0.3,
+                             reward_model=HumanSingleTargetRewardModel(), aspace=gen_human_aspace())
+    if beta_min == beta_max
+        @assert iszero(beta_resample_sigma)
+    end
+    return HumanBoltzmannModel(beta_min, beta_max, beta_resample_sigma, reward_model, aspace,
+                              @MVector(zeros(length(aspace))))
 end
 
 bstate_type(::HumanBoltzmannModel)::Type = HumanBoltzmannBState
 
 function rand_hbs(rng::AbstractRNG, hbm::HumanBoltzmannModel)
-    # TODO: Reward model parameters should be random as well, if one want's to estimate them
-    return HumanBoltzmannBState(rand(rng, Uniform(hbm.beta_min,
-                                                  hbm.beta_max)))
+    return HumanBoltzmannBState(hbm.beta_min == hbm.beta_max ? hbm.beta_max : rand(rng, Uniform(hbm.beta_min, hbm.beta_max)))
 end
 
 @with_kw struct HumanSingleTargetRewardModel

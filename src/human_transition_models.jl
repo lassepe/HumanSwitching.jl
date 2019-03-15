@@ -36,12 +36,14 @@ end
 
 function human_transition(hbs::HumanBoltzmannBState, hbm::HumanBoltzmannModel, m::HSModel,
                           p::Pose, rng::AbstractRNG)
-    beta_noise = log(rand(rng, LogNormal(0.0, hbm.beta_resample_sigma)))
-    beta_p = hbs.beta + beta_noise
 
-    hbs_p = HumanBoltzmannBState(beta_p)
+    if iszero(hbm.beta_resample_sigma)
+        hbs_p = hbs
+    else
+        beta_p = rand(rng, TruncatedNormal(hbs.beta, hbm.beta_resample_sigma, hbm.beta_min, hbm.beta_max))
+        hbs_p = HumanBoltzmannBState(beta_p)
+    end
 
     # compute the new external state of the human
     return free_evolution(hbm, hbs, p, rng), hbs_p
 end
-

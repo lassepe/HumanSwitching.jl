@@ -94,6 +94,8 @@ export
     HumanBoltzmannBState,
     HumanPIDBehavior,
     HumanBoltzmannModel,
+    HumanRewardModel,
+    HumanSingleTargetRewardModel,
     HumanUniformModelMix,
     free_evolution,
     bstate_type
