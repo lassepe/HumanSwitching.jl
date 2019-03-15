@@ -11,6 +11,7 @@ end
 @everywhere begin
     using Pkg
     Pkg.activate(".")
+    using Revise
     using ParticleFilters
     using POMDPs
     using POMDPPolicies
@@ -22,7 +23,6 @@ end
     using MCTS
     using HumanSwitching
     const HS = HumanSwitching
-    using Revise
     using Statistics
 end
 
