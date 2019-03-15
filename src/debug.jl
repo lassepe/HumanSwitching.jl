@@ -154,7 +154,7 @@ function setup_test_scenario(hbm_key::String, i_run::Int)
     # the blief updater is run with a stocahstic version of the world
     belief_updater = BasicParticleFilter(belief_updater_model, SharedExternalStateResampler(n_particles), n_particles, deepcopy(rng))
     # the policy plannes without a model as it is always the same action
-    solver = POMCPOWSolver(tree_queries=12000, max_depth=70, criterion=MaxUCB(80),
+    solver = POMCPOWSolver(tree_queries=6000, max_depth=70, criterion=MaxUCB(80),
                            k_action=5, alpha_action=0.1,
                            k_observation=5, alpha_observation=0.15,
                            check_repeat_obs=true,
