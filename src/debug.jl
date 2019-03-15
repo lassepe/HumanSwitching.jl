@@ -59,6 +59,9 @@ using D3Trees
         info[:planning_cpu_time_us] = CPUtoq()
         return action, info
     end
+
+    POMDPSimulators.problem(p::Policy) = p.problem
+    POMDPSimulators.problem(p::TimedPolicy) = problem(p.p)
 end
 
 """
@@ -74,7 +77,7 @@ reproduce_scenario
 Reproduces the simulation environment for a given DataFrameRow
 """
 function reproduce_scenario(scenario_data::DataFrameRow;
-                            render_gif::Bool=false, ignore_commit_id::Bool=false)
+                            ignore_commit_id::Bool=false)
     # verify that the correct commit was checked out (because behavior of code
     # might have changed)
     if !ignore_commit_id && current_commit_id() != scenario_data.git_commit_id
@@ -102,10 +105,10 @@ function reproduce_scenario(scenario_data::DataFrameRow;
         @info "Reproduced `hist` hash matches with save data. Seems correct."
     end
 
-    planner_model = sim.policy.problem
-    hist = simulate(sim)
+    planner_model = problem(sim.policy)
+    println(discounted_reward(hist))
 
-    return planner_model, hist
+    return planner_model, hist, sim.policy
 end
 
 function setup_test_scenario(planner_key::String, i_run::Int)
