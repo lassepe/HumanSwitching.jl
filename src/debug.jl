@@ -86,7 +86,7 @@ function reproduce_scenario(scenario_data::DataFrameRow;
         `ignore_commit_id=true` as kwarg to the call of `reproduce_scenario`."
     end
 
-    sim = setup_test_scenario(scenario_data[:planner_key],
+    sim = setup_test_scenario(scenario_data[:hbm_key],
                                scenario_data[:i_run])
 
     # some sanity checks on the hist
@@ -111,7 +111,7 @@ function reproduce_scenario(scenario_data::DataFrameRow;
     return planner_model, hist, sim.policy
 end
 
-function setup_test_scenario(planner_key::String, i_run::Int)
+function setup_test_scenario(hbm_key::String, i_run::Int)
     rng = MersenneTwister(i_run)
     scenario_rng = MersenneTwister(i_run + 1)
 
@@ -125,28 +125,34 @@ function setup_test_scenario(planner_key::String, i_run::Int)
                                                      deepcopy(rng))
 
     # compose the corresponding planning model
-    planning_model = generate_hspomdp(NoisyPositionSensor(ptnm_cov*10), # using transition noise for observation weighting
-                                      planner_hbm_map()[planner_key],   # using the hbm from the dict of models to explore
-                                      HSIdentityPTNM(),                 # the planner assumes that transitions are exact (to reduce branching)
-                                      simulation_model,                 # the simulation model is used to clone the shared properties (initial conditions etc)
+    belief_updater_model = generate_hspomdp(NoisyPositionSensor(ptnm_cov*9),  # using transition noise for observation weighting
+                                            planner_hbm_map()[hbm_key],       # using the hbm from the dict of models to explore
+                                            HSIdentityPTNM(),                 # the planner assumes that transitions are exact (to reduce branching)
+                                            simulation_model,                 # the simulation model is used to clone the shared properties (initial conditions etc)
+                                            deepcopy(rng))
+
+    planning_model = generate_hspomdp(ExactPositionSensor(),                  # TODO: make this less verbose. Maybe have a funtion to sythetise these model tuples
+                                      planner_hbm_map()[hbm_key],
+                                      HSIdentityPTNM(),
+                                      simulation_model,
                                       deepcopy(rng))
 
     n_particles = 2000
     # the blief updater is run with a stocahstic version of the world
-    belief_updater = BasicParticleFilter(planning_model, SharedExternalStateResampler(n_particles), n_particles, deepcopy(rng))
+    belief_updater = BasicParticleFilter(belief_updater_model, SharedExternalStateResampler(n_particles), n_particles, deepcopy(rng))
     # the policy plannes without a model as it is always the same action
     solver = POMCPOWSolver(tree_queries=12000, max_depth=70, criterion=MaxUCB(80),
                            k_action=5, alpha_action=0.1,
-                           k_observation=3, alpha_observation=0.15,
+                           k_observation=5, alpha_observation=0.15,
                            check_repeat_obs=true,
                            check_repeat_act=true,
-                           estimate_value=free_space_estimate, default_action=zero(HSAction), rng=deepcopy(rng))
+                           estimate_value=free_space_estimate, rng=deepcopy(rng))
     planner = solve(solver, planning_model)
     timed_planner = TimedPolicy(planner)
 
     # compose metadata
     git_commit_id = current_commit_id()
-    md = Dict(:planner_key => planner_key,
+    md = Dict(:hbm_key => hbm_key,
               :i_run => i_run,
               :git_commit_id => git_commit_id)
 
@@ -154,17 +160,17 @@ function setup_test_scenario(planner_key::String, i_run::Int)
     return Sim(simulation_model,
                timed_planner,
                belief_updater,
-               initialstate_distribution(planning_model),
+               initialstate_distribution(belief_updater_model),
                initialstate(simulation_model, deepcopy(rng)),
                rng=deepcopy(rng),
-               max_steps=500,
+               max_steps=100,
                metadata=md)
 end
 
 """
 planner_hbm
 
-Maps a planner_key to a corresponding model instance. (to avoid storing the whole complex object)
+Maps a hbm_key to a corresponding model instance. (to avoid storing the whole complex object)
 """
 planner_hbm_map() = Dict{String, HumanBehaviorModel}(
                                                      "HumanBoltzmannModel1" => HumanBoltzmannModel()
@@ -178,8 +184,8 @@ function test_parallel_sim(runs::UnitRange{Int}; planner_hbms=planner_hbm_map())
     # queue of simulation instances...
     sims::Array{Sim, 1} = []
     # filled with scenarios for different hbms and runs
-    for (planner_key, planner_hbm) in planner_hbms, i_run in runs
-        sim = push!(sims, setup_test_scenario(planner_key, i_run))
+    for (hbm_key, planner_hbm) in planner_hbms, i_run in runs
+        sim = push!(sims, setup_test_scenario(hbm_key, i_run))
     end
     # Simulation is launched in parallel mode. In order for this to work, julia
     # musst be started as: `julia -p n`, where n is the number of
@@ -198,9 +204,9 @@ function visualize(planner_model, hist; filename::String="visualize_debug")
             extra_initial=true, show_progress=true, render_kwargs=(sim_hist=hist, show_info=true))
 end
 
-function tree(model, hist, planner, step=1)
+function tree(model::POMDP, hist::SimHistory, policy::Policy, step=30)
     beliefs = collect(eachstep(hist, "b"))
     b = beliefs[step]
-    a, info = action_info(planner, b, tree_in_info=true)
+    a, info = action_info(policy, b, tree_in_info=true)
     inbrowser(D3Tree(info[:tree], init_expand=1), "chromium")
 end
