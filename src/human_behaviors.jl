@@ -91,24 +91,27 @@ struct HumanBoltzmannModel{RMT, NA, TA} <: HumanBehaviorModel
     beta_max::Float64
     beta_resample_sigma::Float64
     reward_model::RMT
+    epsilon::Float64
 
     aspace::SVector{NA, TA}
     _aprob_mem::MVector{NA, Float64}
 end
 
 function HumanBoltzmannModel(;beta_min=0.0, beta_max=15.0, beta_resample_sigma=0.3,
-                             reward_model=HumanSingleTargetRewardModel(), aspace=gen_human_aspace())
+                             reward_model=HumanSingleTargetRewardModel(), epsilon=0.02,
+                             aspace=gen_human_aspace())
     if beta_min == beta_max
         @assert iszero(beta_resample_sigma)
     end
-    return HumanBoltzmannModel(beta_min, beta_max, beta_resample_sigma, reward_model, aspace,
+    return HumanBoltzmannModel(beta_min, beta_max, beta_resample_sigma, reward_model, epsilon, aspace,
                               @MVector(zeros(length(aspace))))
 end
 
 bstate_type(::HumanBoltzmannModel)::Type = HumanBoltzmannBState
 
 function rand_hbs(rng::AbstractRNG, hbm::HumanBoltzmannModel)
-    return HumanBoltzmannBState(hbm.beta_min == hbm.beta_max ? hbm.beta_max : rand(rng, Uniform(hbm.beta_min, hbm.beta_max)))
+    return HumanBoltzmannBState(hbm.beta_min == hbm.beta_max ?
+                                hbm.beta_max : rand(rng, Truncated(Exponential(1),hbm.beta_min, hbm.beta_max)))
 end
 
 @with_kw struct HumanSingleTargetRewardModel

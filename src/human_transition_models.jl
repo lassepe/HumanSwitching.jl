@@ -36,12 +36,9 @@ end
 
 function human_transition(hbs::HumanBoltzmannBState, hbm::HumanBoltzmannModel, m::HSModel,
                           p::Pose, rng::AbstractRNG)
-
-    if iszero(hbm.beta_resample_sigma)
-        hbs_p = hbs
-    else
-        beta_p = rand(rng, TruncatedNormal(hbs.beta, hbm.beta_resample_sigma, hbm.beta_min, hbm.beta_max))
-        hbs_p = HumanBoltzmannBState(beta_p)
+    hbs_p = hbs
+    if !iszero(hbm.beta_resample_sigma) && rand(rng <= hbm.epsilon)
+        hbs_p = rand_hbs(rng, hbm)
     end
 
     # compute the new external state of the human

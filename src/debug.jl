@@ -128,6 +128,24 @@ function setup_test_scenario(hbm_key::String, i_run::Int)
     rng = MersenneTwister(i_run)
     scenario_rng = MersenneTwister(i_run + 1)
 
+    # TODO have a function
+    # Input:
+    # - human pose, robot pose, human target, robot target
+    # - simulation hbm
+    # - planning hbm
+    #
+    # Inside the function:
+    # - construct simulation_model, belief_updater_model, planner_model
+    # - simulation_model:
+    #   - generate_hspomdp (as below) feeding poses (inits and targets)
+    # - planning_model:
+    #   - same as simulation but...
+    #   - ...take hbm from hbm_key + polanner_hbm_map
+    #   - ... ExactSensor and Identity PTNM
+    #
+    # simulation_model
+    #   -
+
     room = RoomRep()
     human_init_pose = Pose(room.width/2, 1/10 * room.height, 0)
     robot_init_pose = Pose(room.width/2, 9/10 * room.height, 0)
@@ -149,10 +167,10 @@ function setup_test_scenario(hbm_key::String, i_run::Int)
 
 
     # compose the corresponding planning model
-    belief_updater_model = generate_hspomdp(NoisyPositionSensor(ptnm_cov*9),  # using transition noise for observation weighting
-                                            planner_hbm_map()[hbm_key],       # using the hbm from the dict of models to explore
-                                            HSIdentityPTNM(),                 # the planner assumes that transitions are exact (to reduce branching)
-                                            simulation_model,                 # the simulation model is used to clone the shared properties (initial conditions etc)
+    belief_updater_model = generate_hspomdp(NoisyPositionSensor(ptnm_cov*9),
+                                            planner_hbm_map()[hbm_key],
+                                            HSIdentityPTNM(),
+                                            simulation_model,
                                             deepcopy(rng))
 
     planning_model = generate_hspomdp(ExactPositionSensor(),                  # TODO: make this less verbose. Maybe have a funtion to sythetise these model tuples

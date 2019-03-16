@@ -3,8 +3,8 @@
 """
 # the physical representation of a room
 @with_kw struct RoomRep
-    width::Float64 = 10
-    height::Float64 = 10
+    width::Float64 = 20
+    height::Float64 = 20
 end
 
 # the physical representation of an agent
