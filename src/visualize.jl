@@ -243,9 +243,10 @@ function bstate_subplot_node(::Type{HumanBoltzmannBState},
     betas = [hbs.beta for hbs in unfiltered_hbs_data if hbs isa HumanBoltzmannBState]
     # compose histogram
     return parameter_histogram_node(betas, hbsColors[HumanBoltzmannBState], 10,
-                                    Coord.Cartesian(xmin=hbm.beta_min, xmax=hbm.beta_max),
+                                    Coord.Cartesian(xmin=0.1, xmax=log(hbm.beta_max)),
                                     Guide.title("Boltzmann Beta Belief"),
-                                    Guide.xlabel("beta"))
+                                    Guide.xlabel("beta"),
+                                    Gadfly.Scale.x_log)
 end
 
 function belief_node(b::ParticleCollection, m::HSPOMDP)::Context
