@@ -9,8 +9,8 @@ end
 @show nworkers()
 
 @everywhere begin
-    using Pkg
-    Pkg.activate(".")
+    #using Pkg
+    #Pkg.activate(".")
     using Revise
     using ParticleFilters
     using POMDPs
@@ -124,27 +124,53 @@ function reproduce_scenario(scenario_data::DataFrameRow;
     return planner_model, hist, sim.policy
 end
 
+function construct_models(rng::AbstractRNG, human_start_pose::Pose, robot_start_pose::Pose, 
+    human_target_pose::Pose, robot_target_pose::Pose,
+    simulation_hbm::HumanBehaviorModel, planner_hbm::HumanBehaviorModel)
+    """
+    Function that constructs the simulation model, the belief updater model, and the planner model.
+
+    Params:
+        rng [AbstractRNG]: The random seed to be used for these models.
+        human_start_pose [Pose]: The initial position of the human.
+        robot_start_pose [Pose]: The initial position of the robot.
+        human_target_pose [Pose]: The final target position of the human.
+        robot_target_pose [Pose]: The final target position of the robot.
+        simulation_hbm [HumanBehaviorModel]: The "true" human model used by the simulator.
+        planner_hbm [HumanBehaviorModel]: The human model used by the planner.
+
+    Returns:
+        simulation_model [HSModel]: The model of the world used by the simulator.
+        belief_updater_model [HSModel]: The model of the world used by the belief updater.
+        planning_model [HSModel]: The model of the world used by the planner.
+    """
+
+    ptnm_cov = [0.01, 0.01, 0.01]
+    simulation_model = generate_hspomdp(ExactPositionSensor(),
+                                        simulation_hbm,
+                                        HSGaussianNoisePTNM(pose_cov=ptnm_cov),
+                                        deepcopy(rng),
+                                        known_external_initstate=HSExternalState(human_start_pose, robot_start_pose),
+                                        robot_target=robot_target_pose)
+
+    belief_updater_model = generate_hspomdp(NoisyPositionSensor(ptnm_cov*9),
+                                            planner_hbm,
+                                            HSIdentityPTNM(),
+                                            simulation_model,
+                                            deepcopy(rng))
+
+    planning_model = generate_hspomdp(ExactPositionSensor(),
+                                      planner_hbm,
+                                      HSIdentityPTNM(),
+                                      simulation_model,
+                                      deepcopy(rng))
+
+    return simulation_model, belief_updater_model, planning_model
+end
+
 function setup_test_scenario(hbm_key::String, i_run::Int)
     rng = MersenneTwister(i_run)
     scenario_rng = MersenneTwister(i_run + 1)
-
-    # TODO have a function
-    # Input:
-    # - human pose, robot pose, human target, robot target
-    # - simulation hbm
-    # - planning hbm
-    #
-    # Inside the function:
-    # - construct simulation_model, belief_updater_model, planner_model
-    # - simulation_model:
-    #   - generate_hspomdp (as below) feeding poses (inits and targets)
-    # - planning_model:
-    #   - same as simulation but...
-    #   - ...take hbm from hbm_key + polanner_hbm_map
-    #   - ... ExactSensor and Identity PTNM
-    #
-    # simulation_model
-    #   -
 
     room = RoomRep()
     human_init_pose = Pose(room.width/2, 1/10 * room.height, 0)
@@ -156,28 +182,9 @@ function setup_test_scenario(hbm_key::String, i_run::Int)
     simulation_hbm = HumanBoltzmannModel(reward_model=HumanSingleTargetRewardModel(human_target_pose), beta_min=10.0, beta_max=10.0, beta_resample_sigma=0.0)
     # ...and the "true" world model (used for generating samples)
 
-    ptnm_cov = [0.01, 0.01, 0.01]
-    simulation_model = generate_hspomdp(ExactPositionSensor(),
-                                        simulation_hbm,
-                                        HSGaussianNoisePTNM(pose_cov=ptnm_cov),
-                                        deepcopy(rng),
-                                        known_external_initstate=HSExternalState(human_init_pose,
-                                                                                 robot_init_pose),
-                                        robot_target=robot_target_pose)
-
-
-    # compose the corresponding planning model
-    belief_updater_model = generate_hspomdp(NoisyPositionSensor(ptnm_cov*9),
-                                            planner_hbm_map()[hbm_key],
-                                            HSIdentityPTNM(),
-                                            simulation_model,
-                                            deepcopy(rng))
-
-    planning_model = generate_hspomdp(ExactPositionSensor(),                  # TODO: make this less verbose. Maybe have a funtion to sythetise these model tuples
-                                      planner_hbm_map()[hbm_key],
-                                      HSIdentityPTNM(),
-                                      simulation_model,
-                                      deepcopy(rng))
+    simulation_model, belief_updater_model, planning_model = construct_models(rng, human_init_pose, robot_init_pose,
+                                                                              human_target_pose, robot_target_pose, 
+                                                                              simulation_hbm, planner_hbm_map()[hbm_key])
 
     n_particles = 2000
     # the blief updater is run with a stocahstic version of the world
