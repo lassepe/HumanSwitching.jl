@@ -120,10 +120,10 @@ end
     phi::Float64 = 0 # direction
 end
 
-function gen_human_aspace()
-    dist_actions = @SVector[0.3, 0.6]
-    direction_actions = @SVector[i for i in -pi:pi/4:(pi-pi/4)]
-    SVector{length(dist_actions)*length(direction_actions)+1, HumanBoltzmannAction}([zero(HumanBoltzmannAction),(HumanBoltzmannAction(d, direction) for d in dist_actions, direction in direction_actions)...])
+function gen_human_aspace(phi_step::Float64=pi/12)
+    dist = 0.5
+    direction_actions = [i for i in -pi:phi_step:(pi-phi_step)]
+    SVector{length(direction_actions)+1, HumanBoltzmannAction}([zero(HumanBoltzmannAction),(HumanBoltzmannAction(dist, direction) for direction in direction_actions)...])
 end
 
 apply_human_action(p::Pose, a::HumanBoltzmannAction)::Pose = Pose(p.x + cos(a.phi)*a.d, p.y + sin(a.phi)*a.d, p.phi)
