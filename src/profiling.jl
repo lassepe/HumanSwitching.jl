@@ -1,9 +1,14 @@
+using Profile
+using ProfileView
+
+using BenchmarkTools
+
 function profile_testrun()
-    @time test_pomdp_run(4);
+    @time test_parallel_sim(4:4);
     Profile.init(n=10^7)
     Profile.clear()
     Profile.clear_malloc_data()
-    @profile test_pomdp_run(4);
+    @profile test_parallel_sim(4:4);
     ProfileView.view()
 end
 
