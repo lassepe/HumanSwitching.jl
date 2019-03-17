@@ -146,7 +146,7 @@ end
 
     # Boltzmann
     @test @testblock quote
-        hbm = @inferred HumanBoltzmannModel()
+        hbm = HumanBoltzmannModel()
         hbs = @inferred HS.rand_hbs(rng, hbm)
         s = @inferred HSState(external=e, hbs=hbs)
     end
@@ -163,7 +163,7 @@ end
 
     @test @testblock quote
         ptnm_cov = [0.01, 0.01, 0.01]
-        hbm = @inferred HumanBoltzmannModel()
+        hbm = HumanBoltzmannModel()
         hbs = HS.rand_hbs(rng, hbm)
         s = HSState(external=e, hbs=hbs)
         planning_model = generate_hspomdp(NoisyPositionSensor(ptnm_cov*10),
