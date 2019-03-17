@@ -8,3 +8,6 @@ renderings/*
 
 test/test_renderings/*
 !test/test_renderings/.gitkeep
+
+results/
+!results/.gitkeep
