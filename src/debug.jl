@@ -1,6 +1,6 @@
 using Distributed
 
-const desired_nworkers = 1
+const desired_nworkers = 35
 
 if nworkers() != desired_nworkers
     wait(rmprocs(workers()))
@@ -241,7 +241,12 @@ end
 
 function planner_hbm_map(human_target_pose::Pose)
     return Dict{String, PlannerHBMEntry}(
-        "HumanBoltzmannModel1" => (HumanBoltzmannModel(reward_model=HumanSingleTargetRewardModel(human_target_pose)), 0.02)
+        "HumanBoltzmannModel_PI/12" => (HumanBoltzmannModel(reward_model=HumanSingleTargetRewardModel(human_target_pose),
+                                                            aspace=HS.gen_human_aspace(pi/12)), 0.02),
+        "HumanBoltzmannModel_PI/8" => (HumanBoltzmannModel(reward_model=HumanSingleTargetRewardModel(human_target_pose),
+                                                            aspace=HS.gen_human_aspace(pi/8)), 0.02),
+        "HumanBoltzmannModel_PI/4" => (HumanBoltzmannModel(reward_model=HumanSingleTargetRewardModel(human_target_pose),
+                                                            aspace=HS.gen_human_aspace(pi/4)), 0.02),
                                         )
 end
 

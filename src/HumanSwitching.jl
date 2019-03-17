@@ -94,6 +94,7 @@ export
     HumanBoltzmannBState,
     HumanPIDBehavior,
     HumanBoltzmannModel,
+    gen_human_aspace,
     HumanRewardModel,
     HumanSingleTargetRewardModel,
     HumanUniformModelMix,
