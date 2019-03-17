@@ -27,7 +27,7 @@ function free_space_estimate(mdp::HSMDP, s::HSState, steps::Int=0)::Float64
         return 0
     end
     rm = reward_model(mdp)
-    dist = robot_dist_to_target(mdp, s, p=1)
+    dist = robot_dist_to_target(mdp, s, p=2)
     remaining_step_estimate = div(dist, robot_max_speed)
 
     reward_estimate::Float64 = 0

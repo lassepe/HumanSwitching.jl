@@ -41,7 +41,7 @@ Describes the rewards the robot cares about
     collision_penalty::Float64 = -50
     left_room_penalty::Float64 = -50
     target_reached_reward::Float64 = 40.0
-    dist_to_human_penalty::Float64 = -5
+    dist_to_human_penalty::Float64 = 0
     move_to_goal_reward::Float64 = 0
     control_cost::Float64 = 0
 end
