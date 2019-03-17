@@ -69,7 +69,7 @@ end
     function POMDPModelTools.action_info(timed_policy::TimedPolicy, x; kwargs...)
         CPUtic()
         action, info = action_info(timed_policy.p, x; kwargs...)
-        info[:planning_cpu_time_us] = CPUtoq()
+        info[:planner_cpu_time_us] = CPUtoq()
         return action, info
     end
 
@@ -99,8 +99,7 @@ function reproduce_scenario(scenario_data::DataFrameRow;
         `ignore_commit_id=true` as kwarg to the call of `reproduce_scenario`."
     end
 
-    sim = setup_test_scenario(scenario_data[:hbm_key],
-                               scenario_data[:i_run])
+    sim = setup_test_scenario(scenario_data[:pi_key], scenario_data[:simulation_hbm_key], scenario_data[:planner_hbm_key], scenario_data[:i_run])
 
     # some sanity checks on the hist
     hist = simulate(sim)
@@ -143,7 +142,7 @@ function construct_models(rng::AbstractRNG, human_start_pose::Pose, robot_start_
     Returns:
         simulation_model [HSModel]: The model of the world used by the simulator.
         belief_updater_model [HSModel]: The model of the world used by the belief updater.
-        planning_model [HSModel]: The model of the world used by the planner.
+        planner_model [HSModel]: The model of the world used by the planner.
     """
 
     ptnm_cov = [0.01, 0.01, 0.01]
@@ -160,39 +159,35 @@ function construct_models(rng::AbstractRNG, human_start_pose::Pose, robot_start_
                                             simulation_model,
                                             deepcopy(rng))
 
-    planning_model = generate_hspomdp(ExactPositionSensor(),
-                                      planner_hbm,
-                                      HSIdentityPTNM(),
-                                      simulation_model,
-                                      deepcopy(rng))
+    planner_model = generate_hspomdp(ExactPositionSensor(),
+                                     planner_hbm,
+                                     HSIdentityPTNM(),
+                                     simulation_model,
+                                     deepcopy(rng))
 
-    return simulation_model, belief_updater_model, planning_model
+    return simulation_model, belief_updater_model, planner_model
 end
 
-function belief_updater_from_planning_model(planner_hbm::HumanBehaviorModel, epsilon::Float64)
+function belief_updater_from_planner_model(planner_hbm::HumanBoltzmannModel, epsilon::Float64)
     return HumanBoltzmannModel(reward_model=planner_hbm.reward_model, epsilon=epsilon)
 end
 
-function setup_test_scenario(hbm_key::String, i_run::Int)
+function setup_test_scenario(pi_key::String, simulation_hbm_key::String, planner_hbm_key::String, i_run::Int)
     rng = MersenneTwister(i_run)
     scenario_rng = MersenneTwister(i_run + 1)
 
-    room = RoomRep()
-    human_init_pose = Pose(1/10 * room.width, 1/10 * room.height, 0)
-    robot_init_pose = Pose(9/10 * room.width, 1/10 * room.height, 0)
-    human_target_pose = Pose(9/10 * room.width, 9/10 * room.height, 0)
-    robot_target_pose = Pose(1/10 * room.width, 9/10 * room.height, 0)
+    # Load in the given instance keys.
+    (human_start_pose, robot_start_pose, human_target_pose, robot_target_pose) = problem_instance_map()[pi_key]
+    (planner_hbm, epsilon) = planner_hbm_map(human_target_pose)[planner_hbm_key]
+    (simulation_hbm,) = simulation_hbm_map(human_target_pose)[simulation_hbm_key]
 
-    # the model of the "true" human...
-    simulation_hbm = HumanBoltzmannModel(reward_model=HumanSingleTargetRewardModel(human_target_pose),
-                                         beta_min=10.0, beta_max=10.0)
-    planning_hbm, epsilon = planner_hbm_map()[hbm_key]
-    belief_updater_hbm = belief_updater_from_planning_model(planning_hbm, epsilon)
+    # Construct belief updater.
+    belief_updater_hbm = belief_updater_from_planner_model(planner_hbm, epsilon)
 
-    simulation_model, belief_updater_model, planning_model = construct_models(rng, human_init_pose, robot_init_pose,
-                                                                              human_target_pose, robot_target_pose,
-                                                                              simulation_hbm, belief_updater_hbm,
-                                                                              planning_hbm)
+    # Construct models.
+    simulation_model, belief_updater_model, planner_model = construct_models(rng, human_start_pose, robot_start_pose,
+                                                                             human_target_pose, robot_target_pose,
+                                                                             simulation_hbm, belief_updater_hbm, planner_hbm)
 
     n_particles = 2000
     # the belief updater is run with a stochastic version of the world
@@ -204,12 +199,14 @@ function setup_test_scenario(hbm_key::String, i_run::Int)
                            check_repeat_obs=true,
                            check_repeat_act=true,
                            estimate_value=free_space_estimate, rng=deepcopy(rng))
-    planner = solve(solver, planning_model)
+    planner = solve(solver, planner_model)
     timed_planner = TimedPolicy(planner)
 
     # compose metadata
     git_commit_id = current_commit_id()
-    md = Dict(:hbm_key => hbm_key,
+    md = Dict(:pi_key => pi_key,
+              :simulation_hbm_key => simulation_hbm_key,
+              :planner_hbm_key => planner_hbm_key,
               :i_run => i_run,
               :git_commit_id => git_commit_id)
 
@@ -225,25 +222,53 @@ function setup_test_scenario(hbm_key::String, i_run::Int)
 end
 
 """
-planner_hbm
+Define three dictionaries that:
+    1. Maps a key to a corresponding problem instance.
+    2. Maps a key to a corresponding model instance for the planner.
+    3. Maps a key to a corresponding true model instance for the simulator.
+"""
+const ProblemInstance = Tuple{Pose, Pose, Pose, Pose}
+const PlannerHBMEntry = Tuple{HumanBehaviorModel, Float64}
+const SimulationHBMEntry = Tuple{HumanBehaviorModel}
 
-Maps a hbm_key to a corresponding model instance. (to avoid storing the whole complex object)
-"""
-planner_hbm_map() = Dict{String, Tuple{HumanBehaviorModel, Float64}}(
-                    "HumanBoltzmannModel1" =>
-                    (HumanBoltzmannModel(reward_model=HumanSingleTargetRewardModel(Pose(9/10 * RoomRep().width, 9/10 * RoomRep().height, 0))), 0.02)
-                                                                    )
-"""
-test_parallel_sim
+function problem_instance_map()
+    room = RoomRep()
+    return Dict{String, ProblemInstance}(
+        "ProblemInstance1" => (Pose(1/10 * room.width, 1/10 * room.height, 0), Pose(9/10 * room.width, 1/10 * room.height, 0),
+                               Pose(9/10 * room.width, 9/10 * room.height, 0), Pose(1/10 * room.width, 9/10 * room.height, 0))
+                                        )
+end
 
-Run experiments over `planner_hbms` for `runs`
-"""
-function test_parallel_sim(runs::UnitRange{Int}; planner_hbms=planner_hbm_map())
-    # queue of simulation instances...
+function planner_hbm_map(human_target_pose::Pose)
+    return Dict{String, PlannerHBMEntry}(
+        "HumanBoltzmannModel1" => (HumanBoltzmannModel(reward_model=HumanSingleTargetRewardModel(human_target_pose)), 0.02)
+                                        )
+end
+
+function simulation_hbm_map(human_target_pose::Pose)
+    return Dict{String, SimulationHBMEntry}(
+        "HumanBoltzmannModel1" => (HumanBoltzmannModel(reward_model=HumanSingleTargetRewardModel(human_target_pose), beta_min=10.0, beta_max=10.0),)
+                                          )
+end
+
+function test_parallel_sim(runs::UnitRange{Int})
+    """
+    Fuction that runs experiments [runs] times.
+    """
+    # Create the problem instance maps:
+    problem_instances = problem_instance_map()
+
+    # Queue of simulation instances to be filled with scenarios for different hbms and runs:
     sims::Array{Sim, 1} = []
-    # filled with scenarios for different hbms and runs
-    for (hbm_key, planner_hbm) in planner_hbms, i_run in runs
-        push!(sims, setup_test_scenario(hbm_key, i_run))
+
+    for (pi_key, pi_entry) in problem_instances, i_run in runs
+        planner_hbms = planner_hbm_map(pi_entry[3])
+        simulation_hbms = simulation_hbm_map(pi_entry[3])
+        for (simulation_hbm_key, simulation_hbm_entry) in simulation_hbms
+            for (planner_hbm_key, planner_hbm_entry) in planner_hbms
+                push!(sims, setup_test_scenario(pi_key, simulation_hbm_key, planner_hbm_key, i_run))
+            end
+        end
     end
     # Simulation is launched in parallel mode. In order for this to work, julia
     # musst be started as: `julia -p n`, where n is the number of
@@ -252,7 +277,7 @@ function test_parallel_sim(runs::UnitRange{Int}; planner_hbms=planner_hbm_map())
         return [:n_steps => n_steps(hist),
                 :discounted_reward => discounted_reward(hist),
                 :hist_validation_hash => validation_hash(hist),
-                :median_planning_time => median(ai[:planning_cpu_time_us] for ai in eachstep(hist, "ai")),
+                :median_planner_time => median(ai[:planner_cpu_time_us] for ai in eachstep(hist, "ai")),
                 :final_state_type => final_state_type(problem(sim), hist)]
     end
     return data
