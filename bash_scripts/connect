@@ -3,4 +3,4 @@
 script_dir="$( cd "$(dirname "$0")" ; pwd -P )"
 source $script_dir/path_definitions
 
-ssh Dragan-DGX-Station -t "cd $deploy_dir; bash --login"
+ssh Dragan-DGX-Station -t tmux attach-session

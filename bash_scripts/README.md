@@ -14,6 +14,7 @@ Host Dragan-DGX-Station
 ## How to use the scripts
 
 - `path_definitions` is just a header that defines the relevant directories (from where to where to sync things)
-- `connect` connects to the `Dragan-DGX-Station` via ssh and navigates to the project directory
+- `connect` connects to the `Dragan-DGX-Station` via ssh and attaches to the `tmux` session
+    - avoid closing the session. Use the detach session of `tmux`.
 - `deploy_to_dgx` uses `rsync` to sync the local project folder to the `Dragan-DGX-Station`
 - `downloadd_resutls` downloads the results from the remote machines `.../HumanSwitching.jl/resutls/` directory to the local machines `.../Humanswitching.jl/results/`
