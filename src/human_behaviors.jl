@@ -89,21 +89,20 @@ abstract type HumanRewardModel end
 struct HumanBoltzmannModel{RMT, NA, TA} <: HumanBehaviorModel
     beta_min::Float64
     beta_max::Float64
-    beta_resample_sigma::Float64
-    reward_model::RMT
     epsilon::Float64
+    reward_model::RMT
 
     aspace::SVector{NA, TA}
     _aprob_mem::MVector{NA, Float64}
 end
 
-function HumanBoltzmannModel(;beta_min=0.0, beta_max=15.0, beta_resample_sigma=0.3,
-                             reward_model=HumanSingleTargetRewardModel(), epsilon=0.02,
+function HumanBoltzmannModel(;beta_min=0.0, beta_max=15.0, epsilon=0.0,
+                             reward_model=HumanSingleTargetRewardModel(),
                              aspace=gen_human_aspace())
     if beta_min == beta_max
-        @assert iszero(beta_resample_sigma)
+        @assert iszero(epsilon)
     end
-    return HumanBoltzmannModel(beta_min, beta_max, beta_resample_sigma, reward_model, epsilon, aspace,
+    return HumanBoltzmannModel(beta_min, beta_max, epsilon, reward_model, aspace,
                               @MVector(zeros(length(aspace))))
 end
 

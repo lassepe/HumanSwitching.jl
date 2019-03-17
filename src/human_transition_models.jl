@@ -37,7 +37,7 @@ end
 function human_transition(hbs::HumanBoltzmannBState, hbm::HumanBoltzmannModel, m::HSModel,
                           p::Pose, rng::AbstractRNG)
     hbs_p = hbs
-    if !iszero(hbm.beta_resample_sigma) && rand(rng <= hbm.epsilon)
+    if !iszero(hbm.epsilon) && (rand(rng) <= hbm.epsilon)
         hbs_p = rand_hbs(rng, hbm)
     end
 

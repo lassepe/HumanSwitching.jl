@@ -9,8 +9,8 @@ end
 @show nworkers()
 
 @everywhere begin
-    #using Pkg
-    #Pkg.activate(".")
+    using Pkg
+    Pkg.activate(".")
     using Revise
     using ParticleFilters
     using POMDPs
@@ -124,9 +124,9 @@ function reproduce_scenario(scenario_data::DataFrameRow;
     return planner_model, hist, sim.policy
 end
 
-function construct_models(rng::AbstractRNG, human_start_pose::Pose, robot_start_pose::Pose, 
-    human_target_pose::Pose, robot_target_pose::Pose,
-    simulation_hbm::HumanBehaviorModel, planner_hbm::HumanBehaviorModel)
+function construct_models(rng::AbstractRNG, human_start_pose::Pose, robot_start_pose::Pose,
+                          human_target_pose::Pose, robot_target_pose::Pose, simulation_hbm::HumanBehaviorModel,
+                          belief_updater_hbm::HumanBehaviorModel, planner_hbm::HumanBehaviorModel)
     """
     Function that constructs the simulation model, the belief updater model, and the planner model.
 
@@ -137,6 +137,7 @@ function construct_models(rng::AbstractRNG, human_start_pose::Pose, robot_start_
         human_target_pose [Pose]: The final target position of the human.
         robot_target_pose [Pose]: The final target position of the robot.
         simulation_hbm [HumanBehaviorModel]: The "true" human model used by the simulator.
+        belief_updater_hbm [HumanBehaviorModel]: The human model used by the belief updater.
         planner_hbm [HumanBehaviorModel]: The human model used by the planner.
 
     Returns:
@@ -154,7 +155,7 @@ function construct_models(rng::AbstractRNG, human_start_pose::Pose, robot_start_
                                         robot_target=robot_target_pose)
 
     belief_updater_model = generate_hspomdp(NoisyPositionSensor(ptnm_cov*9),
-                                            planner_hbm,
+                                            belief_updater_hbm,
                                             HSIdentityPTNM(),
                                             simulation_model,
                                             deepcopy(rng))
@@ -168,26 +169,33 @@ function construct_models(rng::AbstractRNG, human_start_pose::Pose, robot_start_
     return simulation_model, belief_updater_model, planning_model
 end
 
+function belief_updater_from_planning_model(planner_hbm::HumanBehaviorModel, epsilon::Float64)
+    return HumanBoltzmannModel(reward_model=planner_hbm.reward_model, epsilon=epsilon)
+end
+
 function setup_test_scenario(hbm_key::String, i_run::Int)
     rng = MersenneTwister(i_run)
     scenario_rng = MersenneTwister(i_run + 1)
 
     room = RoomRep()
-    human_init_pose = Pose(room.width/2, 1/10 * room.height, 0)
-    robot_init_pose = Pose(room.width/2, 9/10 * room.height, 0)
-    human_target_pose = robot_init_pose
-    robot_target_pose = human_init_pose
+    human_init_pose = Pose(1/10 * room.width, 1/10 * room.height, 0)
+    robot_init_pose = Pose(9/10 * room.width, 1/10 * room.height, 0)
+    human_target_pose = Pose(9/10 * room.width, 9/10 * room.height, 0)
+    robot_target_pose = Pose(1/10 * room.width, 9/10 * room.height, 0)
 
     # the model of the "true" human...
-    simulation_hbm = HumanBoltzmannModel(reward_model=HumanSingleTargetRewardModel(human_target_pose), beta_min=10.0, beta_max=10.0, beta_resample_sigma=0.0)
-    # ...and the "true" world model (used for generating samples)
+    simulation_hbm = HumanBoltzmannModel(reward_model=HumanSingleTargetRewardModel(human_target_pose),
+                                         beta_min=10.0, beta_max=10.0)
+    planning_hbm, epsilon = planner_hbm_map()[hbm_key]
+    belief_updater_hbm = belief_updater_from_planning_model(planning_hbm, epsilon)
 
     simulation_model, belief_updater_model, planning_model = construct_models(rng, human_init_pose, robot_init_pose,
-                                                                              human_target_pose, robot_target_pose, 
-                                                                              simulation_hbm, planner_hbm_map()[hbm_key])
+                                                                              human_target_pose, robot_target_pose,
+                                                                              simulation_hbm, belief_updater_hbm,
+                                                                              planning_hbm)
 
     n_particles = 2000
-    # the blief updater is run with a stocahstic version of the world
+    # the belief updater is run with a stochastic version of the world
     belief_updater = BasicParticleFilter(belief_updater_model, SharedExternalStateResampler(n_particles), n_particles, deepcopy(rng))
     # the policy plannes without a model as it is always the same action
     solver = POMCPOWSolver(tree_queries=12000, max_depth=70, criterion=MaxUCB(80),
@@ -221,11 +229,10 @@ planner_hbm
 
 Maps a hbm_key to a corresponding model instance. (to avoid storing the whole complex object)
 """
-planner_hbm_map() = Dict{String, HumanBehaviorModel}(
-                                                     "HumanBoltzmannModel1" =>
-                                                     HumanBoltzmannModel(reward_model=HumanSingleTargetRewardModel(Pose(RoomRep().width/2, 9/10 * RoomRep().height, 0)),
-                                                                         beta_resample_sigma=0.0)
-                                                    )
+planner_hbm_map() = Dict{String, Tuple{HumanBehaviorModel, Float64}}(
+                    "HumanBoltzmannModel1" =>
+                    (HumanBoltzmannModel(reward_model=HumanSingleTargetRewardModel(Pose(9/10 * RoomRep().width, 9/10 * RoomRep().height, 0))), 0.02)
+                                                                    )
 """
 test_parallel_sim
 
