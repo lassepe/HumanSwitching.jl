@@ -2,7 +2,7 @@
 
 [[ARDESPOT]]
 deps = ["BasicPOMCP", "BeliefUpdaters", "CPUTime", "D3Trees", "POMDPModelTools", "POMDPs", "Parameters", "ParticleFilters", "Printf", "Random"]
-git-tree-sha1 = "10c1d40935f6b2973ff54bd0f1d6cd0308b189f5"
+git-tree-sha1 = "a9c99c68e51d1b5b43235c85aea16bddbb8729fc"
 repo-rev = "master"
 repo-url = "https://github.com/JuliaPOMDP/ARDESPOT.jl"
 uuid = "d96c9ae4-3372-47d5-8a88-316ae77be8cf"
