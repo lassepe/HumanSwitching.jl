@@ -1,13 +1,5 @@
 using Distributed
 
-const desired_nworkers = 35
-
-if nworkers() != desired_nworkers
-    wait(rmprocs(workers()))
-    addprocs(desired_nworkers)
-end
-@show nworkers()
-
 @everywhere begin
     using Pkg
     Pkg.activate(".")
