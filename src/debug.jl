@@ -28,7 +28,9 @@ using D3Trees
 
 # TODO: move this to a package / module
 @everywhere begin
-    validation_hash(hist::SimHistory) = string(hash(collect(eachstep(hist, "s,a,sp,r,o"))))
+    validation_hash(hist::SimHistory) = string(hash(collect((sp.external.robot_pose,
+                                                             sp.external.human_pose)
+                                                            for sp in eachstep(hist, "sp"))))
 
     function final_state_type(m::HSModel, hist::SimHistory)
         final_state = last(collect(eachstep(hist, "sp")))
