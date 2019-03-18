@@ -236,8 +236,8 @@ const SimulationHBMEntry = Tuple{HumanBehaviorModel}
 function problem_instance_map()
     room = RoomRep()
     return Dict{String, ProblemInstance}(
-        "ProblemInstance1" => (Pose(1/10 * room.width, 1/10 * room.height, 0), Pose(9/10 * room.width, 1/10 * room.height, 0),
-                               Pose(9/10 * room.width, 9/10 * room.height, 0), Pose(1/10 * room.width, 9/10 * room.height, 0))
+        "ProblemInstance1" => (Pose(5/10 * room.width, 1/10 * room.height, 0), Pose(5/10 * room.width, 9/10 * room.height, 0),
+                               Pose(5/10 * room.width, 9/10 * room.height, 0), Pose(5/10 * room.width, 1/10 * room.height, 0))
                                         )
 end
 
@@ -254,7 +254,7 @@ end
 
 function simulation_hbm_map(human_target_pose::Pose)
     return Dict{String, SimulationHBMEntry}(
-        "HumanBoltzmannModel1" => (HumanBoltzmannModel(reward_model=HumanSingleTargetRewardModel(human_target_pose), beta_min=10.0, beta_max=10.0),)
+        "HumanBoltzmannModel1" => (HumanBoltzmannModel(reward_model=HumanSingleTargetRewardModel(human_target_pose), beta_min=15.0, beta_max=15.0),)
                                           )
 end
 
@@ -304,7 +304,14 @@ function tree(model::POMDP, hist::SimHistory, policy::Policy, step=30)
     beliefs = collect(eachstep(hist, "b"))
     b = beliefs[step]
     a, info = action_info(policy, b, tree_in_info=true)
-    inbrowser(D3Tree(info[:tree], init_expand=1), "chromium")
+    inbrowser(D3Tree(info[:tree], init_expand=1), "firefox")
+end
+
+function MCTS.node_tag(o::HSExternalState)
+    """
+    h: $(o.human_pose)
+    r: $(o.robot_pose)
+    """
 end
 
 function debug(data, idx; kwargs...)
