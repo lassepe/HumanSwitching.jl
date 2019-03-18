@@ -196,8 +196,8 @@ function setup_test_scenario(pi_key::String, simulation_hbm_key::String, planner
     belief_updater = BasicParticleFilter(belief_updater_model, SharedExternalStateResampler(n_particles), n_particles, deepcopy(rng))
     # the policy plannes without a model as it is always the same action
     solver = POMCPOWSolver(tree_queries=12000, max_depth=70, criterion=MaxUCB(80),
-                           k_action=5, alpha_action=0.1,
-                           k_observation=5, alpha_observation=0.15,
+                           k_observation=5, alpha_observation=1.0/30.0,
+                           enable_action_pw=false,
                            check_repeat_obs=true,
                            check_repeat_act=true,
                            estimate_value=free_space_estimate, rng=deepcopy(rng))

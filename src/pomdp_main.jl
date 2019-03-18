@@ -133,7 +133,7 @@ apply_robot_action(p::Pose, a::HSAction) = Pose(p.x + cos(a.phi)*a.d, p.y + sin(
     human_behavior_model::HBM = HumanPIDBehavior(room)
     physical_transition_noise_model::PTNM = HSIdentityPTNM()
     robot_target::Pose = rand_pose(room, Random.GLOBAL_RNG, forced_orientation=0.0)
-    agent_min_distance::Float64 = 1.0
+    agent_min_distance::Float64 = 0.3
     known_external_initstate::Union{HSExternalState, Nothing} = nothing
 end
 
