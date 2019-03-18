@@ -84,7 +84,7 @@ Reproduces the simulation environment for a given DataFrameRow
 """
 function reproduce_scenario(scenario_data::DataFrameRow;
                             ignore_commit_id::Bool=false,
-                            ignore_uncommited_changed::Bool=false)
+                            ignore_uncommited_changes::Bool=false)
     # verify that the correct commit was checked out (because behavior of code
     # might have changed)
     if !ignore_commit_id && current_commit_id() != scenario_data.git_commit_id
@@ -93,7 +93,7 @@ function reproduce_scenario(scenario_data::DataFrameRow;
         `ignore_commit_id=true` as kwarg to the call of `reproduce_scenario`.")
     end
 
-    if !ignore_uncommited_changed && has_uncommited_changes()
+    if !ignore_uncommited_changes && has_uncommited_changes()
         throw("There are uncommited changes. The stored commit-id might not be meaning full.
         to ignore uncommited changes, set the corresponding kwarg.")
     end
@@ -117,7 +117,8 @@ function reproduce_scenario(scenario_data::DataFrameRow;
     end
 
     planner_model = problem(sim.policy)
-    println(discounted_reward(hist))
+    println("Discounted reward: $(discounted_reward(hist))")
+    println("Validation hash: $(validation_hash(hist))")
 
     return planner_model, hist, sim.policy
 end
