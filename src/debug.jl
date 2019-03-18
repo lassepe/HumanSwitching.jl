@@ -259,8 +259,8 @@ end
 """
 Fuction that runs experiments [runs] times.
 """
-function test_parallel_sim(runs::UnitRange{Int}; ignore_uncommited_changed::Bool=true)
-    if !ignore_uncommited_changed && has_uncommited_changes()
+function test_parallel_sim(runs::UnitRange{Int}; ignore_uncommited_changes::Bool=false)
+    if !ignore_uncommited_changes && has_uncommited_changes()
         throw("There are uncommited changes. The stored commit-id might not be meaning full.
         to ignore uncommited changes, set the corresponding kwarg.")
     end
