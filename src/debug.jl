@@ -75,6 +75,7 @@ current_commit_id
 Determines the git commit id of the `HEAD` of this repo.
 """
 current_commit_id() = chomp(read(`git rev-parse --verify HEAD`, String))
+has_uncommited_changes() = !isempty(read(`git diff-index HEAD --`, String))
 
 """
 reproduce_scenario
@@ -82,13 +83,19 @@ reproduce_scenario
 Reproduces the simulation environment for a given DataFrameRow
 """
 function reproduce_scenario(scenario_data::DataFrameRow;
-                            ignore_commit_id::Bool=false)
+                            ignore_commit_id::Bool=false,
+                            ignore_uncommited_changed::Bool=false)
     # verify that the correct commit was checked out (because behavior of code
     # might have changed)
     if !ignore_commit_id && current_commit_id() != scenario_data.git_commit_id
-        return @error "Reproducing scenario with wrong commit ID!.
+        throw("Reproducing scenario with wrong commit ID!.
         If you are sure that this is still a good idea to do this, pass
-        `ignore_commit_id=true` as kwarg to the call of `reproduce_scenario`."
+        `ignore_commit_id=true` as kwarg to the call of `reproduce_scenario`.")
+    end
+
+    if !ignore_uncommited_changed && has_uncommited_changes()
+        throw("There are uncommited changes. The stored commit-id might not be meaning full.
+        to ignore uncommited changes, set the corresponding kwarg.")
     end
 
     sim = setup_test_scenario(scenario_data[:pi_key], scenario_data[:simulation_hbm_key], scenario_data[:planner_hbm_key], scenario_data[:i_run])
@@ -248,10 +255,15 @@ function simulation_hbm_map(human_target_pose::Pose)
                                           )
 end
 
-function test_parallel_sim(runs::UnitRange{Int})
-    """
-    Fuction that runs experiments [runs] times.
-    """
+"""
+Fuction that runs experiments [runs] times.
+"""
+function test_parallel_sim(runs::UnitRange{Int}; ignore_uncommited_changed::Bool=true)
+    if !ignore_uncommited_changed && has_uncommited_changes()
+        throw("There are uncommited changes. The stored commit-id might not be meaning full.
+        to ignore uncommited changes, set the corresponding kwarg.")
+    end
+
     # Create the problem instance maps:
     problem_instances = problem_instance_map()
 
