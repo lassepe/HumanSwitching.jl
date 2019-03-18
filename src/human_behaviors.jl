@@ -96,7 +96,7 @@ struct HumanBoltzmannModel{RMT, NA, TA} <: HumanBehaviorModel
     _aprob_mem::MVector{NA, Float64}
 end
 
-function HumanBoltzmannModel(;beta_min=14.9, beta_max=15.1, epsilon=0.0,
+function HumanBoltzmannModel(;beta_min=0, beta_max=15, epsilon=0.0,
                              reward_model=HumanSingleTargetRewardModel(),
                              aspace=gen_human_aspace())
     if beta_min == beta_max
@@ -110,7 +110,7 @@ bstate_type(::HumanBoltzmannModel)::Type = HumanBoltzmannBState
 
 function rand_hbs(rng::AbstractRNG, hbm::HumanBoltzmannModel)
     return HumanBoltzmannBState(hbm.beta_min == hbm.beta_max ?
-                                hbm.beta_max : rand(rng, Truncated(Exponential(10),hbm.beta_min, hbm.beta_max)))
+                                hbm.beta_max : rand(rng, Truncated(Exponential(1),hbm.beta_min, hbm.beta_max)))
 end
 
 @with_kw struct HumanSingleTargetRewardModel
