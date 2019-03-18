@@ -16,6 +16,7 @@ using Cairo:
 using Compose
 using ColorSchemes, Colors
 using DataFrames
+using CSV
 using Gadfly:
     Gadfly,
     Geom,
@@ -142,5 +143,10 @@ include("problem_gen.jl")
 export
     free_space_estimate
 include("estimate_value_policies.jl")
+
+export
+    plot_points,
+    extract_value_compute
+include("plotting.jl")
 
 end # module
