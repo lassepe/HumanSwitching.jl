@@ -292,7 +292,7 @@ function tree(model::POMDP, hist::SimHistory, policy::Policy, step=30)
     inbrowser(D3Tree(info[:tree], init_expand=1), "chromium")
 end
 
-function debug(data, idx)
-    viz = reproduce_scenario(data[idx, :])
+function debug(data, idx; kwargs...)
+    viz = reproduce_scenario(data[idx, :]; kwargs...)
     visualize(viz[1:2]...)
 end
