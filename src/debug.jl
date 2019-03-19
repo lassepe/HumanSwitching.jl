@@ -257,7 +257,9 @@ end
 
 function simulation_hbm_map(human_target_pose::Pose)
     return Dict{String, SimulationHBMEntry}(
-        "HumanBoltzmannModel1" => (HumanBoltzmannModel(reward_model=HumanSingleTargetRewardModel(human_target_pose), beta_min=15.0, beta_max=15.0),)
+        "HumanBoltzmannModel0.1" => (HumanBoltzmannModel(reward_model=HumanSingleTargetRewardModel(human_target_pose), beta_min=0.1, beta_max=0.1),),
+        "HumanBoltzmannModel1.0" => (HumanBoltzmannModel(reward_model=HumanSingleTargetRewardModel(human_target_pose), beta_min=1.0, beta_max=1.0),),
+        "HumanBoltzmannModel10.0" => (HumanBoltzmannModel(reward_model=HumanSingleTargetRewardModel(human_target_pose), beta_min=10.0, beta_max=10.0),),
                                           )
 end
 
