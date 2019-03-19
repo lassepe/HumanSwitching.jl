@@ -241,7 +241,7 @@ const SimulationHBMEntry = Tuple{HumanBehaviorModel}
 function problem_instance_map()
     room = RoomRep()
     return Dict{String, ProblemInstance}(
-        "DiagonalAcross" => (Pose(1/10 * room.width, 1/10 * room.height, 0), Pose(9/10 * room.width, 1/10 * room.height, 0),
+        "DiagonalAcross" => (Pose(1/10 * room.width, 1/10 * room.height, 0), Pose(8/10 * room.width, 4/10 * room.height, 0),
                              Pose(9/10 * room.width, 9/10 * room.height, 0), Pose(1/10 * room.width, 9/10 * room.height, 0)),
         "FrontalCollision" => (Pose(1/2 * room.width, 1/10 * room.height, 0), Pose(1/2 * room.width, 9/10 * room.height, 0),
                                Pose(1/2 * room.width, 9/10 * room.height, 0), Pose(1/2 * room.width, 1/10 * room.height, 0))
@@ -251,12 +251,6 @@ end
 function planner_hbm_map(human_target_pose::Pose)
     return Dict{String, PlannerHBMEntry}(
         "HumanConstVelBehavior" => (HumanConstVelBehavior(vel_max=1, epsilon=0.0), 0.01),
-        "Discrete_HumanBoltzmannModel_PI/12" => (HumanBoltzmannModel(reward_model=HumanSingleTargetRewardModel(human_target_pose),
-                                                            aspace=HS.gen_human_aspace(pi/12), betas=[0.3, 1.0, 3.0, 10.0, 15.0]), 0.01),
-        "Discrete_HumanBoltzmannModel_PI/8" => (HumanBoltzmannModel(reward_model=HumanSingleTargetRewardModel(human_target_pose),
-                                                            aspace=HS.gen_human_aspace(pi/8), betas=[0.3, 1.0, 3.0, 10.0, 15.0]), 0.01),
-        "Discrete_HumanBoltzmannModel_PI/4" => (HumanBoltzmannModel(reward_model=HumanSingleTargetRewardModel(human_target_pose),
-                                                            aspace=HS.gen_human_aspace(pi/4), betas=[0.3, 1.0, 3.0, 10.0, 15.0]), 0.01),
         "HumanBoltzmannModel_PI/12" => (HumanBoltzmannModel(reward_model=HumanSingleTargetRewardModel(human_target_pose),
                                                             aspace=HS.gen_human_aspace(pi/12)), 0.01),
         "HumanBoltzmannModel_PI/8" => (HumanBoltzmannModel(reward_model=HumanSingleTargetRewardModel(human_target_pose),
