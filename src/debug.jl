@@ -174,6 +174,10 @@ function belief_updater_from_planner_model(planner_hbm::HumanBoltzmannModel, eps
     return HumanBoltzmannModel(reward_model=planner_hbm.reward_model, epsilon=epsilon)
 end
 
+function belief_updater_from_planner_model(planner_hbm::HumanConstVelBehavior, epsilon::Float64)
+    return HumanConstVelBehavior(vel_max=planner_hbm.vel_max, epsilon=epsilon)
+end
+
 function setup_test_scenario(pi_key::String, simulation_hbm_key::String, planner_hbm_key::String, i_run::Int)
     rng = MersenneTwister(i_run)
     scenario_rng = MersenneTwister(i_run + 1)
@@ -246,12 +250,13 @@ end
 
 function planner_hbm_map(human_target_pose::Pose)
     return Dict{String, PlannerHBMEntry}(
-        "HumanBoltzmannModel_PI/12" => (HumanBoltzmannModel(reward_model=HumanSingleTargetRewardModel(human_target_pose),
-                                                            aspace=HS.gen_human_aspace(pi/12)), 0.01),
-        "HumanBoltzmannModel_PI/8" => (HumanBoltzmannModel(reward_model=HumanSingleTargetRewardModel(human_target_pose),
-                                                            aspace=HS.gen_human_aspace(pi/8)), 0.01),
-        "HumanBoltzmannModel_PI/4" => (HumanBoltzmannModel(reward_model=HumanSingleTargetRewardModel(human_target_pose),
-                                                            aspace=HS.gen_human_aspace(pi/4)), 0.01),
+        # "HumanBoltzmannModel_PI/12" => (HumanBoltzmannModel(reward_model=HumanSingleTargetRewardModel(human_target_pose),
+        #                                                     aspace=HS.gen_human_aspace(pi/12)), 0.01),
+        # "HumanBoltzmannModel_PI/8" => (HumanBoltzmannModel(reward_model=HumanSingleTargetRewardModel(human_target_pose),
+        #                                                     aspace=HS.gen_human_aspace(pi/8)), 0.01),
+        # "HumanBoltzmannModel_PI/4" => (HumanBoltzmannModel(reward_model=HumanSingleTargetRewardModel(human_target_pose),
+        #                                                     aspace=HS.gen_human_aspace(pi/4)), 0.01),
+        "HumanConstVelBehavior" => (HumanConstVelBehavior(vel_max=1, epsilon=0.0), 0.01)
                                         )
 end
 
@@ -259,6 +264,7 @@ function simulation_hbm_map(human_target_pose::Pose)
     return Dict{String, SimulationHBMEntry}(
         "HumanBoltzmannModel0.1" => (HumanBoltzmannModel(reward_model=HumanSingleTargetRewardModel(human_target_pose), beta_min=0.1, beta_max=0.1),),
         "HumanBoltzmannModel1.0" => (HumanBoltzmannModel(reward_model=HumanSingleTargetRewardModel(human_target_pose), beta_min=1.0, beta_max=1.0),),
+        "HumanBoltzmannModel5.0" => (HumanBoltzmannModel(reward_model=HumanSingleTargetRewardModel(human_target_pose), beta_min=5.0, beta_max=5.0),),
         "HumanBoltzmannModel10.0" => (HumanBoltzmannModel(reward_model=HumanSingleTargetRewardModel(human_target_pose), beta_min=10.0, beta_max=10.0),),
                                           )
 end

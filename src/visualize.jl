@@ -139,12 +139,13 @@ function human_particle_node(human_pose::Pose, hbm::HumanConstVelBehavior, hbs::
 
     predicted_future_pose::Pose = human_pose
     # predict future position
-    for i in 1:4
+    for i in 1:1
         predicted_future_pose = free_evolution(hbs, predicted_future_pose)
     end
 
     return agent_with_target_node(human_pose,
                                   predicted_future_pose,
+                                  has_orientation=false,
                                   external_color=external_color,
                                   curve_color=internal_color,
                                   target_color=internal_color,
@@ -232,7 +233,7 @@ function bstate_subplot_node(::Type{HumanConstVelBState},
     velocities = [hbs.velocity for hbs in unfiltered_hbs_data if hbs isa HumanConstVelBState]
     # compose histogram
     return parameter_histogram_node(velocities, hbsColors[HumanConstVelBState], 30,
-                                    Coord.Cartesian(xmin=hbm.vel_min, xmax=hbm.vel_max),
+                                    Coord.Cartesian(xmin=0.0, xmax=hbm.vel_max),
                                     Guide.title("Constant Velocity Belief"),
                                     Guide.xlabel("Velocity"))
 end

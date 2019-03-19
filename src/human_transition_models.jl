@@ -6,7 +6,8 @@ move)
 function human_transition(hbs::HumanConstVelBState, hbm::HumanConstVelBehavior, m::HSModel,
                           p::Pose, rng::AbstractRNG)
     human_pose_p = free_evolution(hbs, p)
-    hbs_p = HumanConstVelBState(rand(rng, TruncatedNormal(hbs.velocity, hbm.vel_sigma, hbm.vel_min, hbm.vel_max)))
+    hbs_p = rand(rng) < hbm.epsilon ? rand_hbs(rng, hbm) : hbs
+
     return human_pose_p, hbs_p
 end
 
