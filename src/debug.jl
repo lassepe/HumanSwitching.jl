@@ -155,7 +155,7 @@ function construct_models(rng::AbstractRNG, human_start_pose::Pose, robot_start_
                                         known_external_initstate=HSExternalState(human_start_pose, robot_start_pose),
                                         robot_target=robot_target_pose)
 
-    belief_updater_model = generate_hspomdp(NoisyPositionSensor(ptnm_cov*9),
+    belief_updater_model = generate_hspomdp(NoisyPositionSensor(ptnm_cov*15),
                                             belief_updater_hbm,
                                             HSIdentityPTNM(),
                                             simulation_model,
@@ -174,8 +174,8 @@ function belief_updater_from_planner_model(planner_hbm::HumanBoltzmannModel, eps
     return HumanBoltzmannModel(reward_model=planner_hbm.reward_model, betas=planner_hbm.betas, epsilon=epsilon)
 end
 
-function belief_updater_from_planner_model(planner_hbm::HumanConstVelBehavior, epsilon::Float64)
-    return HumanConstVelBehavior(vel_max=planner_hbm.vel_max, epsilon=epsilon)
+function belief_updater_from_planner_model(planner_hbm::HumanConstVelBehavior, vel_resample_sigma::Float64)
+    return HumanConstVelBehavior(vel_max=planner_hbm.vel_max, vel_resample_sigma=vel_resample_sigma)
 end
 
 function setup_test_scenario(pi_key::String, simulation_hbm_key::String, planner_hbm_key::String, i_run::Int)
@@ -250,7 +250,7 @@ end
 
 function planner_hbm_map(human_target_pose::Pose)
     return Dict{String, PlannerHBMEntry}(
-        "HumanConstVelBehavior" => (HumanConstVelBehavior(vel_max=1, epsilon=0.0), 0.01),
+        "HumanConstVelBehavior" => (HumanConstVelBehavior(vel_max=1, vel_resample_sigma=0.0), 0.05),
         "HumanBoltzmannModel_PI/12" => (HumanBoltzmannModel(reward_model=HumanSingleTargetRewardModel(human_target_pose),
                                                             aspace=HS.gen_human_aspace(pi/12)), 0.01),
         "HumanBoltzmannModel_PI/8" => (HumanBoltzmannModel(reward_model=HumanSingleTargetRewardModel(human_target_pose),

@@ -2,14 +2,11 @@
 # state representations of the human internal state
 """
 struct HumanConstVelBState <: HumanBehaviorState
-    velocity::Float64
-    phi::Float64
+    vx::Float64
+    vy::Float64
 end
 
-function free_evolution(hbs::HumanConstVelBState, p::Pose)::Pose
-    dp = Pose(cos(hbs.phi), sin(hbs.phi), 0) * hbs.velocity
-    return Pose(p + dp)
-end
+free_evolution(hbs::HumanConstVelBState, p::Pose) = Pose(p.x + hbs.vx, p.y + hbs.vy, 0)
 
 @with_kw struct HumanPIDBState <: HumanBehaviorState
     human_target::Pose
@@ -52,14 +49,14 @@ select_submodel(hbm::HumanBehaviorModel, hbs::HumanBehaviorState)::HumanBehavior
 
 @with_kw struct HumanConstVelBehavior <: HumanBehaviorModel
     vel_max::Float64 = 1.0
-    epsilon::Float64 = 0.0
+    vel_resample_sigma::Float64 = 0.0
 end
 
 bstate_type(::HumanConstVelBehavior)::Type = HumanConstVelBState
 
 # this model randomely generates HumanConstVelBState from the min_max_vel range
-rand_hbs(rng::AbstractRNG, hbm::HumanConstVelBehavior) = return HumanConstVelBState(rand(rng, Uniform(0.0, hbm.vel_max)),
-                                                                                    rand(rng, Uniform(-pi, pi)))
+rand_hbs(rng::AbstractRNG, hbm::HumanConstVelBehavior) = HumanConstVelBState(rand(rng, Uniform(0.0, hbm.vel_max)),
+                                                                             rand(rng, Uniform(0.0, hbm.vel_max)))
 
 @with_kw struct HumanPIDBehavior <: HumanBehaviorModel
     potential_targets::Array{Pose, 1}

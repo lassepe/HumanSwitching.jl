@@ -139,7 +139,7 @@ function human_particle_node(human_pose::Pose, hbm::HumanConstVelBehavior, hbs::
 
     predicted_future_pose::Pose = human_pose
     # predict future position
-    for i in 1:1
+    for i in 1:2
         predicted_future_pose = free_evolution(hbs, predicted_future_pose)
     end
 
@@ -230,7 +230,7 @@ end
 function bstate_subplot_node(::Type{HumanConstVelBState},
                              unfiltered_hbs_data::Array{<:HumanBehaviorState}, hbm::HumanBehaviorModel)::Context
     # filter data
-    velocities = [hbs.velocity for hbs in unfiltered_hbs_data if hbs isa HumanConstVelBState]
+    velocities = [hbs.vx for hbs in unfiltered_hbs_data if hbs isa HumanConstVelBState]
     # compose histogram
     return parameter_histogram_node(velocities, hbsColors[HumanConstVelBState], 30,
                                     Coord.Cartesian(xmin=0.0, xmax=hbm.vel_max),
