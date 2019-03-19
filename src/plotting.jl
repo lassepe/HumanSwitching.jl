@@ -11,23 +11,12 @@ function extract_value_compute(data::DataFrame)
 end
 
 function plot_points(data::DataFrame)
-	Gadfly.set_default_plot_size(20cm,20cm)
+	Gadfly.set_default_plot_size(30cm,30cm)
 
 	scatter = plot(data, x=:median_planner_time, y=:discounted_reward, color=:planner_hbm_key, Geom.point, Geom.errorbar)
+	value = plot(data, x=:planner_hbm_key, y=:discounted_reward, Geom.boxplot, Gadfly.Theme(minor_label_font_size=8pt))
+	compute = plot(data, x=:planner_hbm_key, y=:median_planner_time, Geom.boxplot, Gadfly.Theme(minor_label_font_size=8pt))
 
-	planner_metrics = extract_value_compute(data)
-	df = DataFrame(Model=String[], MeanValue=Float64[], StdErrorValue=Float64[], MeanCompute=Float64[], StdErrorCompute=Float64[])
-	for planner_type in keys(planner_metrics)
-		(value, compute) = planner_metrics[planner_type]
-		push!(df, (planner_type, mean(value), std(value), mean(compute), std(compute)))
-	end
-
-	value = plot(x=df.Model, y=df.MeanValue, ymin=(df.MeanValue - df.StdErrorValue),
-		 		 ymax=(df.MeanValue + df.StdErrorValue), Geom.point, Geom.errorbar,
-		 		 Guide.xlabel("Planner Model"), Guide.ylabel("Value"))
-	compute = plot(x=df.Model, y=df.MeanCompute, ymin=(df.MeanCompute - df.StdErrorCompute),
-				   ymax=(df.MeanCompute + df.StdErrorCompute), Geom.point, Geom.errorbar,
-				   Guide.xlabel("Planner Model"), Guide.ylabel("Computation Time"))
 	display(Gadfly.title(vstack(scatter, hstack(value, compute)), "$(first(data[:pi_key])) $(first(data[:simulation_hbm_key]))"))
 end
 
