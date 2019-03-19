@@ -233,7 +233,7 @@ function bstate_subplot_node(::Type{HumanConstVelBState},
     velocities = [hbs.vx for hbs in unfiltered_hbs_data if hbs isa HumanConstVelBState]
     # compose histogram
     return parameter_histogram_node(velocities, hbsColors[HumanConstVelBState], 30,
-                                    Coord.Cartesian(xmin=0.0, xmax=hbm.vel_max),
+                                    Coord.Cartesian(xmin=-hbm.vel_max, xmax=hbm.vel_max),
                                     Guide.title("Constant Velocity Belief"),
                                     Guide.xlabel("Velocity"))
 end

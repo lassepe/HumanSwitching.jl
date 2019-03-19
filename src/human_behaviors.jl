@@ -55,8 +55,8 @@ end
 bstate_type(::HumanConstVelBehavior)::Type = HumanConstVelBState
 
 # this model randomely generates HumanConstVelBState from the min_max_vel range
-rand_hbs(rng::AbstractRNG, hbm::HumanConstVelBehavior) = HumanConstVelBState(rand(rng, Uniform(0.0, hbm.vel_max)),
-                                                                             rand(rng, Uniform(0.0, hbm.vel_max)))
+rand_hbs(rng::AbstractRNG, hbm::HumanConstVelBehavior) = HumanConstVelBState(rand(rng, Uniform(-hbm.vel_max, hbm.vel_max)),
+                                                                             rand(rng, Uniform(-hbm.vel_max, hbm.vel_max)))
 
 @with_kw struct HumanPIDBehavior <: HumanBehaviorModel
     potential_targets::Array{Pose, 1}
