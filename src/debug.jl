@@ -229,6 +229,7 @@ Define three dictionaries that:
     2. Maps a key to a corresponding model instance for the planner.
     3. Maps a key to a corresponding true model instance for the simulator.
 """
+# order (human_start_pose, robot_start_pose, human_target_pose, robot_target_pose)
 const ProblemInstance = Tuple{Pose, Pose, Pose, Pose}
 const PlannerHBMEntry = Tuple{HumanBehaviorModel, Float64}
 const SimulationHBMEntry = Tuple{HumanBehaviorModel}
@@ -236,19 +237,21 @@ const SimulationHBMEntry = Tuple{HumanBehaviorModel}
 function problem_instance_map()
     room = RoomRep()
     return Dict{String, ProblemInstance}(
-        "ProblemInstance1" => (Pose(5/10 * room.width, 1/10 * room.height, 0), Pose(5/10 * room.width, 9/10 * room.height, 0),
-                               Pose(5/10 * room.width, 9/10 * room.height, 0), Pose(5/10 * room.width, 1/10 * room.height, 0))
-                                        )
+        "DiagonalAcross" => (Pose(1/10 * room.width, 1/10 * room.height, 0), Pose(9/10 * room.width, 1/10 * room.height, 0),
+                             Pose(9/10 * room.width, 9/10 * room.height, 0), Pose(1/10 * room.width, 9/10 * room.height, 0)),
+        "FrontalCollision" => (Pose(1/2 * room.width, 1/10 * room.height, 0), Pose(1/2 * room.width, 9/10 * room.height, 0),
+                               Pose(1/2 * room.width, 9/10 * room.height, 0), Pose(1/2 * room.width, 1/10 * room.height, 0))
+       )
 end
 
 function planner_hbm_map(human_target_pose::Pose)
     return Dict{String, PlannerHBMEntry}(
         "HumanBoltzmannModel_PI/12" => (HumanBoltzmannModel(reward_model=HumanSingleTargetRewardModel(human_target_pose),
-                                                            aspace=HS.gen_human_aspace(pi/12)), 0.02),
+                                                            aspace=HS.gen_human_aspace(pi/12)), 0.01),
         "HumanBoltzmannModel_PI/8" => (HumanBoltzmannModel(reward_model=HumanSingleTargetRewardModel(human_target_pose),
-                                                            aspace=HS.gen_human_aspace(pi/8)), 0.02),
+                                                            aspace=HS.gen_human_aspace(pi/8)), 0.01),
         "HumanBoltzmannModel_PI/4" => (HumanBoltzmannModel(reward_model=HumanSingleTargetRewardModel(human_target_pose),
-                                                            aspace=HS.gen_human_aspace(pi/4)), 0.02),
+                                                            aspace=HS.gen_human_aspace(pi/4)), 0.01),
                                         )
 end
 
