@@ -72,6 +72,17 @@ end
 end
 
 """
+Define three dictionaries that:
+    1. Maps a key to a corresponding problem instance.
+    2. Maps a key to a corresponding model instance for the planner.
+    3. Maps a key to a corresponding true model instance for the simulator.
+"""
+# order (human_start_pose, robot_start_pose, human_target_pose, robot_target_pose)
+const ProblemInstance = Tuple{Pose, Pose, Pose, Pose}
+const PlannerHBMEntry = Tuple{HumanBehaviorModel, Float64}
+const SimulationHBMEntry = Tuple{HumanBehaviorModel}
+
+"""
 current_commit_id
 
 Determines the git commit id of the `HEAD` of this repo.
@@ -125,9 +136,8 @@ function reproduce_scenario(scenario_data::DataFrameRow;
     return planner_model, hist, sim.policy
 end
 
-function construct_models(rng::AbstractRNG, human_start_pose::Pose, robot_start_pose::Pose,
-                          human_target_pose::Pose, robot_target_pose::Pose, simulation_hbm::HumanBehaviorModel,
-                          belief_updater_hbm::HumanBehaviorModel, planner_hbm::HumanBehaviorModel)
+function construct_models(rng::AbstractRNG, problem_instance::ProblemInstance,
+                          simulation_hbm::HumanBehaviorModel, belief_updater_hbm::HumanBehaviorModel, planner_hbm::HumanBehaviorModel)
     """
     Function that constructs the simulation model, the belief updater model, and the planner model.
 
@@ -147,6 +157,8 @@ function construct_models(rng::AbstractRNG, human_start_pose::Pose, robot_start_
         planner_model [HSModel]: The model of the world used by the planner.
     """
 
+    (human_start_pose, robot_start_pose, human_target_pose, robot_target_pose) = problem_instance
+
     ptnm_cov = [0.01, 0.01, 0.01]
     simulation_model = generate_hspomdp(ExactPositionSensor(),
                                         simulation_hbm,
@@ -155,7 +167,7 @@ function construct_models(rng::AbstractRNG, human_start_pose::Pose, robot_start_
                                         known_external_initstate=HSExternalState(human_start_pose, robot_start_pose),
                                         robot_target=robot_target_pose)
 
-    belief_updater_model = generate_hspomdp(NoisyPositionSensor(ptnm_cov*15),
+    belief_updater_model = generate_hspomdp(NoisyPositionSensor(ptnm_cov*9),
                                             belief_updater_hbm,
                                             HSIdentityPTNM(),
                                             simulation_model,
@@ -180,20 +192,18 @@ end
 
 function setup_test_scenario(pi_key::String, simulation_hbm_key::String, planner_hbm_key::String, i_run::Int)
     rng = MersenneTwister(i_run)
-    scenario_rng = MersenneTwister(i_run + 1)
 
     # Load in the given instance keys.
-    (human_start_pose, robot_start_pose, human_target_pose, robot_target_pose) = problem_instance_map()[pi_key]
-    (planner_hbm, epsilon) = planner_hbm_map(human_target_pose)[planner_hbm_key]
-    (simulation_hbm,) = simulation_hbm_map(human_target_pose)[simulation_hbm_key]
+    problem_instance = problem_instance_map()[pi_key]
+    (planner_hbm, epsilon) = planner_hbm_map(problem_instance)[planner_hbm_key]
+    (simulation_hbm,) = simulation_hbm_map(problem_instance, i_run)[simulation_hbm_key]
 
     # Construct belief updater.
     belief_updater_hbm = belief_updater_from_planner_model(planner_hbm, epsilon)
 
     # Construct models.
-    simulation_model, belief_updater_model, planner_model = construct_models(rng, human_start_pose, robot_start_pose,
-                                                                             human_target_pose, robot_target_pose,
-                                                                             simulation_hbm, belief_updater_hbm, planner_hbm)
+    simulation_model, belief_updater_model, planner_model = construct_models(rng, problem_instance, simulation_hbm,
+                                                                             belief_updater_hbm, planner_hbm)
 
     n_particles = 2000
     # the belief updater is run with a stochastic version of the world
@@ -227,28 +237,18 @@ function setup_test_scenario(pi_key::String, simulation_hbm_key::String, planner
                metadata=md)
 end
 
-"""
-Define three dictionaries that:
-    1. Maps a key to a corresponding problem instance.
-    2. Maps a key to a corresponding model instance for the planner.
-    3. Maps a key to a corresponding true model instance for the simulator.
-"""
-# order (human_start_pose, robot_start_pose, human_target_pose, robot_target_pose)
-const ProblemInstance = Tuple{Pose, Pose, Pose, Pose}
-const PlannerHBMEntry = Tuple{HumanBehaviorModel, Float64}
-const SimulationHBMEntry = Tuple{HumanBehaviorModel}
-
 function problem_instance_map()
     room = RoomRep()
     return Dict{String, ProblemInstance}(
-        "DiagonalAcross" => (Pose(1/10 * room.width, 1/10 * room.height, 0), Pose(8/10 * room.width, 4/10 * room.height, 0),
-                             Pose(9/10 * room.width, 9/10 * room.height, 0), Pose(1/10 * room.width, 9/10 * room.height, 0)),
+        # "DiagonalAcross" => (Pose(1/10 * room.width, 1/10 * room.height, 0), Pose(8/10 * room.width, 4/10 * room.height, 0),
+        #                      Pose(9/10 * room.width, 9/10 * room.height, 0), Pose(1/10 * room.width, 9/10 * room.height, 0)),
         "FrontalCollision" => (Pose(1/2 * room.width, 1/10 * room.height, 0), Pose(1/2 * room.width, 9/10 * room.height, 0),
                                Pose(1/2 * room.width, 9/10 * room.height, 0), Pose(1/2 * room.width, 1/10 * room.height, 0))
        )
 end
 
-function planner_hbm_map(human_target_pose::Pose)
+function planner_hbm_map(problem_instance::ProblemInstance)
+    human_target_pose = problem_instance[3]
     return Dict{String, PlannerHBMEntry}(
         "HumanConstVelBehavior" => (HumanConstVelBehavior(vel_max=1, vel_resample_sigma=0.0), 0.05),
         "HumanBoltzmannModel_PI/12" => (HumanBoltzmannModel(reward_model=HumanSingleTargetRewardModel(human_target_pose),
@@ -256,18 +256,34 @@ function planner_hbm_map(human_target_pose::Pose)
         "HumanBoltzmannModel_PI/8" => (HumanBoltzmannModel(reward_model=HumanSingleTargetRewardModel(human_target_pose),
                                                            aspace=HS.gen_human_aspace(pi/8)), 0.01),
         "HumanBoltzmannModel_PI/4" => (HumanBoltzmannModel(reward_model=HumanSingleTargetRewardModel(human_target_pose),
-                                                           aspace=HS.gen_human_aspace(pi/4)), 0.01)
+                                                          aspace=HS.gen_human_aspace(pi/4)), 0.01)
        )
 end
 
-function simulation_hbm_map(human_target_pose::Pose)
+function simulation_hbm_map(problem_instance::ProblemInstance, i_run::Int)
+    human_start_pose = problem_instance[1]
+    human_target_pose = problem_instance[3]
+    simulation_rng = MersenneTwister(i_run + 1)
     return Dict{String, SimulationHBMEntry}(
         "HumanBoltzmannModel0.1" => (HumanBoltzmannModel(reward_model=HumanSingleTargetRewardModel(human_target_pose), beta_min=0.1, beta_max=0.1),),
         "HumanBoltzmannModel1.0" => (HumanBoltzmannModel(reward_model=HumanSingleTargetRewardModel(human_target_pose), beta_min=1.0, beta_max=1.0),),
         "HumanBoltzmannModel5.0" => (HumanBoltzmannModel(reward_model=HumanSingleTargetRewardModel(human_target_pose), beta_min=5.0, beta_max=5.0),),
         "HumanBoltzmannModel10.0" => (HumanBoltzmannModel(reward_model=HumanSingleTargetRewardModel(human_target_pose), beta_min=10.0, beta_max=10.0),),
         "HumanBoltzmannModel15.0" => (HumanBoltzmannModel(reward_model=HumanSingleTargetRewardModel(human_target_pose), beta_min=15.0, beta_max=15.0),),
+        "WayPoints_n5_sig1.0" => (HumanPIDBehavior(target_sequence=noisy_waypoints(human_start_pose, human_target_pose, 5, simulation_rng, 1.0)),),
                                           )
+end
+
+function noisy_waypoints(start_p::Pose, end_p::Pose, n_waypoints::Int, rng::AbstractRNG; sigma::Float64)
+    waypoints = []
+    for i = 1:n_waypoints
+        direct_waypoint::Pose = start_p + (end_p - start_p) * i/(n_waypoints + 1)
+        noisy_waypoint = Pose(direct_waypoint.x + randn(rng) * sigma,
+                              direct_waypoint.y + randn(rng) * sigma,
+                              direct_waypoint.phi)
+        push!(waypoints, noisy_waypoint)
+    end
+    push!(waypoints, end_p)
 end
 
 """
@@ -286,10 +302,10 @@ function test_parallel_sim(runs::UnitRange{Int}; ignore_uncommited_changes::Bool
     sims::Array{Sim, 1} = []
 
     for (pi_key, pi_entry) in problem_instances, i_run in runs
-        planner_hbms = planner_hbm_map(pi_entry[3])
-        simulation_hbms = simulation_hbm_map(pi_entry[3])
-        for (simulation_hbm_key, simulation_hbm_entry) in simulation_hbms
-            for (planner_hbm_key, planner_hbm_entry) in planner_hbms
+        planner_hbms = planner_hbm_map(pi_entry)
+        simulation_hbms = simulation_hbm_map(pi_entry, i_run)
+        for simulation_hbm_key in keys(simulation_hbms)
+            for planner_hbm_key in keys(planner_hbms)
                 push!(sims, setup_test_scenario(pi_key, simulation_hbm_key, planner_hbm_key, i_run))
             end
         end

@@ -9,28 +9,11 @@ end
 free_evolution(hbs::HumanConstVelBState, p::Pose) = Pose(p.x + hbs.vx, p.y + hbs.vy, 0)
 
 @with_kw struct HumanPIDBState <: HumanBehaviorState
-    human_target::Pose
+    target_index::Int = 1
     max_speed::Float64 = 0.5
 end
 
-human_target(hm::HumanPIDBState) = hm.human_target
-
-function free_evolution(hbs::HumanPIDBState, p::Pose)::Pose
-    human_velocity = min(hbs.max_speed, dist_to_pose(p, human_target(hbs))) #m/s
-    vec2target = vec_from_to(p, human_target(hbs))
-    target_direction = normalize(vec2target)
-    current_walk_direction = @SVector [cos(p.phi), sin(p.phi)]
-    walk_direction = (target_direction + current_walk_direction)/2
-    # new position:
-    human_pose_p::Pose = p
-    if !any(isnan(i) for i in target_direction)
-        xy_p = p[1:2] + walk_direction * human_velocity
-        phi_p = atan(walk_direction[2], walk_direction[1])
-        human_pose_p = [xy_p..., phi_p]
-    end
-
-    return human_pose_p
-end
+target_index(hbs::HumanPIDBState) = hbs.target_index
 
 struct HumanBoltzmannBState <: HumanBehaviorState
     beta::Float64
@@ -59,24 +42,28 @@ rand_hbs(rng::AbstractRNG, hbm::HumanConstVelBehavior) = HumanConstVelBState(ran
                                                                              rand(rng, Uniform(-hbm.vel_max, hbm.vel_max)))
 
 @with_kw struct HumanPIDBehavior <: HumanBehaviorModel
-    potential_targets::Array{Pose, 1}
-    goal_change_likelihood::Float64 = 0.01
+    target_sequence::Array{Pose, 1}
 end
-
-HumanPIDBehavior(room::RoomRep; kwargs...) = HumanPIDBehavior(potential_targets=corner_poses(room); kwargs...)
 
 bstate_type(::HumanBehaviorModel)::Type = HumanPIDBState
 
-function rand_hbs(rng::AbstractRNG, hbm::HumanPIDBehavior)::HumanPIDBState
-    return HumanPIDBState(human_target=rand(rng, hbm.potential_targets))
-end
+rand_hbs(rng::AbstractRNG, hbm::HumanPIDBehavior) = HumanPIDBState(target_index=1)
 
-function target_index(hbm::HumanPIDBehavior, p::Pose)
-    idx = findfirst(x->x==p, vec(hbm.potential_targets))
-    if idx === nothing
-        @warn "Lookup of unknown target!" maxlog=1
+human_target(hbm::HumanPIDBehavior, hbs::HumanPIDBState) = hbm.target_sequence[target_index(hbs)]
+next_target_index(hbm::HumanPIDBehavior, hbs::HumanPIDBState) = min(length(hbm.target_sequence), target_index(hbs)+1)
+
+function free_evolution(hbm::HumanPIDBehavior, hbs::HumanPIDBState, p::Pose)
+    human_velocity = min(hbs.max_speed, dist_to_pose(p, human_target(hbm, hbs))) #m/s
+    vec2target = vec_from_to(p, human_target(hbm, hbs))
+    walk_direction = normalize(vec2target)
+    # new position:
+    human_pose_p::Pose = p
+    if !any(isnan(i) for i in walk_direction)
+        xy_p = p[1:2] + walk_direction * human_velocity
+        human_pose_p = [xy_p..., p.phi]
     end
-    return idx
+
+    return human_pose_p
 end
 
 abstract type HumanRewardModel end

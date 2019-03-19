@@ -15,11 +15,10 @@ end
 
 function human_transition(hbs::HumanPIDBState, hbm::HumanPIDBehavior, m::HSModel,
                           p::Pose, rng::AbstractRNG)
-    human_pose_p = free_evolution(hbs, p)
+    human_pose_p = free_evolution(hbm, hbs, p)
 
-    hbs_p = (dist_to_pose(human_pose_p, human_target(hbs)) < agent_min_distance(m)
-             || rand(rng) < hbm.goal_change_likelihood ?
-             rand_hbs(rng, hbm) : hbs)
+    hbs_p = (dist_to_pose(human_pose_p, human_target(hbm, hbs)) < agent_min_distance(m) ?
+             hbs=HumanPIDBState(target_index=next_target_index(hbm, hbs)) : hbs)
 
     return human_pose_p, hbs_p
 end

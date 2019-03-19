@@ -124,7 +124,7 @@ function human_particle_node(human_pose::Pose, hbm::HumanPIDBehavior, hbs::Human
                              annotation::String="", opacity::Float64=1.0)
 
     return agent_with_target_node(human_pose,
-                                  human_target(hbs),
+                                  human_target(hbm, hbs),
                                   external_color=external_color,
                                   curve_color=internal_color,
                                   annotation=annotation,
@@ -217,8 +217,7 @@ end
 function bstate_subplot_node(::Type{HumanPIDBState},
                              unfiltered_hbs_data::Array{<:HumanBehaviorState}, hbm::HumanBehaviorModel)::Context
     # filter data and map to sortable type
-    target_indices = [target_index(hbm, hbs.human_target)-1
-                      for hbs in unfiltered_hbs_data if hbs isa HumanPIDBState]
+    target_indices = [target_index(hbs)-1 for hbs in unfiltered_hbs_data if hbs isa HumanPIDBState]
 
     # compose histogram
     return parameter_histogram_node(target_indices, hbsColors[HumanPIDBState], 4,
@@ -230,12 +229,17 @@ end
 function bstate_subplot_node(::Type{HumanConstVelBState},
                              unfiltered_hbs_data::Array{<:HumanBehaviorState}, hbm::HumanBehaviorModel)::Context
     # filter data
-    velocities = [hbs.vx for hbs in unfiltered_hbs_data if hbs isa HumanConstVelBState]
+    vx = [(hbs.vx) for hbs in unfiltered_hbs_data if hbs isa HumanConstVelBState]
+    vy = [(hbs.vy) for hbs in unfiltered_hbs_data if hbs isa HumanConstVelBState]
     # compose histogram
-    return parameter_histogram_node(velocities, hbsColors[HumanConstVelBState], 30,
+    return hstack(parameter_histogram_node(vx, hbsColors[HumanConstVelBState], 30,
                                     Coord.Cartesian(xmin=-hbm.vel_max, xmax=hbm.vel_max),
                                     Guide.title("Constant Velocity Belief"),
-                                    Guide.xlabel("Velocity"))
+                                    Guide.xlabel("Vel X")),
+                 parameter_histogram_node(vy, hbsColors[HumanConstVelBState], 30,
+                                    Coord.Cartesian(xmin=-hbm.vel_max, xmax=hbm.vel_max),
+                                    Guide.title("Constant Velocity Belief"),
+                                    Guide.xlabel("Vel Y")))
 end
 
 function bstate_subplot_node(::Type{HumanBoltzmannBState},

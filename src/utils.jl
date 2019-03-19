@@ -42,11 +42,6 @@ function Base.isequal(a::HSExternalState, b::HSExternalState)
     isequal(robot_pose(a), robot_pose(b))
 end
 
-function Base.isequal(a::HumanPIDBState, b::HumanPIDBState)
-    # TODO refactorState
-    isequal(human_target(a), human_target(b))
-end
-
 # determines the corner poses of the room
 corner_poses(r::RoomRep) = vec([Pose(x, y, 0) for x in [0.1r.width, 0.9r.width], y in [0.1r.height, 0.9r.height]])
 
