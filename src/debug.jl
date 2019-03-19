@@ -202,7 +202,7 @@ function setup_test_scenario(pi_key::String, simulation_hbm_key::String, planner
     solver = POMCPOWSolver(tree_queries=12000, max_depth=70, criterion=MaxUCB(80),
                            k_observation=5, alpha_observation=1.0/30.0,
                            enable_action_pw=false,
-                           check_repeat_obs=true,
+                           check_repeat_obs=!(planner_hbm isa HumanConstVelBehavior),
                            check_repeat_act=true,
                            estimate_value=free_space_estimate, rng=deepcopy(rng))
     planner = solve(solver, planner_model)
@@ -251,13 +251,19 @@ end
 function planner_hbm_map(human_target_pose::Pose)
     return Dict{String, PlannerHBMEntry}(
         "HumanConstVelBehavior" => (HumanConstVelBehavior(vel_max=1, epsilon=0.0), 0.01),
-        "HumanBoltzmannModel_PI/12" => (HumanBoltzmannModel(reward_model=HumanSingleTargetRewardModel(human_target_pose),
+        "Discrete_HumanBoltzmannModel_PI/12" => (HumanBoltzmannModel(reward_model=HumanSingleTargetRewardModel(human_target_pose),
                                                             aspace=HS.gen_human_aspace(pi/12), betas=[0.3, 1.0, 3.0, 10.0, 15.0]), 0.01),
-        "HumanBoltzmannModel_PI/8" => (HumanBoltzmannModel(reward_model=HumanSingleTargetRewardModel(human_target_pose),
+        "Discrete_HumanBoltzmannModel_PI/8" => (HumanBoltzmannModel(reward_model=HumanSingleTargetRewardModel(human_target_pose),
                                                             aspace=HS.gen_human_aspace(pi/8), betas=[0.3, 1.0, 3.0, 10.0, 15.0]), 0.01),
-        "HumanBoltzmannModel_PI/4" => (HumanBoltzmannModel(reward_model=HumanSingleTargetRewardModel(human_target_pose),
+        "Discrete_HumanBoltzmannModel_PI/4" => (HumanBoltzmannModel(reward_model=HumanSingleTargetRewardModel(human_target_pose),
                                                             aspace=HS.gen_human_aspace(pi/4), betas=[0.3, 1.0, 3.0, 10.0, 15.0]), 0.01),
-                                        )
+        "HumanBoltzmannModel_PI/12" => (HumanBoltzmannModel(reward_model=HumanSingleTargetRewardModel(human_target_pose),
+                                                            aspace=HS.gen_human_aspace(pi/12)), 0.01),
+        "HumanBoltzmannModel_PI/8" => (HumanBoltzmannModel(reward_model=HumanSingleTargetRewardModel(human_target_pose),
+                                                           aspace=HS.gen_human_aspace(pi/8)), 0.01),
+        "HumanBoltzmannModel_PI/4" => (HumanBoltzmannModel(reward_model=HumanSingleTargetRewardModel(human_target_pose),
+                                                           aspace=HS.gen_human_aspace(pi/4)), 0.01)
+       )
 end
 
 function simulation_hbm_map(human_target_pose::Pose)
@@ -266,6 +272,7 @@ function simulation_hbm_map(human_target_pose::Pose)
         "HumanBoltzmannModel1.0" => (HumanBoltzmannModel(reward_model=HumanSingleTargetRewardModel(human_target_pose), beta_min=1.0, beta_max=1.0),),
         "HumanBoltzmannModel5.0" => (HumanBoltzmannModel(reward_model=HumanSingleTargetRewardModel(human_target_pose), beta_min=5.0, beta_max=5.0),),
         "HumanBoltzmannModel10.0" => (HumanBoltzmannModel(reward_model=HumanSingleTargetRewardModel(human_target_pose), beta_min=10.0, beta_max=10.0),),
+        "HumanBoltzmannModel15.0" => (HumanBoltzmannModel(reward_model=HumanSingleTargetRewardModel(human_target_pose), beta_min=15.0, beta_max=15.0),),
                                           )
 end
 
