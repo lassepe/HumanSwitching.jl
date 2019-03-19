@@ -146,6 +146,8 @@ include("estimate_value_policies.jl")
 
 export
     plot_points,
+    plot_full,
+    plot_problem_instance,
     extract_value_compute
 include("plotting.jl")
 

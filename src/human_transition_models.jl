@@ -1,5 +1,5 @@
 """
-Defnining some human transition models. (dynamics according to which human
+Definining some human transition models. (dynamics according to which human
 move)
 """
 
@@ -38,7 +38,7 @@ end
 function human_transition(hbs::HumanBoltzmannBState, hbm::HumanBoltzmannModel, m::HSModel,
                           p::Pose, rng::AbstractRNG)
     hbs_p = hbs
-    if !iszero(hbm.epsilon) && (rand(rng) <= hbm.epsilon)
+    if rand(rng) <= hbm.epsilon
         hbs_p = rand_hbs(rng, hbm)
     end
 

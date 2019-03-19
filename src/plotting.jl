@@ -22,7 +22,28 @@ function plot_points(data::DataFrame)
 		push!(df, (planner_type, mean(value), std(value), mean(compute), std(compute)))
 	end
 
-	value = plot(x=df.Model, y=df.MeanValue, ymin=(df.MeanValue - df.StdErrorValue), ymax=(df.MeanValue + df.StdErrorValue), Geom.point, Geom.errorbar)
-	compute = plot(x=df.Model, y=df.MeanCompute, ymin=(df.MeanCompute - df.StdErrorCompute), ymax=(df.MeanCompute + df.StdErrorCompute), Geom.point, Geom.errorbar)
-	vstack(scatter, hstack(value, compute))
+	value = plot(x=df.Model, y=df.MeanValue, ymin=(df.MeanValue - df.StdErrorValue),
+		 		 ymax=(df.MeanValue + df.StdErrorValue), Geom.point, Geom.errorbar,
+		 		 Guide.xlabel("Planner Model"), Guide.ylabel("Value"))
+	compute = plot(x=df.Model, y=df.MeanCompute, ymin=(df.MeanCompute - df.StdErrorCompute),
+				   ymax=(df.MeanCompute + df.StdErrorCompute), Geom.point, Geom.errorbar,
+				   Guide.xlabel("Planner Model"), Guide.ylabel("Computation Time")))
+	display(Gadfly.title(vstack(scatter, hstack(value, compute)), "$(first(data[:pi_key])) $(first(data[:simulation_hbm_key]))"))
+end
+
+function plot_full(datas...)
+	data = vcat(datas...)
+	problem_instances = unique(data[:pi_key])
+	for pi_type in problem_instances
+		println("Plotting problem instance: $pi_type")
+		plot_problem_instance(data[data[:pi_key] .== pi_type, :])
+	end
+end
+
+function plot_problem_instance(data::DataFrame)
+	simulation_models = unique(data[:simulation_hbm_key])
+	for simulation_type in simulation_models
+		println("Plotting simulation type: $simulation_type")
+		plot_points(data[data[:simulation_hbm_key] .== simulation_type, :])
+	end
 end
