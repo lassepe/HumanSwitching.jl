@@ -171,7 +171,7 @@ function construct_models(rng::AbstractRNG, human_start_pose::Pose, robot_start_
 end
 
 function belief_updater_from_planner_model(planner_hbm::HumanBoltzmannModel, epsilon::Float64)
-    return HumanBoltzmannModel(reward_model=planner_hbm.reward_model, epsilon=epsilon)
+    return HumanBoltzmannModel(reward_model=planner_hbm.reward_model, betas=planner_hbm.betas, epsilon=epsilon)
 end
 
 function belief_updater_from_planner_model(planner_hbm::HumanConstVelBehavior, epsilon::Float64)
@@ -250,13 +250,13 @@ end
 
 function planner_hbm_map(human_target_pose::Pose)
     return Dict{String, PlannerHBMEntry}(
-        # "HumanBoltzmannModel_PI/12" => (HumanBoltzmannModel(reward_model=HumanSingleTargetRewardModel(human_target_pose),
-        #                                                     aspace=HS.gen_human_aspace(pi/12)), 0.01),
-        # "HumanBoltzmannModel_PI/8" => (HumanBoltzmannModel(reward_model=HumanSingleTargetRewardModel(human_target_pose),
-        #                                                     aspace=HS.gen_human_aspace(pi/8)), 0.01),
-        # "HumanBoltzmannModel_PI/4" => (HumanBoltzmannModel(reward_model=HumanSingleTargetRewardModel(human_target_pose),
-        #                                                     aspace=HS.gen_human_aspace(pi/4)), 0.01),
         "HumanConstVelBehavior" => (HumanConstVelBehavior(vel_max=1, epsilon=0.0), 0.01)
+        "HumanBoltzmannModel_PI/12" => (HumanBoltzmannModel(reward_model=HumanSingleTargetRewardModel(human_target_pose),
+                                                            aspace=HS.gen_human_aspace(pi/12), betas=[0.3, 1.0, 3.0, 10.0, 15.0]), 0.01),
+        "HumanBoltzmannModel_PI/8" => (HumanBoltzmannModel(reward_model=HumanSingleTargetRewardModel(human_target_pose),
+                                                            aspace=HS.gen_human_aspace(pi/8), betas=[0.3, 1.0, 3.0, 10.0, 15.0]), 0.01),
+        "HumanBoltzmannModel_PI/4" => (HumanBoltzmannModel(reward_model=HumanSingleTargetRewardModel(human_target_pose),
+                                                            aspace=HS.gen_human_aspace(pi/4), betas=[0.3, 1.0, 3.0, 10.0, 15.0]), 0.01),
                                         )
 end
 
