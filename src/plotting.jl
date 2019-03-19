@@ -27,7 +27,7 @@ function plot_points(data::DataFrame)
 		 		 Guide.xlabel("Planner Model"), Guide.ylabel("Value"))
 	compute = plot(x=df.Model, y=df.MeanCompute, ymin=(df.MeanCompute - df.StdErrorCompute),
 				   ymax=(df.MeanCompute + df.StdErrorCompute), Geom.point, Geom.errorbar,
-				   Guide.xlabel("Planner Model"), Guide.ylabel("Computation Time")))
+				   Guide.xlabel("Planner Model"), Guide.ylabel("Computation Time"))
 	display(Gadfly.title(vstack(scatter, hstack(value, compute)), "$(first(data[:pi_key])) $(first(data[:simulation_hbm_key]))"))
 end
 

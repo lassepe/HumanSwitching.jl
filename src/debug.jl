@@ -250,7 +250,7 @@ end
 
 function planner_hbm_map(human_target_pose::Pose)
     return Dict{String, PlannerHBMEntry}(
-        "HumanConstVelBehavior" => (HumanConstVelBehavior(vel_max=1, epsilon=0.0), 0.01)
+        "HumanConstVelBehavior" => (HumanConstVelBehavior(vel_max=1, epsilon=0.0), 0.01),
         "HumanBoltzmannModel_PI/12" => (HumanBoltzmannModel(reward_model=HumanSingleTargetRewardModel(human_target_pose),
                                                             aspace=HS.gen_human_aspace(pi/12), betas=[0.3, 1.0, 3.0, 10.0, 15.0]), 0.01),
         "HumanBoltzmannModel_PI/8" => (HumanBoltzmannModel(reward_model=HumanSingleTargetRewardModel(human_target_pose),
