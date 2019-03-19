@@ -17,7 +17,7 @@ include("debug.jl")
 
 function main()
     @info "Running simulations..."
-    data = test_parallel_sim(1:200, ignore_uncommited_changes=false)
+    data = test_parallel_sim(1:500, ignore_uncommited_changes=false)
     @info "Writing data..."
     result_dir = realpath("$(@__DIR__)/../results/")
     file_name = "sim_results-$(gethostname())-$(now()).csv"
