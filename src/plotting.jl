@@ -14,8 +14,8 @@ function plot_points(data::DataFrame)
 	Gadfly.set_default_plot_size(30cm,30cm)
 
 	scatter = plot(data, x=:median_planner_time, y=:discounted_reward, color=:planner_hbm_key, Geom.point, Geom.errorbar)
-	value = plot(data, x=:planner_hbm_key, y=:discounted_reward, Geom.boxplot, Gadfly.Theme(minor_label_font_size=8pt))
-	compute = plot(data, x=:planner_hbm_key, y=:median_planner_time, Geom.boxplot, Gadfly.Theme(minor_label_font_size=8pt))
+	value = plot(data, x=:planner_hbm_key, y=:discounted_reward, Geom.violin, Gadfly.Theme(minor_label_font_size=8pt))
+	compute = plot(data, x=:planner_hbm_key, y=:median_planner_time, Geom.violin, Gadfly.Theme(minor_label_font_size=8pt))
 
 	display(Gadfly.title(vstack(scatter, hstack(value, compute)), "$(first(data[:pi_key])) $(first(data[:simulation_hbm_key]))"))
 end
