@@ -346,8 +346,3 @@ function debug(data, idx; kwargs...)
     viz = reproduce_scenario(data[idx, :]; kwargs...)
     visualize(viz[1:2]...)
 end
-
-function load(csv_file)
-    type_hints = Dict(:hist_validation_hash=>String)
-    return CSV.read(csv_file, types=type_hints)
-end

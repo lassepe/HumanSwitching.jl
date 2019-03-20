@@ -127,9 +127,9 @@ version = "0.5.2"
 
 [[CodeTracking]]
 deps = ["InteractiveUtils", "Test", "UUIDs"]
-git-tree-sha1 = "0d3001bf3c6b749308b1eaa307a3765daec0eb16"
+git-tree-sha1 = "2c46bc2429c88b43d80caf53151f22b85ba5a4b2"
 uuid = "da1fd8a2-8d9e-5ec2-8556-3022fb5608a2"
-version = "0.3.3"
+version = "0.3.4"
 
 [[CodecZlib]]
 deps = ["BinaryProvider", "Libdl", "Test", "TranscodingStreams"]
@@ -228,6 +228,12 @@ deps = ["CategoricalArrays", "CodecZlib", "Compat", "DataStreams", "Dates", "Int
 git-tree-sha1 = "9cfed75401d25d281076eb5d82de148ac2933f9e"
 uuid = "a93c6f00-e57d-5684-b7b6-d8193f3e46c0"
 version = "0.17.1"
+
+[[DataFramesMeta]]
+deps = ["DataFrames", "Random", "Statistics", "Tables", "Test"]
+git-tree-sha1 = "853109fcd1ac1a31c4fb757401a25f260e827aa1"
+uuid = "1313f7d8-7da2-5740-9ea0-a2ca25f37964"
+version = "0.4.1"
 
 [[DataStreams]]
 deps = ["Dates", "Missings", "Test", "WeakRefStrings"]
@@ -728,9 +734,9 @@ version = "0.10.3"
 
 [[Parsers]]
 deps = ["Dates", "Mmap", "Test", "WeakRefStrings"]
-git-tree-sha1 = "dc0469396c9b221223861558ad89141be38635b4"
+git-tree-sha1 = "d4e634c9cab597f0ec8f5a1d62c0787e98602c55"
 uuid = "69de0a69-1ddd-5017-9359-2bf0b02dc9f0"
-version = "0.2.20"
+version = "0.2.22"
 
 [[ParticleFilters]]
 deps = ["LinearAlgebra", "POMDPModelTools", "POMDPPolicies", "POMDPs", "Random", "Statistics", "StatsBase", "Test"]

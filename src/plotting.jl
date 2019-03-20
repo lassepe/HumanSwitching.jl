@@ -13,15 +13,21 @@ end
 function plot_points(data::DataFrame)
 	Gadfly.set_default_plot_size(30cm,30cm)
 
-	scatter = plot(data, x=:median_planner_time, y=:discounted_reward, color=:planner_hbm_key, Geom.point, Geom.errorbar)
-	value = plot(data, x=:planner_hbm_key, y=:discounted_reward, Geom.violin, Gadfly.Theme(minor_label_font_size=8pt))
-	compute = plot(data, x=:planner_hbm_key, y=:median_planner_time, Geom.violin, Gadfly.Theme(minor_label_font_size=8pt))
+	scatter = plot(data, x=:median_planner_time, y=:discounted_reward, color=:planner_hbm_key, Geom.point)
 
-	display(Gadfly.title(vstack(scatter, hstack(value, compute)), "$(first(data[:pi_key])) $(first(data[:simulation_hbm_key]))"))
+    subplot_appearance = (Geom.violin, Gadfly.Theme(minor_label_font_size=8pt, key_position=:none))
+	value = plot(data, x=:planner_hbm_key, y=:discounted_reward, color=:planner_hbm_key, subplot_appearance...)
+	compute = plot(data, x=:planner_hbm_key, y=:median_planner_time, color=:planner_hbm_key, subplot_appearance...)
+
+	display(Gadfly.title(vstack(scatter, hstack(value, compute)), """
+                                                                  Problem Instance: $(first(data[:pi_key]))
+                                                                  True Human Model: $(first(data[:simulation_hbm_key]))
+                                                                  """))
 end
 
-function plot_full(datas...)
-	data = vcat(datas...)
+simplify_hbm_name(s::String) = string(split(s, "Human")...)
+
+function plot_full(data)
 	problem_instances = unique(data[:pi_key])
 	for pi_type in problem_instances
 		println("Plotting problem instance: $pi_type")
@@ -36,3 +42,20 @@ function plot_problem_instance(data::DataFrame)
 		plot_points(data[data[:simulation_hbm_key] .== simulation_type, :])
 	end
 end
+
+function load_data(files...; shorten_names::Bool=true)
+    data_frames = []
+
+    # load all files
+    for file in files
+        type_hints = Dict(:hist_validation_hash=>String)
+        df = CSV.read(file, types=type_hints)
+        push!(data_frames, df)
+    end
+    # stack them to one long table
+    all_data = vcat(data_frames...)
+
+    return !shorten_names ? all_data : @linq all_data |> transform(planner_hbm_key=simplify_hbm_name.(:planner_hbm_key),
+                                                                   simulation_hbm_key=simplify_hbm_name.(:simulation_hbm_key))
+end
+

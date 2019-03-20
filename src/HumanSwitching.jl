@@ -16,6 +16,7 @@ using Cairo:
 using Compose
 using ColorSchemes, Colors
 using DataFrames
+using DataFramesMeta
 using CSV
 using Gadfly:
     Gadfly,
@@ -148,7 +149,8 @@ export
     plot_points,
     plot_full,
     plot_problem_instance,
-    extract_value_compute
+    extract_value_compute,
+    load_data
 include("plotting.jl")
 
 end # module
