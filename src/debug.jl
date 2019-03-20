@@ -274,7 +274,7 @@ function simulation_hbm_map(problem_instance::ProblemInstance, i_run::Int)
                                           )
 end
 
-function noisy_waypoints(start_p::Pose, end_p::Pose, n_waypoints::Int, rng::AbstractRNG; sigma::Float64)
+function noisy_waypoints(start_p::Pose, end_p::Pose, n_waypoints::Int, rng::AbstractRNG, sigma::Float64)
     waypoints = []
     for i = 1:n_waypoints
         direct_waypoint::Pose = start_p + (end_p - start_p) * i/(n_waypoints + 1)
