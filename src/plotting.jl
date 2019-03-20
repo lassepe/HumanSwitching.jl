@@ -15,14 +15,21 @@ function plot_points(data::DataFrame)
 
 	scatter = plot(data, x=:median_planner_time, y=:discounted_reward, color=:planner_hbm_key, Geom.point)
 
-    subplot_appearance = (Geom.violin, Gadfly.Theme(minor_label_font_size=8pt, key_position=:none))
-	value = plot(data, x=:planner_hbm_key, y=:discounted_reward, color=:planner_hbm_key, subplot_appearance...)
-	compute = plot(data, x=:planner_hbm_key, y=:median_planner_time, color=:planner_hbm_key, subplot_appearance...)
+    violin_plot_appearance = (Geom.violin, Gadfly.Theme(minor_label_font_size=8pt, key_position=:none))
+    value = plot(data, x=:planner_hbm_key, y=:discounted_reward, color=:planner_hbm_key, violin_plot_appearance...)
+	compute = plot(data, x=:planner_hbm_key, y=:median_planner_time, color=:planner_hbm_key, violin_plot_appearance...)
 
-	display(Gadfly.title(vstack(scatter, hstack(value, compute)), """
-                                                                  Problem Instance: $(first(data[:pi_key]))
-                                                                  True Human Model: $(first(data[:simulation_hbm_key]))
-                                                                  """))
+    success_rate =  plot(data, xgroup=:planner_hbm_key, x=:final_state_type, Geom.subplot_grid(Geom.histogram(density=true)),
+                         Gadfly.Theme(major_label_font_size=8pt, minor_label_font_size=8pt, key_position=:none))
+
+	display(Gadfly.title(vstack(scatter,
+                                hstack(value, compute),
+                                success_rate),
+                         """
+                         Problem Instance: $(first(data[:pi_key]))
+                         True Human Model: $(first(data[:simulation_hbm_key]))
+                         """)
+           )
 end
 
 simplify_hbm_name(s::String) = string(split(s, "Human")...)
