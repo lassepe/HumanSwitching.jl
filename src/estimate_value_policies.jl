@@ -27,8 +27,9 @@ function free_space_estimate(mdp::HSMDP, s::HSState, steps::Int=0)::Float64
         return 0
     end
     rm = reward_model(mdp)
-    dist = robot_dist_to_target(mdp, s, p=2)
-    remaining_step_estimate = div(dist, robot_max_speed)
+    # TODO: THIS MUST CONSIDER THE MARGIN THAT YOU CAN BE AWAY FROM THE TARGWT!!!!!!
+    dist = robot_dist_to_target(mdp, s, p=1)
+    remaining_step_estimate = fld(dist, robot_max_speed)
 
     reward_estimate::Float64 = 0
     # stage cost
@@ -39,7 +40,7 @@ function free_space_estimate(mdp::HSMDP, s::HSState, steps::Int=0)::Float64
         reward_estimate += rm.target_reached_reward*(rm.discount_factor^(remaining_step_estimate-1))
     end
 
-    return reward_estimate
+    return reward_estimate + 3
 end
 
 function free_space_estimate(pomdp::HSPOMDP, s::HSState, b::Any, ::Int)

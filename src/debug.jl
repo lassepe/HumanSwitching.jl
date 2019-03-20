@@ -68,6 +68,7 @@ end
     end
 
     POMDPSimulators.problem(p::Policy) = p.problem
+    POMDPSimulators.problem(p::DESPOTPlanner) = p.pomdp
     POMDPSimulators.problem(p::TimedPolicy) = problem(p.p)
 end
 
@@ -209,12 +210,18 @@ function setup_test_scenario(pi_key::String, simulation_hbm_key::String, planner
     # the belief updater is run with a stochastic version of the world
     belief_updater = BasicParticleFilter(belief_updater_model, SharedExternalStateResampler(n_particles), n_particles, deepcopy(rng))
     # the policy plannes without a model as it is always the same action
-    solver = POMCPOWSolver(tree_queries=12000, max_depth=70, criterion=MaxUCB(80),
-                           k_observation=5, alpha_observation=1.0/30.0,
-                           enable_action_pw=false,
-                           check_repeat_obs=!(planner_hbm isa HumanConstVelBehavior),
-                           check_repeat_act=true,
-                           estimate_value=free_space_estimate, rng=deepcopy(rng))
+    # solver = POMCPOWSolver(tree_queries=12000, max_depth=70, criterion=MaxUCB(80),
+    #                        k_observation=5, alpha_observation=1.0/30.0,
+    #                        enable_action_pw=false,
+    #                        check_repeat_obs=!(planner_hbm isa HumanConstVelBehavior),
+    #                        check_repeat_act=true,
+    #                        estimate_value=free_space_estimate, rng=deepcopy(rng))
+
+    default_policy = StraightToTarget(planner_model)
+    bounds = IndependentBounds(DefaultPolicyLB(default_policy), free_space_estimate, check_terminal=true)
+    solver = DESPOTSolver(K=20, D=30, T_max=1,
+                          default_action=default_policy, bounds=bounds, rng=deepcopy(rng), tree_in_info=true)
+
     planner = solve(solver, planner_model)
     timed_planner = TimedPolicy(planner)
 
@@ -240,8 +247,8 @@ end
 function problem_instance_map()
     room = RoomRep()
     return Dict{String, ProblemInstance}(
-        "DiagonalAcross" => (Pos(1/10 * room.width, 1/10 * room.height), Pos(8/10 * room.width, 4/10 * room.height),
-                             Pos(9/10 * room.width, 9/10 * room.height), Pos(1/10 * room.width, 9/10 * room.height)),
+        # "DiagonalAcross" => (Pos(1/10 * room.width, 1/10 * room.height), Pos(8/10 * room.width, 4/10 * room.height),
+        #                      Pos(9/10 * room.width, 9/10 * room.height), Pos(1/10 * room.width, 9/10 * room.height)),
         "FrontalCollision" => (Pos(1/2 * room.width, 1/10 * room.height), Pos(1/2 * room.width, 9/10 * room.height),
                                Pos(1/2 * room.width, 9/10 * room.height), Pos(1/2 * room.width, 1/10 * room.height))
        )
@@ -250,13 +257,13 @@ end
 function planner_hbm_map(problem_instance::ProblemInstance)
     human_target_pos = problem_instance[3]
     return Dict{String, PlannerHBMEntry}(
-        "HumanConstVelBehavior" => (HumanConstVelBehavior(vel_max=1, vel_resample_sigma=0.0), 0.05),
-        "HumanBoltzmannModel_PI/12" => (HumanBoltzmannModel(reward_model=HumanSingleTargetRewardModel(human_target_pos),
-                                                            aspace=HS.gen_human_aspace(pi/12)), 0.01),
+        #"HumanConstVelBehavior" => (HumanConstVelBehavior(vel_max=1, vel_resample_sigma=0.0), 0.05),
+        #"HumanBoltzmannModel_PI/12" => (HumanBoltzmannModel(reward_model=HumanSingleTargetRewardModel(human_target_pos),
+        #                                                    aspace=HS.gen_human_aspace(pi/12)), 0.01),
         "HumanBoltzmannModel_PI/8" => (HumanBoltzmannModel(reward_model=HumanSingleTargetRewardModel(human_target_pos),
                                                            aspace=HS.gen_human_aspace(pi/8)), 0.01),
-        "HumanBoltzmannModel_PI/4" => (HumanBoltzmannModel(reward_model=HumanSingleTargetRewardModel(human_target_pos),
-                                                          aspace=HS.gen_human_aspace(pi/4)), 0.01)
+        #"HumanBoltzmannModel_PI/4" => (HumanBoltzmannModel(reward_model=HumanSingleTargetRewardModel(human_target_pos),
+        #                                                  aspace=HS.gen_human_aspace(pi/4)), 0.01)
        )
 end
 
@@ -265,12 +272,12 @@ function simulation_hbm_map(problem_instance::ProblemInstance, i_run::Int)
     human_target_pos = problem_instance[3]
     simulation_rng = MersenneTwister(i_run + 1)
     return Dict{String, SimulationHBMEntry}(
-        "HumanBoltzmannModel0.1" => (HumanBoltzmannModel(reward_model=HumanSingleTargetRewardModel(human_target_pos), beta_min=0.1, beta_max=0.1),),
-        "HumanBoltzmannModel1.0" => (HumanBoltzmannModel(reward_model=HumanSingleTargetRewardModel(human_target_pos), beta_min=1.0, beta_max=1.0),),
+        #"HumanBoltzmannModel0.1" => (HumanBoltzmannModel(reward_model=HumanSingleTargetRewardModel(human_target_pos), beta_min=0.1, beta_max=0.1),),
+        #"HumanBoltzmannModel1.0" => (HumanBoltzmannModel(reward_model=HumanSingleTargetRewardModel(human_target_pos), beta_min=1.0, beta_max=1.0),),
         "HumanBoltzmannModel5.0" => (HumanBoltzmannModel(reward_model=HumanSingleTargetRewardModel(human_target_pos), beta_min=5.0, beta_max=5.0),),
-        "HumanBoltzmannModel10.0" => (HumanBoltzmannModel(reward_model=HumanSingleTargetRewardModel(human_target_pos), beta_min=10.0, beta_max=10.0),),
-        "HumanBoltzmannModel15.0" => (HumanBoltzmannModel(reward_model=HumanSingleTargetRewardModel(human_target_pos), beta_min=15.0, beta_max=15.0),),
-        "WayPoints_n5_sig1.0" => (HumanPIDBehavior(target_sequence=noisy_waypoints(human_start_pos, human_target_pos, 5, simulation_rng, 1.0)),),
+        #"HumanBoltzmannModel10.0" => (HumanBoltzmannModel(reward_model=HumanSingleTargetRewardModel(human_target_pos), beta_min=10.0, beta_max=10.0),),
+        #"HumanBoltzmannModel15.0" => (HumanBoltzmannModel(reward_model=HumanSingleTargetRewardModel(human_target_pos), beta_min=15.0, beta_max=15.0),),
+        #"WayPoints_n5_sig1.0" => (HumanPIDBehavior(target_sequence=noisy_waypoints(human_start_pos, human_target_pos, 5, simulation_rng, 1.0)),),
                                           )
 end
 
