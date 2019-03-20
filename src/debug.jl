@@ -240,8 +240,8 @@ end
 function problem_instance_map()
     room = RoomRep()
     return Dict{String, ProblemInstance}(
-        # "DiagonalAcross" => (Pose(1/10 * room.width, 1/10 * room.height, 0), Pose(8/10 * room.width, 4/10 * room.height, 0),
-        #                      Pose(9/10 * room.width, 9/10 * room.height, 0), Pose(1/10 * room.width, 9/10 * room.height, 0)),
+        "DiagonalAcross" => (Pose(1/10 * room.width, 1/10 * room.height, 0), Pose(8/10 * room.width, 4/10 * room.height, 0),
+                             Pose(9/10 * room.width, 9/10 * room.height, 0), Pose(1/10 * room.width, 9/10 * room.height, 0)),
         "FrontalCollision" => (Pose(1/2 * room.width, 1/10 * room.height, 0), Pose(1/2 * room.width, 9/10 * room.height, 0),
                                Pose(1/2 * room.width, 9/10 * room.height, 0), Pose(1/2 * room.width, 1/10 * room.height, 0))
        )
