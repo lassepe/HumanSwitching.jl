@@ -16,7 +16,6 @@ function normalized_angle_diff(angle_diff::Float64)::Float64
     end
 end
 
-# TODO: Broken on purose. Continue here.
 @with_kw struct Counter{TK, TV}
     d::Dict{TK, TV} = Dict()
 end

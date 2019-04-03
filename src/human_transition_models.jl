@@ -23,7 +23,6 @@ function human_transition(hbs::HumanPIDBState, hbm::HumanPIDBehavior, m::HSModel
     return human_pos_p, hbs_p
 end
 
-# TODO: all of this could be typed more strongly to improve type stability. Avoid jusing abstract classes!
 function human_transition(hbs::HumanBehaviorState, hbm::HumanUniformModelMix, m::HSModel,
                           p::Pos, rng::AbstractRNG)
     # select the corresponding sub model

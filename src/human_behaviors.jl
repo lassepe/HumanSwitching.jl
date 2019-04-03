@@ -127,7 +127,6 @@ function free_evolution(hbm::HumanBoltzmannModel, hbs::HumanBoltzmannBState, p::
 end
 
 function compute_qval(p::Pos, a::HumanBoltzmannAction, reward_model::HumanSingleTargetRewardModel)
-    # TODO: reason about whether this should be the 2 or 1 norm!
     return -a.d - dist_to_pos(apply_human_action(p, a), reward_model.human_target; p=2)
 end
 

@@ -48,7 +48,6 @@ export
     HSIdentityPTNM,
     HSGaussianNoisePTNM,
 
-    # TODO:
     # human transition models
     HumanBehaviorState,
     HumanBehaviorModel,
