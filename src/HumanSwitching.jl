@@ -142,6 +142,7 @@ export
 include("problem_gen.jl")
 
 export
+    StraightToTarget,
     free_space_estimate
 include("estimate_value_policies.jl")
 

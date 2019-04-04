@@ -3,7 +3,7 @@ function generate_hspomdp(sensor::HSSensor, human_behavior_model::HumanBehaviorM
                           room::RoomRep=RoomRep(),
                           aspace=HSActionSpace(),
                           reward_model::HSRewardModel=HSRewardModel(),
-                          robot_target::Pos=rand_pos(room, rng, forced_orientation=0.0),
+                          robot_target::Pos=rand_pos(room, rng),
                           agent_min_distance::Float64=1.0,
                           known_external_initstate::HSExternalState=external(rand_external_state(room, rng)))
 

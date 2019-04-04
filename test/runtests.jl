@@ -37,7 +37,7 @@ end;
 @testset "POMDP interface" begin
     # checking whether we can actually succesfully construct all those types
     rng = MersenneTwister(42)
-    hbm = HumanPIDBehavior(RoomRep(), goal_change_likelihood=0.01)
+    hbm = HumanPIDBehavior(RoomRep())
     hs_pomdp_exact_o = generate_hspomdp(ExactPositionSensor(), hbm, HSIdentityPTNM(), rng)
     hs_pomdp_noisy_o = generate_hspomdp(NoisyPositionSensor(), hbm, HSIdentityPTNM(), rng)
 
@@ -61,15 +61,6 @@ end;
     test_inits_data = [HS.initialstate(hs_pomdp_exact_o, rng) for i in 1:10000]
     r = HS.room(hs_pomdp_exact_o)
     @test all(HS.isinroom(human_pos(td), r) && HS.isinroom(robot_pos(td), r) for td in test_inits_data)
-
-    # check whether the simulation terminates in finite time if we only observe
-    policy = FunctionPolicy(x->HSAction())
-    belief_updater = NothingUpdater()
-    history = simulate(HistoryRecorder(rng=rng, max_steps=500), hs_pomdp_noisy_o, policy, belief_updater)
-    # note that only sp is terminal, not s! (you never take an action from the
-    # terminal state)
-    last_s = last(collect(sp for sp in eachstep(history, "sp")))
-    @test isterminal(hs_pomdp_noisy_o, last_s)
 end;
 
 # this test set checks whether everything is implemented to be pseudo-random.
@@ -139,7 +130,7 @@ end
 
     # PID
     @test @testblock quote
-        hbm = @inferred HumanPIDBehavior(RoomRep(), goal_change_likelihood=0.1)
+        hbm = @inferred HumanPIDBehavior(RoomRep())
         hbs = @inferred HS.rand_hbs(rng, hbm)
         s = @inferred HSState(external=e, hbs=hbs)
     end
@@ -154,7 +145,7 @@ end
     # Uniform Mix
     # TODO: Stabilize type
     @test_broken @testblock quote
-        hbm = HumanUniformModelMix(HumanPIDBehavior(RoomRep(), goal_change_likelihood=0.01),
+        hbm = HumanUniformModelMix(HumanPIDBehavior(RoomRep()),
                                    HumanBoltzmannModel(),
                                    bstate_change_likelihood=0.1)
         hbs = @inferred HS.rand_hbs(rng, hbm)

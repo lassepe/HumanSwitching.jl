@@ -45,6 +45,8 @@ rand_hbs(rng::AbstractRNG, hbm::HumanConstVelBehavior) = HumanConstVelBState(ran
     target_sequence::Array{Pos, 1}
 end
 
+HumanPIDBehavior(r::RoomRep) = HumanPIDBehavior(target_sequence=corner_positions(r))
+
 bstate_type(::HumanBehaviorModel)::Type = HumanPIDBState
 
 rand_hbs(rng::AbstractRNG, hbm::HumanPIDBehavior) = HumanPIDBState(target_index=1)

@@ -77,7 +77,7 @@ function rand_hbs end
     robot_pos::Pos
 end
 
-HSExternalState(v::T) where T<:AbstractVector{Float64} = HSExternalState(v[1:3], v[4:6])
+HSExternalState(v::T) where T<:AbstractVector{Float64} = HSExternalState(v[1:2], v[3:4])
 
 function convert(::Type{V}, e::HSExternalState) where V <: AbstractVector
     hp = human_pos(e)
@@ -129,7 +129,7 @@ apply_robot_action(p::Pos, a::HSAction) = Pos(p.x + cos(a.phi)*a.d, p.y + sin(a.
     reward_model::HSRewardModel = HSRewardModel()
     human_behavior_model::HBM = HumanPIDBehavior(room)
     physical_transition_noise_model::PTNM = HSIdentityPTNM()
-    robot_target::Pos = rand_pos(room, Random.GLOBAL_RNG, forced_orientation=0.0)
+    robot_target::Pos = rand_pos(room, Random.GLOBAL_RNG)
     agent_min_distance::Float64 = 0.3
     known_external_initstate::Union{HSExternalState, Nothing} = nothing
 end
