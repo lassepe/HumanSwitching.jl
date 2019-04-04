@@ -49,18 +49,18 @@ end;
     # Obsevation model:
     # the deterministic observation model
     o = HS.generate_o(hs_pomdp_exact_o, s, a, sp, rng)
-    @test human_pose(sp) == human_pose(o)
-    @test robot_pose(sp) == robot_pose(o)
+    @test human_pos(sp) == human_pos(o)
+    @test robot_pos(sp) == robot_pos(o)
 
     # the noisy obsevation model
-    test_obs_data = collect(human_pose(HS.generate_o(hs_pomdp_noisy_o, s, a, sp, rng)) for i in 1:5)
-    dist = norm(mean(test_obs_data) - human_pose(sp))
+    test_obs_data = collect(human_pos(HS.generate_o(hs_pomdp_noisy_o, s, a, sp, rng)) for i in 1:5)
+    dist = norm(mean(test_obs_data) - human_pos(sp))
     @test 0 <= dist <= 0.1
 
     # Initial state generation
     test_inits_data = [HS.initialstate(hs_pomdp_exact_o, rng) for i in 1:10000]
     r = HS.room(hs_pomdp_exact_o)
-    @test all(HS.isinroom(human_pose(td), r) && HS.isinroom(robot_pose(td), r) for td in test_inits_data)
+    @test all(HS.isinroom(human_pos(td), r) && HS.isinroom(robot_pos(td), r) for td in test_inits_data)
 
     # check whether the simulation terminates in finite time if we only observe
     policy = FunctionPolicy(x->HSAction())
