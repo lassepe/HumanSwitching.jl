@@ -74,9 +74,9 @@ export
     hbs,
     human_behavior_model,
     external,
-    human_pose,
+    human_pos,
     human_target,
-    robot_pose,
+    robot_pos,
     robot_target,
 
     # POMDP interface implementation
@@ -110,9 +110,9 @@ include("human_transition_models.jl")
 
 export
     rand_astate,
-    dist_to_pose,
+    dist_to_pos,
     robot_dist_to_target,
-    corner_poses,
+    corner_positions,
     target_index,
     has_collision,
     issuccess,

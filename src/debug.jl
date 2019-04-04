@@ -28,8 +28,8 @@ using D3Trees
 
 # TODO: move this to a package / module
 @everywhere begin
-    validation_hash(hist::SimHistory) = string(hash(collect((sp.external.robot_pose,
-                                                             sp.external.human_pose)
+    validation_hash(hist::SimHistory) = string(hash(collect((sp.external.robot_pos,
+                                                             sp.external.human_pos)
                                                             for sp in eachstep(hist, "sp"))))
 
     function final_state_type(m::HSModel, hist::SimHistory)
@@ -77,7 +77,7 @@ Define three dictionaries that:
     2. Maps a key to a corresponding model instance for the planner.
     3. Maps a key to a corresponding true model instance for the simulator.
 """
-# order (human_start_pose, robot_start_pose, human_target_pose, robot_target_pose)
+# order (human_start_pos, robot_start_pos, human_target_pos, robot_target_pos)
 const ProblemInstance = Tuple{Pos, Pos, Pos, Pos}
 const PlannerHBMEntry = Tuple{HumanBehaviorModel, Float64}
 const SimulationHBMEntry = Tuple{HumanBehaviorModel}
@@ -143,10 +143,10 @@ function construct_models(rng::AbstractRNG, problem_instance::ProblemInstance,
 
     Params:
         rng [AbstractRNG]: The random seed to be used for these models.
-        human_start_pose [Pos]: The initial position of the human.
-        robot_start_pose [Pos]: The initial position of the robot.
-        human_target_pose [Pos]: The final target position of the human.
-        robot_target_pose [Pos]: The final target position of the robot.
+        human_start_pos [Pos]: The initial position of the human.
+        robot_start_pos [Pos]: The initial position of the robot.
+        human_target_pos [Pos]: The final target position of the human.
+        robot_target_pos [Pos]: The final target position of the robot.
         simulation_hbm [HumanBehaviorModel]: The "true" human model used by the simulator.
         belief_updater_hbm [HumanBehaviorModel]: The human model used by the belief updater.
         planner_hbm [HumanBehaviorModel]: The human model used by the planner.
@@ -157,15 +157,15 @@ function construct_models(rng::AbstractRNG, problem_instance::ProblemInstance,
         planner_model [HSModel]: The model of the world used by the planner.
     """
 
-    (human_start_pose, robot_start_pose, human_target_pose, robot_target_pose) = problem_instance
+    (human_start_pos, robot_start_pos, human_target_pos, robot_target_pos) = problem_instance
 
     ptnm_cov = [0.01, 0.01]
     simulation_model = generate_hspomdp(ExactPositionSensor(),
                                         simulation_hbm,
-                                        HSGaussianNoisePTNM(pose_cov=ptnm_cov),
+                                        HSGaussianNoisePTNM(pos_cov=ptnm_cov),
                                         deepcopy(rng),
-                                        known_external_initstate=HSExternalState(human_start_pose, robot_start_pose),
-                                        robot_target=robot_target_pose)
+                                        known_external_initstate=HSExternalState(human_start_pos, robot_start_pos),
+                                        robot_target=robot_target_pos)
 
     belief_updater_model = generate_hspomdp(NoisyPositionSensor(ptnm_cov*9),
                                             belief_updater_hbm,
@@ -248,29 +248,29 @@ function problem_instance_map()
 end
 
 function planner_hbm_map(problem_instance::ProblemInstance)
-    human_target_pose = problem_instance[3]
+    human_target_pos = problem_instance[3]
     return Dict{String, PlannerHBMEntry}(
         "HumanConstVelBehavior" => (HumanConstVelBehavior(vel_max=1, vel_resample_sigma=0.0), 0.05),
-        "HumanBoltzmannModel_PI/12" => (HumanBoltzmannModel(reward_model=HumanSingleTargetRewardModel(human_target_pose),
+        "HumanBoltzmannModel_PI/12" => (HumanBoltzmannModel(reward_model=HumanSingleTargetRewardModel(human_target_pos),
                                                             aspace=HS.gen_human_aspace(pi/12)), 0.01),
-        "HumanBoltzmannModel_PI/8" => (HumanBoltzmannModel(reward_model=HumanSingleTargetRewardModel(human_target_pose),
+        "HumanBoltzmannModel_PI/8" => (HumanBoltzmannModel(reward_model=HumanSingleTargetRewardModel(human_target_pos),
                                                            aspace=HS.gen_human_aspace(pi/8)), 0.01),
-        "HumanBoltzmannModel_PI/4" => (HumanBoltzmannModel(reward_model=HumanSingleTargetRewardModel(human_target_pose),
+        "HumanBoltzmannModel_PI/4" => (HumanBoltzmannModel(reward_model=HumanSingleTargetRewardModel(human_target_pos),
                                                           aspace=HS.gen_human_aspace(pi/4)), 0.01)
        )
 end
 
 function simulation_hbm_map(problem_instance::ProblemInstance, i_run::Int)
-    human_start_pose = problem_instance[1]
-    human_target_pose = problem_instance[3]
+    human_start_pos = problem_instance[1]
+    human_target_pos = problem_instance[3]
     simulation_rng = MersenneTwister(i_run + 1)
     return Dict{String, SimulationHBMEntry}(
-        "HumanBoltzmannModel0.1" => (HumanBoltzmannModel(reward_model=HumanSingleTargetRewardModel(human_target_pose), beta_min=0.1, beta_max=0.1),),
-        "HumanBoltzmannModel1.0" => (HumanBoltzmannModel(reward_model=HumanSingleTargetRewardModel(human_target_pose), beta_min=1.0, beta_max=1.0),),
-        "HumanBoltzmannModel5.0" => (HumanBoltzmannModel(reward_model=HumanSingleTargetRewardModel(human_target_pose), beta_min=5.0, beta_max=5.0),),
-        "HumanBoltzmannModel10.0" => (HumanBoltzmannModel(reward_model=HumanSingleTargetRewardModel(human_target_pose), beta_min=10.0, beta_max=10.0),),
-        "HumanBoltzmannModel15.0" => (HumanBoltzmannModel(reward_model=HumanSingleTargetRewardModel(human_target_pose), beta_min=15.0, beta_max=15.0),),
-        "WayPoints_n5_sig1.0" => (HumanPIDBehavior(target_sequence=noisy_waypoints(human_start_pose, human_target_pose, 5, simulation_rng, 1.0)),),
+        "HumanBoltzmannModel0.1" => (HumanBoltzmannModel(reward_model=HumanSingleTargetRewardModel(human_target_pos), beta_min=0.1, beta_max=0.1),),
+        "HumanBoltzmannModel1.0" => (HumanBoltzmannModel(reward_model=HumanSingleTargetRewardModel(human_target_pos), beta_min=1.0, beta_max=1.0),),
+        "HumanBoltzmannModel5.0" => (HumanBoltzmannModel(reward_model=HumanSingleTargetRewardModel(human_target_pos), beta_min=5.0, beta_max=5.0),),
+        "HumanBoltzmannModel10.0" => (HumanBoltzmannModel(reward_model=HumanSingleTargetRewardModel(human_target_pos), beta_min=10.0, beta_max=10.0),),
+        "HumanBoltzmannModel15.0" => (HumanBoltzmannModel(reward_model=HumanSingleTargetRewardModel(human_target_pos), beta_min=15.0, beta_max=15.0),),
+        "WayPoints_n5_sig1.0" => (HumanPIDBehavior(target_sequence=noisy_waypoints(human_start_pos, human_target_pos, 5, simulation_rng, 1.0)),),
                                           )
 end
 
@@ -312,7 +312,7 @@ function test_parallel_sim(runs::UnitRange{Int}; ignore_uncommited_changes::Bool
     # Simulation is launched in parallel mode. In order for this to work, julia
     # musst be started as: `julia -p n`, where n is the number of
     # workers/processes
-    data = run_parallel(sims) do sim::Sim, hist::SimHistory
+    data = run(sims) do sim::Sim, hist::SimHistory
         return [:n_steps => n_steps(hist),
                 :discounted_reward => discounted_reward(hist),
                 :hist_validation_hash => validation_hash(hist),
@@ -336,8 +336,8 @@ end
 
 function MCTS.node_tag(o::HSExternalState)
     """
-    h: $(o.human_pose)
-    r: $(o.robot_pose)
+    h: $(o.human_pos)
+    r: $(o.robot_pos)
     """
 end
 

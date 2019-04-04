@@ -65,7 +65,7 @@ function profile_rollout(run::Int)
     hbm = HumanPIDBehavior(potential_targets=[Pos(5, 5, 0)], goal_change_likelihood=0.01)
     model = generate_non_trivial_scenario(ExactPositionSensor(),
                                           hbm,
-                                          HSGaussianNoisePTNM(pose_cov=ptnm_cov),
+                                          HSGaussianNoisePTNM(pos_cov=ptnm_cov),
                                           deepcopy(rng))
     n_particles = 2000
     belief_updater = BasicParticleFilter(model, SharedExternalStateResampler(n_particles), n_particles, deepcopy(rng))

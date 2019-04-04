@@ -54,7 +54,7 @@ abstract type HSPhysicalTransitionNoiseModel end
 struct HSIdentityPTNM <: HSPhysicalTransitionNoiseModel end
 
 @with_kw struct HSGaussianNoisePTNM <: HSPhysicalTransitionNoiseModel
-    pose_cov::Array{Float64} = [0.15, 0.15] # the diagonal of the transition noise covariance matrix
+    pos_cov::Array{Float64} = [0.15, 0.15] # the diagonal of the transition noise covariance matrix
 end
 
 """
@@ -73,15 +73,15 @@ function rand_hbs end
 # State Representation
 """
 @with_kw struct HSExternalState
-    human_pose::Pos
-    robot_pose::Pos
+    human_pos::Pos
+    robot_pos::Pos
 end
 
 HSExternalState(v::T) where T<:AbstractVector{Float64} = HSExternalState(v[1:3], v[4:6])
 
 function convert(::Type{V}, e::HSExternalState) where V <: AbstractVector
-    hp = human_pose(e)
-    rp = robot_pose(e)
+    hp = human_pos(e)
+    rp = robot_pos(e)
     return V([hp[1], hp[2], rp[1], rp[2]])
 end
 
@@ -97,8 +97,8 @@ hbs(m::HumanBehaviorState) = m
 internal(s::HSState) = hbs(s::HSState)
 compose_state(e::HSExternalState, i::HumanBehaviorState) = HSState(external=e, hbs=i)
 
-human_pose(s::Union{HSState, HSExternalState}) = external(s).human_pose
-robot_pose(s::Union{HSState, HSExternalState}) = external(s).robot_pose
+human_pos(s::Union{HSState, HSExternalState}) = external(s).human_pos
+robot_pos(s::Union{HSState, HSExternalState}) = external(s).robot_pos
 
 """
 # Action (Space) representation
@@ -129,7 +129,7 @@ apply_robot_action(p::Pos, a::HSAction) = Pos(p.x + cos(a.phi)*a.d, p.y + sin(a.
     reward_model::HSRewardModel = HSRewardModel()
     human_behavior_model::HBM = HumanPIDBehavior(room)
     physical_transition_noise_model::PTNM = HSIdentityPTNM()
-    robot_target::Pos = rand_pose(room, Random.GLOBAL_RNG, forced_orientation=0.0)
+    robot_target::Pos = rand_pos(room, Random.GLOBAL_RNG, forced_orientation=0.0)
     agent_min_distance::Float64 = 0.3
     known_external_initstate::Union{HSExternalState, Nothing} = nothing
 end
@@ -165,9 +165,9 @@ POMDPs.discount(m::HSModel) = reward_model(m).discount_factor
 function POMDPs.generate_s(m::HSModel, s::HSState, a::HSAction, rng::AbstractRNG)
     @assert (a in actions(m))
 
-    human_pose_intent, hbs_p = human_transition(hbs(s), human_behavior_model(m), m, human_pose(s), rng)
-    robot_pose_intent = apply_robot_action(robot_pose(s), a)
-    external_intent::HSExternalState = HSExternalState(human_pose_intent, robot_pose_intent)
+    human_pos_intent, hbs_p = human_transition(hbs(s), human_behavior_model(m), m, human_pos(s), rng)
+    robot_pos_intent = apply_robot_action(robot_pos(s), a)
+    external_intent::HSExternalState = HSExternalState(human_pos_intent, robot_pos_intent)
     # the intended transition is augmented with the physical transition noise
     external_p = apply_physical_transition_noise(physical_transition_noise_model(m), external_intent, rng)
 
@@ -186,8 +186,8 @@ POMDPs.observation(m::HSPOMDP{ExactPositionSensor, HSExternalState, <:Any}, s::H
 # at least one should get away with less type conversion
 function POMDPs.observation(m::HSPOMDP{NoisyPositionSensor, HSExternalState, <:Any}, s::HSState)
     # TODO: do this properly
-    hp = human_pose(s)
-    rp = robot_pose(s)
+    hp = human_pos(s)
+    rp = robot_pos(s)
     mc  = m.sensor.measurement_cov
     return MvNormal([hp[1], hp[2], rp[1], rp[2]],
                     [mc[1], mc[2], mc[1], mc[2]])
@@ -195,7 +195,7 @@ end
 Distributions.pdf(distribution::MvNormal, sample::HSExternalState) = pdf(distribution, convert(Vector{Float64}, sample))
 
 function POMDPs.isterminal(m::HSModel, s::HSState)
-    robot_reached_target(m, s) || !isinroom(robot_pose(s), room(m)) || has_collision(m, s)
+    robot_reached_target(m, s) || !isinroom(robot_pos(s), room(m)) || has_collision(m, s)
 end
 
 function POMDPs.initialstate(m::HSModel, rng::AbstractRNG)::HSState

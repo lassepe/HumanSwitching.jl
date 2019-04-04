@@ -3,7 +3,7 @@ function generate_hspomdp(sensor::HSSensor, human_behavior_model::HumanBehaviorM
                           room::RoomRep=RoomRep(),
                           aspace=HSActionSpace(),
                           reward_model::HSRewardModel=HSRewardModel(),
-                          robot_target::Pos=rand_pose(room, rng, forced_orientation=0.0),
+                          robot_target::Pos=rand_pos(room, rng, forced_orientation=0.0),
                           agent_min_distance::Float64=1.0,
                           known_external_initstate::HSExternalState=external(rand_external_state(room, rng)))
 
@@ -51,8 +51,8 @@ function generate_non_trivial_scenario(sensor::HSSensor, human_behavior_model::H
         fo_model = mdp(po_model)
 
         trivial_policy = FunctionPolicy(s->reduce((a1, a2) ->
-                                                  dist_to_pose(apply_robot_action(robot_pose(s), a1), robot_target(fo_model))
-                                                  < dist_to_pose(apply_robot_action(robot_pose(s), a2), robot_target(fo_model)) ?
+                                                  dist_to_pos(apply_robot_action(robot_pos(s), a1), robot_target(fo_model))
+                                                  < dist_to_pos(apply_robot_action(robot_pos(s), a2), robot_target(fo_model)) ?
                                                   a1 : a2,
                                                   HSActionSpace()))
 

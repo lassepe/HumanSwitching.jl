@@ -24,12 +24,12 @@ function POMDPs.reward(m::HSModel, s::HSState, a::HSAction, sp::HSState)::Float6
         step_reward += rm.target_reached_reward
     end
 
-    if !isinroom(robot_pose(sp), room(m))
+    if !isinroom(robot_pos(sp), room(m))
         step_reward += rm.left_room_penalty
     end
 
     # being close to humans is asymptotically bad
-    step_reward += rm.dist_to_human_penalty * 1/(1 + dist_to_pose(human_pose(s), robot_pose(s)))
+    step_reward += rm.dist_to_human_penalty * 1/(1 + dist_to_pos(human_pos(s), robot_pos(s)))
 
     step_reward
 end

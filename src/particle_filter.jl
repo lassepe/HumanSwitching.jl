@@ -12,7 +12,7 @@ Parameters:
 
 """
 mutable struct SharedExternalStateBelief{E, I, S} <: AbstractParticleBelief{S}
-    " the fully observable part of the state (poses of all agents and robot target) "
+    " the fully observable part of the state (positions of all agents and robot target) "
     external::E
     " particles to keep track of the hidden part of the state "
     internal_particles::Vector{I}

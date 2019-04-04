@@ -53,17 +53,17 @@ human_target(hbm::HumanPIDBehavior, hbs::HumanPIDBState) = hbm.target_sequence[t
 next_target_index(hbm::HumanPIDBehavior, hbs::HumanPIDBState) = min(length(hbm.target_sequence), target_index(hbs)+1)
 
 function free_evolution(hbm::HumanPIDBehavior, hbs::HumanPIDBState, p::Pos)
-    human_velocity = min(hbs.max_speed, dist_to_pose(p, human_target(hbm, hbs))) #m/s
+    human_velocity = min(hbs.max_speed, dist_to_pos(p, human_target(hbm, hbs))) #m/s
     vec2target = vec_from_to(p, human_target(hbm, hbs))
     walk_direction = normalize(vec2target)
     # new position:
-    human_pose_p::Pos = p
+    human_pos_p::Pos = p
     if !any(isnan(i) for i in walk_direction)
         xy_p = p[1:2] + walk_direction * human_velocity
-        human_pose_p = xy_p
+        human_pos_p = xy_p
     end
 
-    return human_pose_p
+    return human_pos_p
 end
 
 abstract type HumanRewardModel end
@@ -126,7 +126,7 @@ end
 
 function compute_qval(p::Pos, a::HumanBoltzmannAction, reward_model::HumanSingleTargetRewardModel)
     # TODO: reason about whether this should be the 2 or 1 norm!
-    return -a.d - dist_to_pose(apply_human_action(p, a), reward_model.human_target; p=2)
+    return -a.d - dist_to_pos(apply_human_action(p, a), reward_model.human_target; p=2)
 end
 
 function get_action_distribution(hbm::HumanBoltzmannModel, hbs::HumanBoltzmannBState, p::Pos)
