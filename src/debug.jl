@@ -34,7 +34,7 @@ using D3Trees
 
     function final_state_type(m::HSModel, hist::SimHistory)
         final_state = last(collect(eachstep(hist, "sp")))
-        if issuccess(m, final_state)
+        if HS.issuccess(m, final_state)
             return "success"
         elseif isfailure(m, final_state)
             return "failure"
