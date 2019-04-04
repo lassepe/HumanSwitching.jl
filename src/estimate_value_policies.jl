@@ -27,17 +27,19 @@ function free_space_estimate(mdp::HSMDP, s::HSState, steps::Int=0)::Float64
         return 0
     end
     rm = reward_model(mdp)
-    # TODO: THIS MUST CONSIDER THE MARGIN THAT YOU CAN BE AWAY FROM THE TARGWT!!!!!!
-    dist = robot_dist_to_target(mdp, s, p=1)
-    remaining_step_estimate = fld(dist, robot_max_speed)
+    remaining_step_estimate = fld(clamp(robot_dist_to_target(mdp, s, p=2) - agent_min_distance(mdp), 0, Inf), robot_max_speed)
 
     reward_estimate::Float64 = 0
     # stage cost
-    @assert(remaining_step_estimate > 0)
+    @assert(remaining_step_estimate >= 0)
     if remaining_step_estimate > 0
         reward_estimate += sum(rm.living_penalty*(rm.discount_factor^(i-1)) for i in 1:remaining_step_estimate)
         # terminal cost for reaching the goal
         reward_estimate += rm.target_reached_reward*(rm.discount_factor^(remaining_step_estimate-1))
+    else
+        # in this very edge case the target reached reward must not be
+        # discounted since the optimistic remaining step estimate is already 0 but the state is non terminal!
+        reward_estimate += rm.target_reached_reward
     end
 
     return reward_estimate + 3
