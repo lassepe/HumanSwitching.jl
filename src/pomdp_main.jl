@@ -139,9 +139,7 @@ end
     mdp::M = HSMDP()
 end
 
-function HSPOMDP(sensor::HSSensor, mdp::HSMDP)
-    HSPOMDP{typeof(sensor), HSExternalState, typeof(mdp)}(sensor, mdp)
-end
+HSPOMDP(sensor::HSSensor, mdp::HSMDP) = HSPOMDP{typeof(sensor), HSExternalState, typeof(mdp)}(sensor, mdp)
 
 const HSModel = Union{HSMDP, HSPOMDP}
 

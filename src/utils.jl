@@ -57,7 +57,7 @@ isfailure(m::HSModel, s::HSState)::Bool = has_collision(m, s) || !isinroom(robot
 # check if the state is a success success terminal state
 issuccess(m::HSModel, s::HSState)::Bool = !isfailure(m, s) && robot_reached_target(m ,s)
 
-robot_reached_target(m::HSModel, s::HSState)::Bool = robot_dist_to_target(m, s) < 0.6
+robot_reached_target(m::HSModel, s::HSState)::Bool = robot_dist_to_target(m, s) < agent_min_distance(m)
 
 function rand_pos(r::RoomRep, rng::AbstractRNG)::Pos
     x = rand(rng) * r.width
