@@ -34,16 +34,12 @@ Fields:
 - `as` the state of the agent to be rendered
 - `r` the visual radius of the agent
 """
-function pose_node(p::Pose; has_orientation::Bool=true, r::Float64=0.15,
+function pose_node(p::Pos; r::Float64=0.15,
                    fill_color="tomato", stroke_color="black", opacity::Float64=1.0)::Context
 
-    if has_orientation
-        marker = compose(context(), line([(p.x, p.y), (p.x+cos(p.phi)*r*2, p.y+sin(p.phi)*r*2)]), linewidth(1))
-    else
-        center_line(angle::Float64) = line([(p.x-cos(angle)*r*2, p.y-sin(angle)*r*2),
-                                            (p.x+cos(angle)*r*2, p.y+sin(angle)*r*2)])
-        marker = compose(context(), center_line(pi/4), center_line(-pi/4),linewidth(1))
-    end
+    center_line(angle::Float64) = line([(p.x-cos(angle)*r*2, p.y-sin(angle)*r*2),
+                                        (p.x+cos(angle)*r*2, p.y+sin(angle)*r*2)])
+    marker = compose(context(), center_line(pi/4), center_line(-pi/4),linewidth(1))
 
     compose(context(), fill(fill_color), fillopacity(opacity), stroke(stroke_color), strokeopacity(opacity),
             circle(p.x, p.y, r), marker)
@@ -57,7 +53,7 @@ Composes a target node (states that agents want to reach) for the visualization 
 Fields:
 - `ts` the target state to be visualized
 """
-function target_node(p::Pose;
+function target_node(p::Pos;
                      annotation::String="",
                      size=0.15, fill_color="deepskyblue",
                      stroke_color="black",
@@ -69,7 +65,7 @@ function target_node(p::Pose;
 end
 
 """
-start_target_curve_node
+start_target_line_node
 
 Composes a line from a given start to a given target to associate an agent with it's target
 
@@ -78,27 +74,21 @@ Fields:
 - `target` the target position towards which the curve points (end anchor point, only for position)
 - `r` the visual radius of the agent
 """
-function start_target_curve_node(start_pose::Pose, target::Pose;
-                                 has_orientation::Bool=true, r::Float64=0.5,
+function start_target_line_node(start_pose::Pos, target::Pos;
+                                 r::Float64=0.5,
                                  stroke_color="green", opacity::Float64=1.0)::Context
 
     # the start and end anchor point for the bezier curve
     p_start = [Tuple(start_pose[1:2])]
     p_end = [Tuple(target[1:2])]
-    # control point at the tip of the agents facing direction
-    c1 = [(start_pose.x+cos(start_pose.phi)*r*2, start_pose.y+sin(start_pose.phi)*r*2)]
-
-    # control point half way way between the agent and the target
-    c2_help = (start_pose[1:2] + target[1:2]) / 2
-    c2 = [(c2_help[1], c2_help[2])]
 
     compose(context(), stroke(stroke_color), strokeopacity(opacity),
-            has_orientation ? curve(p_start, c1, c2, p_end) : line([p_start..., p_end...]))
+            line([p_start..., p_end...]))
 end
 
-function agent_with_target_node(agent_pose::Pose, target::Pose;
+function agent_with_target_node(agent_pose::Pos, target::Pos;
                                 annotation::String="",
-                                target_size::Float64=0.2, has_orientation::Bool=true,
+                                target_size::Float64=0.2,
                                 external_color="tomato", curve_color="green",
                                 target_color="light green", opacity::Float64=1.0)::Context
     # the actual target of the human
@@ -109,17 +99,15 @@ function agent_with_target_node(agent_pose::Pose, target::Pose;
                                      opacity=opacity)
     # the current pose of the human
     agent_pose_viz = pose_node(agent_pose,
-                               has_orientation=has_orientation,
                                fill_color=external_color, opacity=opacity)
     # a connection line between the human and the target
-    target_curve_viz = start_target_curve_node(agent_pose, target,
-                                               has_orientation=has_orientation,
+    target_curve_viz = start_target_line_node(agent_pose, target,
                                                stroke_color=curve_color, opacity=opacity)
 
     compose(context(), agent_pose_viz, current_target_viz, target_curve_viz)
 end
 
-function human_particle_node(human_pose::Pose, hbm::HumanPIDBehavior, hbs::HumanPIDBState;
+function human_particle_node(human_pose::Pos, hbm::HumanPIDBehavior, hbs::HumanPIDBState;
                              external_color="light blue", internal_color=map_to_color(hbs),
                              annotation::String="", opacity::Float64=1.0)
 
@@ -133,11 +121,11 @@ function human_particle_node(human_pose::Pose, hbm::HumanPIDBehavior, hbs::Human
                                   opacity=opacity)
 end
 
-function human_particle_node(human_pose::Pose, hbm::HumanConstVelBehavior, hbs::HumanConstVelBState;
+function human_particle_node(human_pose::Pos, hbm::HumanConstVelBehavior, hbs::HumanConstVelBState;
                              external_color="light green", internal_color=map_to_color(hbs),
                              annotation::String="", opacity::Float64=1.0)
 
-    predicted_future_pose::Pose = human_pose
+    predicted_future_pose::Pos = human_pose
     # predict future position
     for i in 1:2
         predicted_future_pose = free_evolution(hbs, predicted_future_pose)
@@ -145,7 +133,6 @@ function human_particle_node(human_pose::Pose, hbm::HumanConstVelBehavior, hbs::
 
     return agent_with_target_node(human_pose,
                                   predicted_future_pose,
-                                  has_orientation=false,
                                   external_color=external_color,
                                   curve_color=internal_color,
                                   target_color=internal_color,
@@ -153,11 +140,11 @@ function human_particle_node(human_pose::Pose, hbm::HumanConstVelBehavior, hbs::
                                   opacity=opacity)
 end
 
-function human_particle_node(human_pose::Pose, hbm::HumanBoltzmannModel, hbs::HumanBoltzmannBState;
+function human_particle_node(human_pose::Pos, hbm::HumanBoltzmannModel, hbs::HumanBoltzmannBState;
                              external_color="light green", internal_color=map_to_color(hbs),
                              annotation::String="", opacity::Float64=1.0
                             )
-    predicted_future_pose::Pose = human_pose
+    predicted_future_pose::Pos = human_pose
     # predict future position
     n_samples::Int = 1
     sampled_future_predictions = [free_evolution(hbm, hbs, predicted_future_pose, Random.GLOBAL_RNG) for i in 1:n_samples]
@@ -166,7 +153,6 @@ function human_particle_node(human_pose::Pose, hbm::HumanBoltzmannModel, hbs::Hu
                                                       p,
                                                       external_color=external_color,
                                                       curve_color=internal_color,
-                                                      has_orientation=false,
                                                       target_color=internal_color,
                                                       target_size=0.4,
                                                       opacity=opacity*map_to_opacity(1.0, Float64(n_samples)))
@@ -272,7 +258,6 @@ function belief_node(b::ParticleCollection, m::HSPOMDP)::Context
                        for (p, state_count) in state_belief_counter]
 
     robot_particles = [pose_node(robot_pose(p),
-                                 has_orientation=false,
                                  fill_color="light green")
                        for (p, state_count) in state_belief_counter]
 
@@ -333,12 +318,10 @@ function render_step_compose(m::HSModel, step::NamedTuple, sim_hist::T,
 
     # the human and it's target
     human_ground_truth_viz = agent_pose_viz = pose_node(human_pose(sp),
-                                                        has_orientation=true,
                                                         fill_color="tomato", opacity=1.0)
 
     # the robot and it's target
     robot_with_target_viz = agent_with_target_node(robot_pose(sp), robot_target(m),
-                                                   has_orientation=false,
                                                    external_color="pink", curve_color="steelblue")
 
     belief_viz = (haskey(step, :bp) && step[:bp] isa ParticleCollection ?

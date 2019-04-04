@@ -6,7 +6,7 @@ struct HumanConstVelBState <: HumanBehaviorState
     vy::Float64
 end
 
-free_evolution(hbs::HumanConstVelBState, p::Pose) = Pose(p.x + hbs.vx, p.y + hbs.vy, 0)
+free_evolution(hbs::HumanConstVelBState, p::Pos) = Pos(p.x + hbs.vx, p.y + hbs.vy)
 
 @with_kw struct HumanPIDBState <: HumanBehaviorState
     target_index::Int = 1
@@ -42,7 +42,7 @@ rand_hbs(rng::AbstractRNG, hbm::HumanConstVelBehavior) = HumanConstVelBState(ran
                                                                              rand(rng, Uniform(-hbm.vel_max, hbm.vel_max)))
 
 @with_kw struct HumanPIDBehavior <: HumanBehaviorModel
-    target_sequence::Array{Pose, 1}
+    target_sequence::Array{Pos, 1}
 end
 
 bstate_type(::HumanBehaviorModel)::Type = HumanPIDBState
@@ -52,15 +52,15 @@ rand_hbs(rng::AbstractRNG, hbm::HumanPIDBehavior) = HumanPIDBState(target_index=
 human_target(hbm::HumanPIDBehavior, hbs::HumanPIDBState) = hbm.target_sequence[target_index(hbs)]
 next_target_index(hbm::HumanPIDBehavior, hbs::HumanPIDBState) = min(length(hbm.target_sequence), target_index(hbs)+1)
 
-function free_evolution(hbm::HumanPIDBehavior, hbs::HumanPIDBState, p::Pose)
+function free_evolution(hbm::HumanPIDBehavior, hbs::HumanPIDBState, p::Pos)
     human_velocity = min(hbs.max_speed, dist_to_pose(p, human_target(hbm, hbs))) #m/s
     vec2target = vec_from_to(p, human_target(hbm, hbs))
     walk_direction = normalize(vec2target)
     # new position:
-    human_pose_p::Pose = p
+    human_pose_p::Pos = p
     if !any(isnan(i) for i in walk_direction)
         xy_p = p[1:2] + walk_direction * human_velocity
-        human_pose_p = [xy_p..., p.phi]
+        human_pose_p = xy_p
     end
 
     return human_pose_p
@@ -102,7 +102,7 @@ function rand_hbs(rng::AbstractRNG, hbm::HumanBoltzmannModel)
 end
 
 @with_kw struct HumanSingleTargetRewardModel
-    human_target::Pose = Pose(5, 5, 0)
+    human_target::Pos = Pos(5, 5)
 end
 
 @with_kw struct HumanBoltzmannAction <: FieldVector{2, Float64}
@@ -116,20 +116,20 @@ function gen_human_aspace(phi_step::Float64=pi/12)
     SVector{length(direction_actions)+1, HumanBoltzmannAction}([zero(HumanBoltzmannAction),(HumanBoltzmannAction(dist, direction) for direction in direction_actions)...])
 end
 
-apply_human_action(p::Pose, a::HumanBoltzmannAction)::Pose = Pose(p.x + cos(a.phi)*a.d, p.y + sin(a.phi)*a.d, p.phi)
+apply_human_action(p::Pos, a::HumanBoltzmannAction)::Pos = Pos(p.x + cos(a.phi)*a.d, p.y + sin(a.phi)*a.d)
 
-function free_evolution(hbm::HumanBoltzmannModel, hbs::HumanBoltzmannBState, p::Pose, rng::AbstractRNG)
+function free_evolution(hbm::HumanBoltzmannModel, hbs::HumanBoltzmannBState, p::Pos, rng::AbstractRNG)
     d = get_action_distribution(hbm, hbs, p)
     sampled_action = hbm.aspace[rand(rng, d)]
     p_p = apply_human_action(p, sampled_action)
 end
 
-function compute_qval(p::Pose, a::HumanBoltzmannAction, reward_model::HumanSingleTargetRewardModel)
+function compute_qval(p::Pos, a::HumanBoltzmannAction, reward_model::HumanSingleTargetRewardModel)
     # TODO: reason about whether this should be the 2 or 1 norm!
     return -a.d - dist_to_pose(apply_human_action(p, a), reward_model.human_target; p=2)
 end
 
-function get_action_distribution(hbm::HumanBoltzmannModel, hbs::HumanBoltzmannBState, p::Pose)
+function get_action_distribution(hbm::HumanBoltzmannModel, hbs::HumanBoltzmannBState, p::Pos)
     for (i, a) in enumerate(hbm.aspace)
         hbm._aprob_mem[i] = exp(hbs.beta * compute_qval(p, a, hbm.reward_model))
     end

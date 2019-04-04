@@ -4,7 +4,7 @@ move)
 """
 
 function human_transition(hbs::HumanConstVelBState, hbm::HumanConstVelBehavior, m::HSModel,
-                          p::Pose, rng::AbstractRNG)
+                          p::Pos, rng::AbstractRNG)
     human_pose_p = free_evolution(hbs, p)
     hbs_p = (!iszero(hbm.vel_resample_sigma) ? HumanConstVelBState(hbs.vx + randn(rng)*hbm.vel_resample_sigma,
                                                                    hbs.vy + randn(rng)*hbm.vel_resample_sigma) :
@@ -14,7 +14,7 @@ function human_transition(hbs::HumanConstVelBState, hbm::HumanConstVelBehavior, 
 end
 
 function human_transition(hbs::HumanPIDBState, hbm::HumanPIDBehavior, m::HSModel,
-                          p::Pose, rng::AbstractRNG)
+                          p::Pos, rng::AbstractRNG)
     human_pose_p = free_evolution(hbm, hbs, p)
 
     hbs_p = (dist_to_pose(human_pose_p, human_target(hbm, hbs)) < agent_min_distance(m) ?
@@ -25,7 +25,7 @@ end
 
 # TODO: all of this could be typed more strongly to improve type stability. Avoid jusing abstract classes!
 function human_transition(hbs::HumanBehaviorState, hbm::HumanUniformModelMix, m::HSModel,
-                          p::Pose, rng::AbstractRNG)
+                          p::Pos, rng::AbstractRNG)
     # select the corresponding sub model
     hbm_sub = select_submodel(hbm, hbs)
     # propagate state according to this model
@@ -37,7 +37,7 @@ function human_transition(hbs::HumanBehaviorState, hbm::HumanUniformModelMix, m:
 end
 
 function human_transition(hbs::HumanBoltzmannBState, hbm::HumanBoltzmannModel, m::HSModel,
-                          p::Pose, rng::AbstractRNG)
+                          p::Pos, rng::AbstractRNG)
     hbs_p = hbs
     if rand(rng) <= hbm.epsilon
         hbs_p = rand_hbs(rng, hbm)

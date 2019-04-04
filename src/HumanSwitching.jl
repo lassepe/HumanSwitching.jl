@@ -40,7 +40,7 @@ import POMDPModelTools: render # modified in visualization.jl
 
 export
     # util types
-    Pose,
+    Pos,
     RoomRep,
 
     # post transition transformations for particle filter

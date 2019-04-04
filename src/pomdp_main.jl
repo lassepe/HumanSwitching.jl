@@ -7,11 +7,9 @@
     height::Float64 = 10
 end
 
-# the physical representation of an agent
-@with_kw struct Pose <: FieldVector{3, Float64}
+@with_kw struct Pos <: FieldVector{2, Float64}
     x::Float64 = 0   # horizontal position
     y::Float64 = 0   # vertical position
-    phi::Float64 = 0 # the orientation of the human
 end
 
 """
@@ -26,8 +24,7 @@ struct ExactPositionSensor <: HSSensor end
 @with_kw struct NoisyPositionSensor <: HSSensor
     # the diagonal of the measurement covariance matrix
     measurement_cov::Array{Float64, 1} = [0.1,
-                                          0.1,
-                                          0.01]
+                                          0.1]
 end
 
 """
@@ -57,7 +54,7 @@ abstract type HSPhysicalTransitionNoiseModel end
 struct HSIdentityPTNM <: HSPhysicalTransitionNoiseModel end
 
 @with_kw struct HSGaussianNoisePTNM <: HSPhysicalTransitionNoiseModel
-    pose_cov::Array{Float64} = [0.15, 0.15, 0.01] # the diagonal of the transition noise covariance matrix
+    pose_cov::Array{Float64} = [0.15, 0.15] # the diagonal of the transition noise covariance matrix
 end
 
 """
@@ -76,8 +73,8 @@ function rand_hbs end
 # State Representation
 """
 @with_kw struct HSExternalState
-    human_pose::Pose
-    robot_pose::Pose
+    human_pose::Pos
+    robot_pose::Pos
 end
 
 HSExternalState(v::T) where T<:AbstractVector{Float64} = HSExternalState(v[1:3], v[4:6])
@@ -85,7 +82,7 @@ HSExternalState(v::T) where T<:AbstractVector{Float64} = HSExternalState(v[1:3],
 function convert(::Type{V}, e::HSExternalState) where V <: AbstractVector
     hp = human_pose(e)
     rp = robot_pose(e)
-    return V([hp[1], hp[2], hp[3], rp[1], rp[2], rp[3]])
+    return V([hp[1], hp[2], rp[1], rp[2]])
 end
 
 @with_kw struct HSState{HBS<:HumanBehaviorState}
@@ -120,7 +117,7 @@ function HSActionSpace()
                 (HSAction(d, phi) for d in dist_actions, phi in direction_actions)...])
 end
 
-apply_robot_action(p::Pose, a::HSAction) = Pose(p.x + cos(a.phi)*a.d, p.y + sin(a.phi)*a.d, p.phi)
+apply_robot_action(p::Pos, a::HSAction) = Pos(p.x + cos(a.phi)*a.d, p.y + sin(a.phi)*a.d)
 
 """
 # POMDP and MDP Representation
@@ -132,7 +129,7 @@ apply_robot_action(p::Pose, a::HSAction) = Pose(p.x + cos(a.phi)*a.d, p.y + sin(
     reward_model::HSRewardModel = HSRewardModel()
     human_behavior_model::HBM = HumanPIDBehavior(room)
     physical_transition_noise_model::PTNM = HSIdentityPTNM()
-    robot_target::Pose = rand_pose(room, Random.GLOBAL_RNG, forced_orientation=0.0)
+    robot_target::Pos = rand_pose(room, Random.GLOBAL_RNG, forced_orientation=0.0)
     agent_min_distance::Float64 = 0.3
     known_external_initstate::Union{HSExternalState, Nothing} = nothing
 end
@@ -192,8 +189,8 @@ function POMDPs.observation(m::HSPOMDP{NoisyPositionSensor, HSExternalState, <:A
     hp = human_pose(s)
     rp = robot_pose(s)
     mc  = m.sensor.measurement_cov
-    return MvNormal([hp[1], hp[2], hp[3], rp[1], rp[2], rp[3]],
-                    [mc[1], mc[2], mc[3], mc[1], mc[2], mc[3]])
+    return MvNormal([hp[1], hp[2], rp[1], rp[2]],
+                    [mc[1], mc[2], mc[1], mc[2]])
 end
 Distributions.pdf(distribution::MvNormal, sample::HSExternalState) = pdf(distribution, convert(Vector{Float64}, sample))
 

@@ -78,7 +78,7 @@ Define three dictionaries that:
     3. Maps a key to a corresponding true model instance for the simulator.
 """
 # order (human_start_pose, robot_start_pose, human_target_pose, robot_target_pose)
-const ProblemInstance = Tuple{Pose, Pose, Pose, Pose}
+const ProblemInstance = Tuple{Pos, Pos, Pos, Pos}
 const PlannerHBMEntry = Tuple{HumanBehaviorModel, Float64}
 const SimulationHBMEntry = Tuple{HumanBehaviorModel}
 
@@ -143,10 +143,10 @@ function construct_models(rng::AbstractRNG, problem_instance::ProblemInstance,
 
     Params:
         rng [AbstractRNG]: The random seed to be used for these models.
-        human_start_pose [Pose]: The initial position of the human.
-        robot_start_pose [Pose]: The initial position of the robot.
-        human_target_pose [Pose]: The final target position of the human.
-        robot_target_pose [Pose]: The final target position of the robot.
+        human_start_pose [Pos]: The initial position of the human.
+        robot_start_pose [Pos]: The initial position of the robot.
+        human_target_pose [Pos]: The final target position of the human.
+        robot_target_pose [Pos]: The final target position of the robot.
         simulation_hbm [HumanBehaviorModel]: The "true" human model used by the simulator.
         belief_updater_hbm [HumanBehaviorModel]: The human model used by the belief updater.
         planner_hbm [HumanBehaviorModel]: The human model used by the planner.
@@ -159,7 +159,7 @@ function construct_models(rng::AbstractRNG, problem_instance::ProblemInstance,
 
     (human_start_pose, robot_start_pose, human_target_pose, robot_target_pose) = problem_instance
 
-    ptnm_cov = [0.01, 0.01, 0.01]
+    ptnm_cov = [0.01, 0.01]
     simulation_model = generate_hspomdp(ExactPositionSensor(),
                                         simulation_hbm,
                                         HSGaussianNoisePTNM(pose_cov=ptnm_cov),
@@ -240,10 +240,10 @@ end
 function problem_instance_map()
     room = RoomRep()
     return Dict{String, ProblemInstance}(
-        "DiagonalAcross" => (Pose(1/10 * room.width, 1/10 * room.height, 0), Pose(8/10 * room.width, 4/10 * room.height, 0),
-                             Pose(9/10 * room.width, 9/10 * room.height, 0), Pose(1/10 * room.width, 9/10 * room.height, 0)),
-        "FrontalCollision" => (Pose(1/2 * room.width, 1/10 * room.height, 0), Pose(1/2 * room.width, 9/10 * room.height, 0),
-                               Pose(1/2 * room.width, 9/10 * room.height, 0), Pose(1/2 * room.width, 1/10 * room.height, 0))
+        "DiagonalAcross" => (Pos(1/10 * room.width, 1/10 * room.height), Pos(8/10 * room.width, 4/10 * room.height),
+                             Pos(9/10 * room.width, 9/10 * room.height), Pos(1/10 * room.width, 9/10 * room.height)),
+        "FrontalCollision" => (Pos(1/2 * room.width, 1/10 * room.height), Pos(1/2 * room.width, 9/10 * room.height),
+                               Pos(1/2 * room.width, 9/10 * room.height), Pos(1/2 * room.width, 1/10 * room.height))
        )
 end
 
@@ -274,13 +274,12 @@ function simulation_hbm_map(problem_instance::ProblemInstance, i_run::Int)
                                           )
 end
 
-function noisy_waypoints(start_p::Pose, end_p::Pose, n_waypoints::Int, rng::AbstractRNG, sigma::Float64)
+function noisy_waypoints(start_p::Pos, end_p::Pos, n_waypoints::Int, rng::AbstractRNG, sigma::Float64)
     waypoints = []
     for i = 1:n_waypoints
-        direct_waypoint::Pose = start_p + (end_p - start_p) * i/(n_waypoints + 1)
-        noisy_waypoint = Pose(direct_waypoint.x + randn(rng) * sigma,
-                              direct_waypoint.y + randn(rng) * sigma,
-                              direct_waypoint.phi)
+        direct_waypoint::Pos = start_p + (end_p - start_p) * i/(n_waypoints + 1)
+        noisy_waypoint = Pos(direct_waypoint.x + randn(rng) * sigma,
+                             direct_waypoint.y + randn(rng) * sigma)
         push!(waypoints, noisy_waypoint)
     end
     push!(waypoints, end_p)

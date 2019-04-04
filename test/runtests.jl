@@ -121,14 +121,14 @@ end;
 
     # check whether the action space is symmetric
     isapproxin(container, external_it) = any(isapprox(it, external_it) for it in container)
-    reachable_states = (apply_robot_action(zero(Pose), a) for a in HSActionSpace())
+    reachable_states = (apply_robot_action(zero(Pos), a) for a in HSActionSpace())
     @test all(isapproxin(reachable_states, -s) for s in reachable_states)
 end
 
 @testset "Type Inference tests" begin
     # external state
     rng = MersenneTwister(1)
-    e = @inferred HSExternalState(Pose(), Pose())
+    e = @inferred HSExternalState(Pos(), Pos())
 
     # Constant Velocity
     @test @testblock quote
@@ -176,7 +176,7 @@ end
         @inferred mdp(planning_model.mdp)
         @inferred initialstate(planning_model, rng)
 
-        @inferred HS.human_transition(hbs, hbm, planning_model, Pose(), rng)
+        @inferred HS.human_transition(hbs, hbm, planning_model, Pos(), rng)
         a = rand(rng, HSActionSpace())
         sp = @inferred HS.generate_s(planning_model, s, a, rng)
         o = @inferred generate_o(planning_model, s, a, sp, rng)
