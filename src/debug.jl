@@ -209,7 +209,6 @@ function setup_test_scenario(pi_key::String, simulation_hbm_key::String, planner
     n_particles = 2000
     # the belief updater is run with a stochastic version of the world
     belief_updater = BasicParticleFilter(belief_updater_model, SharedExternalStateResampler(n_particles), n_particles, deepcopy(rng))
-    # the policy plannes without a model as it is always the same action
     # solver = POMCPOWSolver(tree_queries=12000, max_depth=70, criterion=MaxUCB(80),
     #                        k_observation=5, alpha_observation=1.0/30.0,
     #                        enable_action_pw=false,
@@ -219,9 +218,9 @@ function setup_test_scenario(pi_key::String, simulation_hbm_key::String, planner
 
     default_policy = StraightToTarget(planner_model)
     bounds = IndependentBounds(DefaultPolicyLB(default_policy), free_space_estimate, check_terminal=true)
-    solver = DESPOTSolver(K=20, D=30, T_max=1,
-                          default_action=default_policy, bounds=bounds, rng=deepcopy(rng), tree_in_info=true)
 
+    solver = DESPOTSolver(K=20, D=20, T_max=1, #max_trials=12000,
+                          bounds=bounds, rng=deepcopy(rng), tree_in_info=true)
     planner = solve(solver, planner_model)
     timed_planner = TimedPolicy(planner)
 
