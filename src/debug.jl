@@ -215,7 +215,7 @@ function setup_test_scenario(pi_key::String, simulation_hbm_key::String, planner
     timed_planner = TimedPolicy(planner)
 
     # compose metadata
-    git_commit_id = current_commit_id()
+    git_commit_id = (has_uncommited_changes() ? "dirty::" : "") * current_commit_id()
     md = Dict(:pi_key => pi_key,
               :simulation_hbm_key => simulation_hbm_key,
               :planner_hbm_key => planner_hbm_key,
