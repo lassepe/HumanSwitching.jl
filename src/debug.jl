@@ -112,7 +112,9 @@ function reproduce_scenario(scenario_data::DataFrameRow;
         to ignore uncommited changes, set the corresponding kwarg.")
     end
 
-    sim = setup_test_scenario(scenario_data[:pi_key], scenario_data[:simulation_hbm_key], scenario_data[:planner_hbm_key], scenario_data[:i_run])
+    sim = setup_test_scenario(scenario_data[:pi_key], scenario_data[:simulation_hbm_key],
+                              scenario_data[:planner_hbm_key], scenario_data[:solver_setup_key],
+                              scenario_data[:i_run])
 
     # some sanity checks on the hist
     hist = simulate(sim)
@@ -165,8 +167,7 @@ function construct_models(rng::AbstractRNG, problem_instance::ProblemInstance,
                                         simulation_hbm,
                                         HSGaussianNoisePTNM(pos_cov=ptnm_cov),
                                         deepcopy(rng),
-                                        known_external_initstate=HSExternalState(human_start_pos, robot_start_pos),
-                                        robot_target=robot_target_pos)
+                                        known_external_initstate=HSExternalState(human_start_pos, robot_start_pos), robot_target=robot_target_pos)
 
     belief_updater_model = generate_hspomdp(NoisyPositionSensor(ptnm_cov*9),
                                             belief_updater_hbm,
@@ -191,7 +192,7 @@ function belief_updater_from_planner_model(planner_hbm::HumanConstVelBehavior, v
     return HumanConstVelBehavior(vel_max=planner_hbm.vel_max, vel_resample_sigma=vel_resample_sigma)
 end
 
-function setup_test_scenario(pi_key::String, simulation_hbm_key::String, planner_hbm_key::String, i_run::Int)
+function setup_test_scenario(pi_key::String, simulation_hbm_key::String, planner_hbm_key::String, solver_setup_key::String, i_run::Int)
     rng = MersenneTwister(i_run)
 
     # Load in the given instance keys.
@@ -209,18 +210,7 @@ function setup_test_scenario(pi_key::String, simulation_hbm_key::String, planner
     n_particles = 2000
     # the belief updater is run with a stochastic version of the world
     belief_updater = BasicParticleFilter(belief_updater_model, SharedExternalStateResampler(n_particles), n_particles, deepcopy(rng))
-    # solver = POMCPOWSolver(tree_queries=12000, max_depth=70, criterion=MaxUCB(80),
-    #                        k_observation=5, alpha_observation=1.0/30.0,
-    #                        enable_action_pw=false,
-    #                        check_repeat_obs=!(planner_hbm isa HumanConstVelBehavior),
-    #                        check_repeat_act=true,
-    #                        estimate_value=free_space_estimate, rng=deepcopy(rng))
-
-    default_policy = StraightToTarget(planner_model)
-    bounds = IndependentBounds(DefaultPolicyLB(default_policy), free_space_estimate, check_terminal=true)
-
-    solver = DESPOTSolver(K=20, D=20, T_max=1, #max_trials=12000,
-                          bounds=bounds, rng=deepcopy(rng), tree_in_info=true)
+    solver = solver_setup_map(planner_model, planner_hbm, rng)[solver_setup_key]
     planner = solve(solver, planner_model)
     timed_planner = TimedPolicy(planner)
 
@@ -229,6 +219,7 @@ function setup_test_scenario(pi_key::String, simulation_hbm_key::String, planner
     md = Dict(:pi_key => pi_key,
               :simulation_hbm_key => simulation_hbm_key,
               :planner_hbm_key => planner_hbm_key,
+              :solver_setup_key => solver_setup_key,
               :i_run => i_run,
               :git_commit_id => git_commit_id)
 
@@ -266,6 +257,26 @@ function planner_hbm_map(problem_instance::ProblemInstance)
        )
 end
 
+function solver_setup_map(planner_model::HSModel, planner_hbm::HumanBehaviorModel, rng::MersenneTwister)
+    return Dict{String, Solver}(
+                                "DESPOT" => begin
+                                    default_policy = StraightToTarget(planner_model)
+                                    bounds = IndependentBounds(DefaultPolicyLB(default_policy), free_space_estimate, check_terminal=true)
+
+                                    solver = DESPOTSolver(K=10, D=50, max_trials=1000,
+                                                          bounds=bounds, rng=deepcopy(rng), tree_in_info=true)
+                                end,
+                                "POMCPOW" => begin
+                                    solver = POMCPOWSolver(tree_queries=12000, max_depth=70, criterion=MaxUCB(80),
+                                                           k_observation=5, alpha_observation=1.0/30.0,
+                                                           enable_action_pw=false,
+                                                           check_repeat_obs=!(planner_hbm isa HumanConstVelBehavior),
+                                                           check_repeat_act=true,
+                                                           estimate_value=free_space_estimate, rng=deepcopy(rng))
+                                end
+                               )
+end
+
 function simulation_hbm_map(problem_instance::ProblemInstance, i_run::Int)
     human_start_pos = problem_instance[1]
     human_target_pos = problem_instance[3]
@@ -294,7 +305,7 @@ end
 """
 Fuction that runs experiments [runs] times.
 """
-function test_parallel_sim(runs::UnitRange{Int}; ignore_uncommited_changes::Bool=false)
+function test_parallel_sim(runs::UnitRange{Int}, solver_setup_key::String="POMCPOW"; ignore_uncommited_changes::Bool=false)
     if !ignore_uncommited_changes && has_uncommited_changes()
         throw("There are uncommited changes. The stored commit-id might not be meaning full.
         to ignore uncommited changes, set the corresponding kwarg.")
@@ -309,16 +320,14 @@ function test_parallel_sim(runs::UnitRange{Int}; ignore_uncommited_changes::Bool
     for (pi_key, pi_entry) in problem_instances, i_run in runs
         planner_hbms = planner_hbm_map(pi_entry)
         simulation_hbms = simulation_hbm_map(pi_entry, i_run)
-        for simulation_hbm_key in keys(simulation_hbms)
-            for planner_hbm_key in keys(planner_hbms)
-                push!(sims, setup_test_scenario(pi_key, simulation_hbm_key, planner_hbm_key, i_run))
-            end
+        for simulation_hbm_key in keys(simulation_hbms), planner_hbm_key in keys(planner_hbms)
+                push!(sims, setup_test_scenario(pi_key, simulation_hbm_key, planner_hbm_key, solver_setup_key, i_run))
         end
     end
     # Simulation is launched in parallel mode. In order for this to work, julia
     # musst be started as: `julia -p n`, where n is the number of
     # workers/processes
-    data = run(sims) do sim::Sim, hist::SimHistory
+    data = run_parallel(sims) do sim::Sim, hist::SimHistory
         return [:n_steps => n_steps(hist),
                 :discounted_reward => discounted_reward(hist),
                 :hist_validation_hash => validation_hash(hist),
