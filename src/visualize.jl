@@ -61,7 +61,7 @@ function target_node(p::Pos;
     compose(context(),
             (context(), fill(fill_color), fillopacity(opacity), stroke(stroke_color), strokeopacity(opacity),
              circle(p.x, p.y, size/2)),
-    (context(), text(p.x+size/2, p.y+size/2, annotation), fill("black")))
+            (context(), text(p.x+size/2, p.y+size/2, annotation), fill("black")))
 end
 
 """
