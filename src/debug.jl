@@ -261,9 +261,10 @@ function solver_setup_map(planner_model::HSModel, planner_hbm::HumanBehaviorMode
     return Dict{String, Solver}(
                                 "DESPOT" => begin
                                     default_policy = StraightToTarget(planner_model)
+                                    # alternative lower bound: DefaultPolicyLB(default_policy)
                                     bounds = IndependentBounds(DefaultPolicyLB(default_policy), free_space_estimate, check_terminal=true)
 
-                                    solver = DESPOTSolver(K=10, D=50, max_trials=1000,
+                                    solver = DESPOTSolver(K=200, D=42, max_trials=10, T_max=Inf, lambda=0.01,
                                                           bounds=bounds, rng=deepcopy(rng), tree_in_info=true)
                                 end,
                                 "POMCPOW" => begin
