@@ -6,5 +6,8 @@ deps/deps.jl
 renderings/*
 !renderings/.gitkeep
 
+results/*
+!results/.gitkeep
+
 test/test_renderings/*
 !test/test_renderings/.gitkeep
