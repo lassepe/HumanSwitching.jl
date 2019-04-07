@@ -262,7 +262,8 @@ function planner_hbm_map(problem_instance::ProblemInstance)
         #                                                    aspace=HS.gen_human_aspace(pi/8)), 0.01),
         #"HumanBoltzmannModel_PI/4" => (HumanBoltzmannModel(reward_model=HumanSingleTargetRewardModel(human_target_pos),
         #                                                  aspace=HS.gen_human_aspace(pi/4)), 0.01),
-        #"HumanMultiGoalModel_all_corners" => (HumanMultiGoalModel(goal_resample_sigma=0.1), 0.1),
+        "HumanMultiGoalModel_all_corners" => (HumanMultiGoalModel(goal_resample_sigma=0.1), 0.1),
+        "HumanMultiGoalModel_3_corners" => (HumanMultiGoalModel(goal_resample_sigma=0.1, goals=corner_positions(RoomRep())[1:3]), 0.1),
         "HumanMultiGoalModel_2_corners" => (HumanMultiGoalModel(goal_resample_sigma=0.1, goals=corner_positions(RoomRep())[1:2]), 0.1)
        )
 end
