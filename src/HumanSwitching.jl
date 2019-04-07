@@ -89,15 +89,22 @@ export
 include("pomdp_main.jl")
 
 export
+    # const vel
     HumanConstVelBState,
-    HumanPIDBState,
     HumanConstVelBehavior,
-    HumanBoltzmannBState,
+    # pid
+    HumanPIDBState,
     HumanPIDBehavior,
+    # boltzmann
+    HumanBoltzmannBState,
     HumanBoltzmannModel,
-    gen_human_aspace,
     HumanRewardModel,
     HumanSingleTargetRewardModel,
+    gen_human_aspace,
+    # linear / multi goal
+    HumanLinearToGoalBState,
+    HumanMultiGoalModel,
+    # model mix
     HumanUniformModelMix,
     free_evolution,
     bstate_type

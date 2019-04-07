@@ -38,10 +38,25 @@ end
 function human_transition(hbs::HumanBoltzmannBState, hbm::HumanBoltzmannModel, m::HSModel,
                           p::Pos, rng::AbstractRNG)
     hbs_p = hbs
-    if rand(rng) <= hbm.epsilon
+    if rand(rng) < hbm.epsilon
         hbs_p = rand_hbs(rng, hbm)
     end
 
     # compute the new external state of the human
     return free_evolution(hbm, hbs, p, rng), hbs_p
+end
+
+function human_transition(hbs::HumanLinearToGoalBState, hbm::HumanMultiGoalModel, m::HSModel,
+                          p::Pos, rng::AbstractRNG)
+    human_pos_p = free_evolution(hbs, hbm.vel_max, p)
+    # if close to goal, sample next goal according from generative model
+    # representing P(g_{k+1} | g_{k})
+    if rand(rng) < hbm.goal_resample_sigma
+        hbs_p = rand_hbs(rng, hbm)
+    else
+        hbs_p = (dist_to_pos(human_pos_p, hbs.goal) < agent_min_distance(m) ?
+                 hbs=HumanLinearToGoalBState(hbm.next_goal_generator(hbs.goal, hbm.goals, rng)) : hbs)
+    end
+
+    return human_pos_p, hbs_p
 end

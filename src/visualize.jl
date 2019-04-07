@@ -121,6 +121,20 @@ function human_particle_node(human_pos::Pos, hbm::HumanPIDBehavior, hbs::HumanPI
                                   opacity=opacity)
 end
 
+function human_particle_node(human_pos::Pos, hbm::HumanMultiGoalModel, hbs::HumanLinearToGoalBState;
+                             external_color="light blue", internal_color=map_to_color(hbs),
+                             annotation::String="", opacity::Float64=1.0)
+
+    return agent_with_target_node(human_pos,
+                                  hbs.goal,
+                                  external_color=external_color,
+                                  curve_color=internal_color,
+                                  annotation=annotation,
+                                  target_color=internal_color,
+                                  target_size=0.4,
+                                  opacity=opacity)
+end
+
 function human_particle_node(human_pos::Pos, hbm::HumanConstVelBehavior, hbs::HumanConstVelBState;
                              external_color="light green", internal_color=map_to_color(hbs),
                              annotation::String="", opacity::Float64=1.0)
@@ -210,6 +224,20 @@ function bstate_subplot_node(::Type{HumanPIDBState},
                                     Coord.Cartesian(xmin=0, xmax=length(hbm.potential_targets)),
                                     Guide.title("PID Human: Target Index Belief"),
                                     Guide.xlabel("Target Index"))
+end
+
+function bstate_subplot_node(::Type{HumanLinearToGoalBState},
+                             unfiltered_hbs_data::Array{<:HumanBehaviorState}, hbm::HumanBehaviorModel)::Context
+    # TODO: Fix later!
+    # # filter data and map to sortable type
+    # target_indices = [target_index(hbs)-1 for hbs in unfiltered_hbs_data if hbs isa HumanLinearToGoalBState]
+
+    # # compose histogram
+    # return parameter_histogram_node(target_indices, hbsColors[HumanLinearToGoalBState], 4,
+    #                                 Coord.Cartesian(xmin=0, xmax=length(hbm.potential_targets)),
+    #                                 Guide.title("PID Human: Target Index Belief"),
+    #                                 Guide.xlabel("Target Index"))
+    return context()
 end
 
 function bstate_subplot_node(::Type{HumanConstVelBState},

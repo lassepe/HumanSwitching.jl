@@ -10,13 +10,28 @@ free_evolution(hbs::HumanConstVelBState, p::Pos) = Pos(p.x + hbs.vx, p.y + hbs.v
 
 @with_kw struct HumanPIDBState <: HumanBehaviorState
     target_index::Int = 1
-    max_speed::Float64 = 0.5
+    vel_max::Float64 = 0.5
 end
 
 target_index(hbs::HumanPIDBState) = hbs.target_index
 
 struct HumanBoltzmannBState <: HumanBehaviorState
     beta::Float64
+end
+
+struct HumanLinearToGoalBState <: HumanBehaviorState
+    goal::Pos
+end
+
+function free_evolution(hbs::HumanLinearToGoalBState, vel_max::Float64, p::Pos)
+    human_velocity = min(vel_max, dist_to_pos(p, hbs.goal)) #m/s
+    walk_direction = normalize(vec_from_to(p, hbs.goal))
+    human_pos_p::Pos = p
+    if !any(isnan(i) for i in walk_direction)
+        human_pos_p = p + walk_direction * human_velocity
+    end
+
+    return human_pos_p
 end
 
 """
@@ -27,7 +42,7 @@ Each describe
 - how HumanBehaviorState's evolve (see `human_transition_models.jl`)
 """
 # basic models don't have further submodels
-select_submodel(hbm::HumanBehaviorModel, hbs::Type{<:HumanBehaviorState}) = hbm
+select_submodel(hbm::HumanBehaviorModel, hbs_type::Type{<:HumanBehaviorState}) = hbm
 select_submodel(hbm::HumanBehaviorModel, hbs::HumanBehaviorState)::HumanBehaviorModel = select_submodel(hbm, typeof(hbs))
 
 @with_kw struct HumanConstVelBehavior <: HumanBehaviorModel
@@ -55,7 +70,7 @@ human_target(hbm::HumanPIDBehavior, hbs::HumanPIDBState) = hbm.target_sequence[t
 next_target_index(hbm::HumanPIDBehavior, hbs::HumanPIDBState) = min(length(hbm.target_sequence), target_index(hbs)+1)
 
 function free_evolution(hbm::HumanPIDBehavior, hbs::HumanPIDBState, p::Pos)
-    human_velocity = min(hbs.max_speed, dist_to_pos(p, human_target(hbm, hbs))) #m/s
+    human_velocity = min(hbs.vel_max, dist_to_pos(p, human_target(hbm, hbs))) #m/s
     vec2target = vec_from_to(p, human_target(hbm, hbs))
     walk_direction = normalize(vec2target)
     # new position:
@@ -137,6 +152,24 @@ function get_action_distribution(hbm::HumanBoltzmannModel, hbs::HumanBoltzmannBS
     return Categorical(Array(normalize!(hbm._aprob_mem, 1)))
 end
 
+@with_kw struct HumanMultiGoalModel <: HumanBehaviorModel
+    goals::Array{Pos, 1} = corner_positions(RoomRep())
+    next_goal_generator::Function = uniform_goal_generator
+    initial_goal_generator::Function = uniform_goal_generator
+    vel_max::Float64 = 0.5
+    goal_resample_sigma::Float64 = 0.01
+end
+
+bstate_type(hbm::HumanMultiGoalModel) = HumanLinearToGoalBState
+
+rand_hbs(rng::AbstractRNG, hbm::HumanMultiGoalModel) = HumanLinearToGoalBState(hbm.initial_goal_generator(hbm.goals, rng)::Pos)
+
+function uniform_goal_generator(goals::Array{Pos, 1}, rng::AbstractRNG)
+    return rand(rng, goals)::Pos
+end
+
+uniform_goal_generator(::Pos, goals::Array{Pos, 1}, rng::AbstractRNG) = uniform_goal_generator(goals, rng)::Pos
+
 struct HumanUniformModelMix{T} <: HumanBehaviorModel
     submodels::Array{T, 1}
     bstate_change_likelihood::Float64
@@ -152,8 +185,8 @@ end
 
 bstate_type(hbm::HumanUniformModelMix) = hbm.bstate_types
 
-function select_submodel(hbm::HumanUniformModelMix{T}, t::Type{<:HumanBehaviorState})::T where T
-    candidate_submodels = filter(x->(t <: bstate_type(x)), hbm.submodels)
+function select_submodel(hbm::HumanUniformModelMix{T}, hbs_type::Type{<:HumanBehaviorState})::T where T
+    candidate_submodels = filter(x->(hbs_type <: bstate_type(x)), hbm.submodels)
     @assert(length(candidate_submodels) == 1)
     return first(candidate_submodels)
 end

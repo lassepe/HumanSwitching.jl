@@ -93,7 +93,7 @@ end;
 
 @testset "POMDP visualization" begin
     mdp = HSMDP(physical_transition_noise_model=HSIdentityPTNM())
-    pomdp = HSPOMDP(sensor=NoisyPositionSensor([0.1,0.1,0.01]), mdp=mdp)
+    pomdp = HSPOMDP(sensor=NoisyPositionSensor([0.1,0.1]), mdp=mdp)
     rng = MersenneTwister(42)
     belief_updater = NothingUpdater()
     policy = FunctionPolicy(x->HSAction())
@@ -186,6 +186,13 @@ end
         s = @inferred HSState(external=e, hbs=hbs)
     end
 
+    # multi goal human
+    @test @testblock quote
+        hbm = HumanMultiGoalModel()
+        hbs = @inferred HS.rand_hbs(rng, hbm)
+        s = @inferred HSState(external=e, hbs=hbs)
+    end
+
     # Uniform Mix
     # TODO: Stabilize type
     @test_broken @testblock quote
@@ -197,7 +204,7 @@ end
     end
 
     @test @testblock quote
-        ptnm_cov = [0.01, 0.01, 0.01]
+        ptnm_cov = [0.01, 0.01]
         hbm = HumanBoltzmannModel()
         hbs = HS.rand_hbs(rng, hbm)
         s = HSState(external=e, hbs=hbs)

@@ -188,8 +188,16 @@ function belief_updater_from_planner_model(planner_hbm::HumanBoltzmannModel, eps
     return HumanBoltzmannModel(reward_model=planner_hbm.reward_model, betas=planner_hbm.betas, epsilon=epsilon)
 end
 
-function belief_updater_from_planner_model(planner_hbm::HumanConstVelBehavior, vel_resample_sigma::Float64)
-    return HumanConstVelBehavior(vel_max=planner_hbm.vel_max, vel_resample_sigma=vel_resample_sigma)
+function belief_updater_from_planner_model(planner_hbm::HumanConstVelBehavior, epsilon::Float64)
+    return HumanConstVelBehavior(vel_max=planner_hbm.vel_max, vel_resample_sigma=epsilon)
+end
+
+function belief_updater_from_planner_model(planner_hbm::HumanMultiGoalModel, epsilon::Float64)
+    return HumanMultiGoalModel(goals=planner_hbm.goals,
+                               next_goal_generator=planner_hbm.next_goal_generator,
+                               initial_goal_generator=planner_hbm.initial_goal_generator,
+                               vel_max=planner_hbm.vel_max,
+                               goal_resample_sigma=epsilon)
 end
 
 function setup_test_scenario(pi_key::String, simulation_hbm_key::String, planner_hbm_key::String, solver_setup_key::String, i_run::Int)
@@ -250,10 +258,12 @@ function planner_hbm_map(problem_instance::ProblemInstance)
         #"HumanConstVelBehavior" => (HumanConstVelBehavior(vel_max=1, vel_resample_sigma=0.0), 0.05),
         #"HumanBoltzmannModel_PI/12" => (HumanBoltzmannModel(reward_model=HumanSingleTargetRewardModel(human_target_pos),
         #                                                    aspace=HS.gen_human_aspace(pi/12)), 0.01),
-        "HumanBoltzmannModel_PI/8" => (HumanBoltzmannModel(reward_model=HumanSingleTargetRewardModel(human_target_pos),
-                                                           aspace=HS.gen_human_aspace(pi/8)), 0.01),
+        # "HumanBoltzmannModel_PI/8" => (HumanBoltzmannModel(reward_model=HumanSingleTargetRewardModel(human_target_pos),
+        #                                                    aspace=HS.gen_human_aspace(pi/8)), 0.01),
         #"HumanBoltzmannModel_PI/4" => (HumanBoltzmannModel(reward_model=HumanSingleTargetRewardModel(human_target_pos),
-        #                                                  aspace=HS.gen_human_aspace(pi/4)), 0.01)
+        #                                                  aspace=HS.gen_human_aspace(pi/4)), 0.01),
+        #"HumanMultiGoalModel_all_corners" => (HumanMultiGoalModel(goal_resample_sigma=0.1), 0.1),
+        "HumanMultiGoalModel_2_corners" => (HumanMultiGoalModel(goal_resample_sigma=0.1, goals=corner_positions(RoomRep())[1:2]), 0.1)
        )
 end
 
@@ -285,10 +295,12 @@ function simulation_hbm_map(problem_instance::ProblemInstance, i_run::Int)
     return Dict{String, SimulationHBMEntry}(
         #"HumanBoltzmannModel0.1" => (HumanBoltzmannModel(reward_model=HumanSingleTargetRewardModel(human_target_pos), beta_min=0.1, beta_max=0.1),),
         #"HumanBoltzmannModel1.0" => (HumanBoltzmannModel(reward_model=HumanSingleTargetRewardModel(human_target_pos), beta_min=1.0, beta_max=1.0),),
-        "HumanBoltzmannModel5.0" => (HumanBoltzmannModel(reward_model=HumanSingleTargetRewardModel(human_target_pos), beta_min=5.0, beta_max=5.0),),
+        #"HumanBoltzmannModel5.0" => (HumanBoltzmannModel(reward_model=HumanSingleTargetRewardModel(human_target_pos), beta_min=5.0, beta_max=5.0),),
         #"HumanBoltzmannModel10.0" => (HumanBoltzmannModel(reward_model=HumanSingleTargetRewardModel(human_target_pos), beta_min=10.0, beta_max=10.0),),
         #"HumanBoltzmannModel15.0" => (HumanBoltzmannModel(reward_model=HumanSingleTargetRewardModel(human_target_pos), beta_min=15.0, beta_max=15.0),),
         #"WayPoints_n5_sig1.0" => (HumanPIDBehavior(target_sequence=noisy_waypoints(human_start_pos, human_target_pos, 5, simulation_rng, 1.0)),),
+        # TODO: In this context it does not really make sense to distinguish between problem_instance and simulation model!
+        "HumanMultiGoalModel_all_corners" => (HumanMultiGoalModel(goal_resample_sigma=0.1),)
                                           )
 end
 
@@ -359,5 +371,5 @@ end
 
 function debug(data, idx; kwargs...)
     viz = reproduce_scenario(data[idx, :]; kwargs...)
-    visualize(viz[1:2]...)
+    visualize(viz[1:2]..., filename="$idx")
 end
