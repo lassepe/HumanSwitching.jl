@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
-
+echo $0
 script_dir="$( cd "$(dirname "$0")" ; pwd -P )"
-source $script_dir/path_definitions
+source "$script_dir/path_definitions"
 
-rsync -r -a -v -e ssh lassepe@Dragan-DGX-Station:$deploy_dir/results/ $source_dir/results/
+rsync -r -a -v -e ssh lassepe@Dragan-DGX-Station:$deploy_dir/results/ "$source_dir/results/"
