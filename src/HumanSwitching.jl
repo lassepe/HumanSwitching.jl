@@ -91,28 +91,39 @@ include("pomdp_main.jl")
 export
     # const vel
     HumanConstVelBState,
-    HumanConstVelBehavior,
+    HumanConstVelBehavior
+include("human_behaviors/human_const_vel.jl")
+
+export
+    free_evolution,
+    bstate_type
+include("human_behaviors/human_behaviors.jl")
+
+export
     # pid
     HumanPIDBState,
-    HumanPIDBehavior,
+    HumanPIDBehavior
+include("human_behaviors/human_pid.jl")
+
+export
     # boltzmann
     HumanBoltzmannBState,
     HumanBoltzmannModel,
     HumanRewardModel,
     HumanSingleTargetRewardModel,
     gen_human_aspace,
-    # linear / multi goal
+    # boltzmann / multi goal
     HumanBoltzmannToGoalBState,
-    HumanMultiGoalBoltzmann,
+    HumanMultiGoalBoltzmann
+include("human_behaviors/human_boltzmann.jl")
+
+export
     # model mix
-    HumanUniformModelMix,
-    free_evolution,
-    bstate_type
-include("human_behaviors.jl")
+    HumanUniformModelMix
+include("human_behaviors/human_uniform_modelmix.jl")
 
 include("physical_transition_noise_model.jl")
 include("reward_model.jl")
-include("human_transition_models.jl")
 
 export
     rand_astate,

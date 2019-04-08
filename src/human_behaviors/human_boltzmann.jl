@@ -1,19 +1,8 @@
 """
-# state representations of the human internal state
+HumanBoltzmannModel
 """
-struct HumanConstVelBState <: HumanBehaviorState
-    vx::Float64
-    vy::Float64
-end
 
-free_evolution(hbs::HumanConstVelBState, p::Pos) = Pos(p.x + hbs.vx, p.y + hbs.vy)
-
-@with_kw struct HumanPIDBState <: HumanBehaviorState
-    target_index::Int = 1
-    vel_max::Float64 = 0.4
-end
-
-target_index(hbs::HumanPIDBState) = hbs.target_index
+abstract type HumanRewardModel end
 
 struct HumanBoltzmannBState <: HumanBehaviorState
     beta::Float64
@@ -23,67 +12,6 @@ struct HumanBoltzmannToGoalBState <: HumanBehaviorState
     beta::Float64
     goal::Pos
 end
-
-"""
-# HumanBehaviorModel
-
-Each describe
-- from which distribution HumanBehaviorState's are sampled
-- how HumanBehaviorState's evolve (see `human_transition_models.jl`)
-"""
-# basic models don't have further submodels
-select_submodel(hbm::HumanBehaviorModel, hbs_type::Type{<:HumanBehaviorState}) = hbm
-select_submodel(hbm::HumanBehaviorModel, hbs::HumanBehaviorState)::HumanBehaviorModel = select_submodel(hbm, typeof(hbs))
-
-"""
-HumanConstVelBehavior
-"""
-@with_kw struct HumanConstVelBehavior <: HumanBehaviorModel
-    vel_max::Float64 = 1.0
-    vel_resample_sigma::Float64 = 0.0
-end
-
-bstate_type(::HumanConstVelBehavior)::Type = HumanConstVelBState
-
-# this model randomely generates HumanConstVelBState from the min_max_vel range
-rand_hbs(rng::AbstractRNG, hbm::HumanConstVelBehavior) = HumanConstVelBState(rand(rng, Uniform(-hbm.vel_max, hbm.vel_max)),
-                                                                             rand(rng, Uniform(-hbm.vel_max, hbm.vel_max)))
-
-@with_kw struct HumanPIDBehavior <: HumanBehaviorModel
-    target_sequence::Array{Pos, 1}
-end
-
-"""
-HumanPIDBehavior
-"""
-HumanPIDBehavior(r::RoomRep) = HumanPIDBehavior(target_sequence=corner_positions(r))
-
-bstate_type(::HumanBehaviorModel)::Type = HumanPIDBState
-
-rand_hbs(rng::AbstractRNG, hbm::HumanPIDBehavior) = HumanPIDBState(target_index=1)
-
-human_target(hbm::HumanPIDBehavior, hbs::HumanPIDBState) = hbm.target_sequence[target_index(hbs)]
-next_target_index(hbm::HumanPIDBehavior, hbs::HumanPIDBState) = min(length(hbm.target_sequence), target_index(hbs)+1)
-
-function free_evolution(hbm::HumanPIDBehavior, hbs::HumanPIDBState, p::Pos)
-    human_velocity = min(hbs.vel_max, dist_to_pos(p, human_target(hbm, hbs))) #m/s
-    vec2target = vec_from_to(p, human_target(hbm, hbs))
-    walk_direction = normalize(vec2target)
-    # new position:
-    human_pos_p::Pos = p
-    if !any(isnan(i) for i in walk_direction)
-        xy_p = p[1:2] + walk_direction * human_velocity
-        human_pos_p = xy_p
-    end
-
-    return human_pos_p
-end
-
-
-"""
-HumanBoltzmannModel
-"""
-abstract type HumanRewardModel end
 
 struct HumanBoltzmannModel{RMT, NA, TA} <: HumanBehaviorModel
     beta_min::Float64
@@ -152,6 +80,17 @@ function get_action_distribution(hbm::HumanBoltzmannModel, hbs::HumanBoltzmannBS
     return Categorical(Array(normalize!(hbm._aprob_mem, 1)))
 end
 
+function human_transition(hbs::HumanBoltzmannBState, hbm::HumanBoltzmannModel, m::HSModel,
+                          p::Pos, rng::AbstractRNG)
+    hbs_p = hbs
+    if rand(rng) < hbm.epsilon
+        hbs_p = rand_hbs(rng, hbm)
+    end
+
+    # compute the new external state of the human
+    return free_evolution(hbm, hbs, p, rng), hbs_p
+end
+
 """
 HumanMultiGoalBoltzmann
 """
@@ -204,28 +143,16 @@ function free_evolution(hbm::HumanMultiGoalBoltzmann, hbs::HumanBoltzmannToGoalB
     p_p = apply_human_action(p, sampled_action)
 end
 
-"""
-HumanUniformModelMix
-"""
-struct HumanUniformModelMix{T} <: HumanBehaviorModel
-    submodels::Array{T, 1}
-    bstate_change_likelihood::Float64
-    bstate_type::Type
+function human_transition(hbs::HumanBoltzmannToGoalBState, hbm::HumanMultiGoalBoltzmann, m::HSModel,
+                          p::Pos, rng::AbstractRNG)
+    human_pos_p = free_evolution(hbm, hbs, p, rng)
+    # with a small likelyhood, resample a new beta
+    beta_p = rand(rng) < hbm.beta_resample_sigma ? rand_beta(rng, hbm) : hbs.beta
+    # if close to goal, sample next goal according from generative model
+    # representing P(g_{k+1} | g_{k})
+    goal_p = ((rand(rng) < hbm.goal_resample_sigma || dist_to_pos(human_pos_p, hbs.goal) < agent_min_distance(m)) ?
+              hbm.next_goal_generator(hbs.goal, hbm.goals, rng) : hbs.goal)
+
+    hbs_p = HumanBoltzmannToGoalBState(beta_p, goal_p)
+    return human_pos_p, hbs_p
 end
-
-function HumanUniformModelMix(models...; bstate_change_likelihood::Float64)
-    submodels = [models...]
-    return HumanUniformModelMix{Union{typeof.(models)...}}(submodels,
-                                                           bstate_change_likelihood,
-                                                           Union{Iterators.flatten([[bstate_type(sm)] for sm in submodels])...})
-end
-
-bstate_type(hbm::HumanUniformModelMix) = hbm.bstate_types
-
-function select_submodel(hbm::HumanUniformModelMix{T}, hbs_type::Type{<:HumanBehaviorState})::T where T
-    candidate_submodels = filter(x->(hbs_type <: bstate_type(x)), hbm.submodels)
-    @assert(length(candidate_submodels) == 1)
-    return first(candidate_submodels)
-end
-
-rand_hbs(rng::AbstractRNG, hbm::HumanUniformModelMix)::HumanBehaviorState = rand_hbs(rng::AbstractRNG, rand(rng, hbm.submodels))
