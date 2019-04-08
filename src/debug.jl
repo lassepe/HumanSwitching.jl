@@ -275,9 +275,19 @@ function planner_hbm_map(problem_instance::ProblemInstance)
         #                                                    aspace=HS.gen_human_aspace(pi/8)), 0.01),
         #"HumanBoltzmannModel_PI/4" => (HumanBoltzmannModel(reward_model=HumanSingleTargetRewardModel(human_target_pos),
         #                                                  aspace=HS.gen_human_aspace(pi/4)), 0.01),
-        "HumanMultiGoalBoltzmann_all_corners" => (HumanMultiGoalBoltzmann(beta_min=1, beta_max=20,
-                                                                          goal_resample_sigma=0.1,
-                                                                          beta_resample_sigma=0.0), 0.01)
+        # TODO: room should be part of problem instance
+        "HumanMultiGoalBoltzmann_all_corners" => (HumanMultiGoalBoltzmann(goals=corner_positions(RoomRep()),
+                                                                          beta_min=0.1, beta_max=20,
+                                                                          goal_resample_sigma=0.01,
+                                                                          beta_resample_sigma=0.0), 0.02),
+        "HumanMultiGoalBoltzmann_3_corners" => (HumanMultiGoalBoltzmann(goals=corner_positions(RoomRep())[1:3],
+                                                                        beta_min=0.1, beta_max=20,
+                                                                        goal_resample_sigma=0.01,
+                                                                        beta_resample_sigma=0.0), 0.02),
+        "HumanMultiGoalBoltzmann_2_corners" => (HumanMultiGoalBoltzmann(goals=corner_positions(RoomRep())[1:2],
+                                                                        beta_min=0.1, beta_max=20,
+                                                                        goal_resample_sigma=0.01,
+                                                                        beta_resample_sigma=0.0), 0.02),
        )
 end
 
@@ -315,7 +325,7 @@ function simulation_hbm_map(problem_instance::ProblemInstance, i_run::Int)
         #"WayPoints_n5_sig1.0" => (HumanPIDBehavior(target_sequence=noisy_waypoints(human_start_pos, human_target_pos, 5, simulation_rng, 1.0)),),
         # TODO: In this context it does not really make sense to distinguish between problem_instance and simulation model!
         "HumanMultiGoalBoltzmann_all_corners" => (HumanMultiGoalBoltzmann(beta_min=20, beta_max=20,
-                                                                          goal_resample_sigma=0.0,
+                                                                          goal_resample_sigma=0.01,
                                                                           beta_resample_sigma=0.0),)
        )
 end
@@ -356,7 +366,7 @@ function test_parallel_sim(runs::UnitRange{Int}, solver_setup_key::String="POMCP
     # Simulation is launched in parallel mode. In order for this to work, julia
     # musst be started as: `julia -p n`, where n is the number of
     # workers/processes
-    data = run(sims) do sim::Sim, hist::SimHistory
+    data = run_parallel(sims) do sim::Sim, hist::SimHistory
         return [:n_steps => n_steps(hist),
                 :discounted_reward => discounted_reward(hist),
                 :hist_validation_hash => validation_hash(hist),

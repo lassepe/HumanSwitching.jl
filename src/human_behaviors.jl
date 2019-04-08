@@ -10,7 +10,7 @@ free_evolution(hbs::HumanConstVelBState, p::Pos) = Pos(p.x + hbs.vx, p.y + hbs.v
 
 @with_kw struct HumanPIDBState <: HumanBehaviorState
     target_index::Int = 1
-    vel_max::Float64 = 0.5
+    vel_max::Float64 = 0.4
 end
 
 target_index(hbs::HumanPIDBState) = hbs.target_index
@@ -161,7 +161,7 @@ HumanMultiGoalBoltzmann
     goals::Array{Pos, 1} = corner_positions(RoomRep())
     next_goal_generator::Function = uniform_goal_generator
     initial_goal_generator::Function = uniform_goal_generator
-    vel_max::Float64 = 0.5
+    vel_max::Float64 = 0.4
     goal_resample_sigma::Float64 = 0.01
     beta_resample_sigma::Float64 = 0.01
 

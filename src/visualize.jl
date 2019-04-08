@@ -234,15 +234,14 @@ end
 
 function bstate_subplot_node(::Type{HumanBoltzmannToGoalBState},
                              unfiltered_hbs_data::Array{<:HumanBehaviorState}, hbm::HumanBehaviorModel)::Context
-    # TODO: Fix later!
-    # # filter data and map to sortable type
-    # target_indices = [target_index(hbs)-1 for hbs in unfiltered_hbs_data if hbs isa HumanBoltzmannToGoalBState]
-
-    # # compose histogram
-    # return parameter_histogram_node(target_indices, hbsColors[HumanBoltzmannToGoalBState], 4,
-    #                                 Coord.Cartesian(xmin=0, xmax=length(hbm.potential_targets)),
-    #                                 Guide.title("PID Human: Target Index Belief"),
-    #                                 Guide.xlabel("Target Index"))
+    # filter data
+    betas = [hbs.beta for hbs in unfiltered_hbs_data if hbs isa HumanBoltzmannToGoalBState]
+    # compose histogram
+    return parameter_histogram_node(betas, hbsColors[HumanBoltzmannToGoalBState], 10,
+                                    Coord.Cartesian(xmin=0.1, xmax=log(hbm.beta_max)),
+                                    Guide.title("Boltzmann Beta Belief"),
+                                    Guide.xlabel("beta"),
+                                    Gadfly.Scale.x_log)
     return context()
 end
 

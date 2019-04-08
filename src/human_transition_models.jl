@@ -50,7 +50,7 @@ function human_transition(hbs::HumanBoltzmannToGoalBState, hbm::HumanMultiGoalBo
                           p::Pos, rng::AbstractRNG)
     human_pos_p = free_evolution(hbm, hbs, p, rng)
     # with a small likelyhood, resample a new beta
-    beta_p = rand(rng) < hbm.goal_resample_sigma ? rand_beta(rng, hbm) :  hbs.beta
+    beta_p = rand(rng) < hbm.beta_resample_sigma ? rand_beta(rng, hbm) : hbs.beta
     # if close to goal, sample next goal according from generative model
     # representing P(g_{k+1} | g_{k})
     goal_p = ((rand(rng) < hbm.goal_resample_sigma || dist_to_pos(human_pos_p, hbs.goal) < agent_min_distance(m)) ?
