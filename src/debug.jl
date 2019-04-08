@@ -268,13 +268,8 @@ end
 function planner_hbm_map(problem_instance::ProblemInstance)
     human_target_pos = problem_instance[3]
     return Dict{String, PlannerHBMEntry}(
-        #"HumanConstVelBehavior" => (HumanConstVelBehavior(vel_max=1, vel_resample_sigma=0.0), 0.05),
-        #"HumanBoltzmannModel_PI/12" => (HumanBoltzmannModel(reward_model=HumanSingleTargetRewardModel(human_target_pos),
-        #                                                    aspace=HS.gen_human_aspace(pi/12)), 0.01),
+        # "HumanConstVelBehavior" => (HumanConstVelBehavior(vel_max=1, vel_resample_sigma=0.0), 0.05),
         # "HumanBoltzmannModel_PI/8" => (HumanBoltzmannModel(reward_model=HumanSingleTargetRewardModel(human_target_pos),
-        #                                                    aspace=HS.gen_human_aspace(pi/8)), 0.01),
-        #"HumanBoltzmannModel_PI/4" => (HumanBoltzmannModel(reward_model=HumanSingleTargetRewardModel(human_target_pos),
-        #                                                  aspace=HS.gen_human_aspace(pi/4)), 0.01),
         # TODO: room should be part of problem instance
         "HumanMultiGoalBoltzmann_all_corners" => (HumanMultiGoalBoltzmann(goals=corner_positions(RoomRep()),
                                                                           beta_min=0.1, beta_max=20,
@@ -317,11 +312,7 @@ function simulation_hbm_map(problem_instance::ProblemInstance, i_run::Int)
     human_target_pos = problem_instance[3]
     simulation_rng = MersenneTwister(i_run + 1)
     return Dict{String, SimulationHBMEntry}(
-        #"HumanBoltzmannModel0.1" => (HumanBoltzmannModel(reward_model=HumanSingleTargetRewardModel(human_target_pos), beta_min=0.1, beta_max=0.1),),
-        #"HumanBoltzmannModel1.0" => (HumanBoltzmannModel(reward_model=HumanSingleTargetRewardModel(human_target_pos), beta_min=1.0, beta_max=1.0),),
         #"HumanBoltzmannModel5.0" => (HumanBoltzmannModel(reward_model=HumanSingleTargetRewardModel(human_target_pos), beta_min=5.0, beta_max=5.0),),
-        #"HumanBoltzmannModel10.0" => (HumanBoltzmannModel(reward_model=HumanSingleTargetRewardModel(human_target_pos), beta_min=10.0, beta_max=10.0),),
-        #"HumanBoltzmannModel15.0" => (HumanBoltzmannModel(reward_model=HumanSingleTargetRewardModel(human_target_pos), beta_min=15.0, beta_max=15.0),),
         #"WayPoints_n5_sig1.0" => (HumanPIDBehavior(target_sequence=noisy_waypoints(human_start_pos, human_target_pos, 5, simulation_rng, 1.0)),),
         # TODO: In this context it does not really make sense to distinguish between problem_instance and simulation model!
         "HumanMultiGoalBoltzmann_all_corners" => (HumanMultiGoalBoltzmann(beta_min=20, beta_max=20,

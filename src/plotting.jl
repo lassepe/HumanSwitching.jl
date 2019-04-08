@@ -51,6 +51,19 @@ function plot_problem_instance(data::DataFrame)
 	end
 end
 
+function check_data(data::DataFrame)
+    non_terminal_data = @linq data |> where(:final_state_type .== "non-terminal")
+    if nrow(non_terminal_data) > 0
+        @warn "There were non-terminal runs:"
+        display(non_terminal_data)
+        return false
+    else
+        @assert count(data.final_state_type .== "success") + count(data.final_state_type .== "failure") == nrow(data)
+        @info "Checks on data succeeded!"
+        return true
+    end
+end
+
 function load_data(files...; shorten_names::Bool=true)
     data_frames = []
 
@@ -63,7 +76,19 @@ function load_data(files...; shorten_names::Bool=true)
     # stack them to one long table
     all_data = vcat(data_frames...)
 
-    return !shorten_names ? all_data : @linq all_data |> transform(planner_hbm_key=simplify_hbm_name.(:planner_hbm_key),
+
+    return_data = !shorten_names ? all_data : @linq all_data |> transform(planner_hbm_key=simplify_hbm_name.(:planner_hbm_key),
                                                                    simulation_hbm_key=simplify_hbm_name.(:simulation_hbm_key))
+
+    # sanity check the data
+    check_data(return_data)
+
+    return return_data
 end
 
+function success_rate(planner_hbm_key::String, all_data::DataFrame)
+    filtered_data = @linq all_data |> where(:planner_hbm_key .== planner_hbm_key)
+    n_total = nrow(filtered_data)
+    n_success = nrow((@linq filtered_data |> where(:final_state_type .== "success")))
+    return n_success / n_total
+end
