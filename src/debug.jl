@@ -184,20 +184,33 @@ function construct_models(rng::AbstractRNG, problem_instance::ProblemInstance,
     return simulation_model, belief_updater_model, planner_model
 end
 
-function belief_updater_from_planner_model(planner_hbm::HumanBoltzmannModel, epsilon::Float64)
-    return HumanBoltzmannModel(reward_model=planner_hbm.reward_model, betas=planner_hbm.betas, epsilon=epsilon)
+function belief_updater_from_planner_model(hbm::HumanBoltzmannModel, epsilon::Float64)
+    # clone the model but set the new epsilon
+    return HumanBoltzmannModel(beta_min=hbm.beta_min,
+                               beta_max=hbm.beta_max,
+                               betas=hbm.betas,
+                               epsilon=epsilon,
+                               reward_model=hbm.reward_model,
+                               aspace=hbm.aspace)
 end
 
 function belief_updater_from_planner_model(planner_hbm::HumanConstVelBehavior, epsilon::Float64)
-    return HumanConstVelBehavior(vel_max=planner_hbm.vel_max, vel_resample_sigma=epsilon)
+    # clone the model but set the new epsilon
+    return HumanConstVelBehavior(vel_max=planner_hbm.vel_max,
+                                 vel_resample_sigma=epsilon)
 end
 
-function belief_updater_from_planner_model(planner_hbm::HumanMultiGoalModel, epsilon::Float64)
-    return HumanMultiGoalModel(goals=planner_hbm.goals,
-                               next_goal_generator=planner_hbm.next_goal_generator,
-                               initial_goal_generator=planner_hbm.initial_goal_generator,
-                               vel_max=planner_hbm.vel_max,
-                               goal_resample_sigma=epsilon)
+function belief_updater_from_planner_model(hbm::HumanMultiGoalBoltzmann, epsilon::Float64)
+    # clone the model but set the new epsilon
+    return HumanMultiGoalBoltzmann(beta_min=hbm.beta_min,
+                                   beta_max=hbm.beta_max,
+                                   goals=hbm.goals,
+                                   next_goal_generator=hbm.next_goal_generator,
+                                   initial_goal_generator=hbm.initial_goal_generator,
+                                   vel_max=hbm.vel_max,
+                                   goal_resample_sigma=hbm.goal_resample_sigma,
+                                   beta_resample_sigma=epsilon,
+                                   aspace=hbm.aspace)
 end
 
 function setup_test_scenario(pi_key::String, simulation_hbm_key::String, planner_hbm_key::String, solver_setup_key::String, i_run::Int)
@@ -262,9 +275,9 @@ function planner_hbm_map(problem_instance::ProblemInstance)
         #                                                    aspace=HS.gen_human_aspace(pi/8)), 0.01),
         #"HumanBoltzmannModel_PI/4" => (HumanBoltzmannModel(reward_model=HumanSingleTargetRewardModel(human_target_pos),
         #                                                  aspace=HS.gen_human_aspace(pi/4)), 0.01),
-        "HumanMultiGoalModel_all_corners" => (HumanMultiGoalModel(goal_resample_sigma=0.1), 0.1),
-        "HumanMultiGoalModel_3_corners" => (HumanMultiGoalModel(goal_resample_sigma=0.1, goals=corner_positions(RoomRep())[1:3]), 0.1),
-        "HumanMultiGoalModel_2_corners" => (HumanMultiGoalModel(goal_resample_sigma=0.1, goals=corner_positions(RoomRep())[1:2]), 0.1)
+        "HumanMultiGoalBoltzmann_all_corners" => (HumanMultiGoalBoltzmann(beta_min=1, beta_max=20,
+                                                                          goal_resample_sigma=0.1,
+                                                                          beta_resample_sigma=0.0), 0.01)
        )
 end
 
@@ -301,8 +314,10 @@ function simulation_hbm_map(problem_instance::ProblemInstance, i_run::Int)
         #"HumanBoltzmannModel15.0" => (HumanBoltzmannModel(reward_model=HumanSingleTargetRewardModel(human_target_pos), beta_min=15.0, beta_max=15.0),),
         #"WayPoints_n5_sig1.0" => (HumanPIDBehavior(target_sequence=noisy_waypoints(human_start_pos, human_target_pos, 5, simulation_rng, 1.0)),),
         # TODO: In this context it does not really make sense to distinguish between problem_instance and simulation model!
-        "HumanMultiGoalModel_all_corners" => (HumanMultiGoalModel(goal_resample_sigma=0.1),)
-                                          )
+        "HumanMultiGoalBoltzmann_all_corners" => (HumanMultiGoalBoltzmann(beta_min=20, beta_max=20,
+                                                                          goal_resample_sigma=0.0,
+                                                                          beta_resample_sigma=0.0),)
+       )
 end
 
 function noisy_waypoints(start_p::Pos, end_p::Pos, n_waypoints::Int, rng::AbstractRNG, sigma::Float64)
@@ -341,7 +356,7 @@ function test_parallel_sim(runs::UnitRange{Int}, solver_setup_key::String="POMCP
     # Simulation is launched in parallel mode. In order for this to work, julia
     # musst be started as: `julia -p n`, where n is the number of
     # workers/processes
-    data = run_parallel(sims) do sim::Sim, hist::SimHistory
+    data = run(sims) do sim::Sim, hist::SimHistory
         return [:n_steps => n_steps(hist),
                 :discounted_reward => discounted_reward(hist),
                 :hist_validation_hash => validation_hash(hist),

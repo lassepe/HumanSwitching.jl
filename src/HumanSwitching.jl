@@ -102,8 +102,8 @@ export
     HumanSingleTargetRewardModel,
     gen_human_aspace,
     # linear / multi goal
-    HumanLinearToGoalBState,
-    HumanMultiGoalModel,
+    HumanBoltzmannToGoalBState,
+    HumanMultiGoalBoltzmann,
     # model mix
     HumanUniformModelMix,
     free_evolution,

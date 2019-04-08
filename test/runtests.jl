@@ -188,7 +188,7 @@ end
 
     # multi goal human
     @test @testblock quote
-        hbm = HumanMultiGoalModel()
+        hbm = HumanMultiGoalBoltzmann()
         hbs = @inferred HS.rand_hbs(rng, hbm)
         s = @inferred HSState(external=e, hbs=hbs)
     end
