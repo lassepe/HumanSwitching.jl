@@ -215,8 +215,8 @@ end
 
 @with_kw struct PlannerSetup{HBM<:HumanBehaviorModel}
     hbm::HBM
-    n_particles::Int = 12000
-    epsilon::Float64 = 0.01
+    n_particles::Int
+    epsilon::Float64
 end
 
 
@@ -292,8 +292,8 @@ end
 function problem_instance_map()
     room = RoomRep()
     return Dict{String, ProblemInstance}(
-        # "DiagonalAcross" => (Pos(1/10 * room.width, 1/10 * room.height), Pos(8/10 * room.width, 4/10 * room.height),
-        #                      Pos(9/10 * room.width, 9/10 * room.height), Pos(1/10 * room.width, 9/10 * room.height)),
+        "DiagonalAcross" => (Pos(1/10 * room.width, 1/10 * room.height), Pos(8/10 * room.width, 4/10 * room.height),
+                             Pos(9/10 * room.width, 9/10 * room.height), Pos(1/10 * room.width, 9/10 * room.height)),
         "FrontalCollision" => (Pos(1/2 * room.width, 1/10 * room.height), Pos(1/2 * room.width, 9/10 * room.height),
                                Pos(1/2 * room.width, 9/10 * room.height), Pos(1/2 * room.width, 1/10 * room.height))
        )
@@ -309,17 +309,20 @@ function planner_hbm_map(problem_instance::ProblemInstance)
                                                                                           beta_min=0.1, beta_max=20,
                                                                                           goal_resample_sigma=0.01,
                                                                                           beta_resample_sigma=0.0),
-                                                              epsilon=0.02),
+                                                              epsilon=0.02,
+                                                              n_particles=8000),
         "HumanMultiGoalBoltzmann_3_corners" => PlannerSetup(hbm=HumanMultiGoalBoltzmann(goals=corner_positions(RoomRep())[1:3],
                                                                                         beta_min=0.1, beta_max=20,
                                                                                         goal_resample_sigma=0.01,
                                                                                         beta_resample_sigma=0.0),
-                                                            epsilon=0.02),
+                                                            epsilon=0.02,
+                                                            n_particles=6000),
         "HumanMultiGoalBoltzmann_2_corners" => PlannerSetup(hbm=HumanMultiGoalBoltzmann(goals=corner_positions(RoomRep())[1:2],
                                                                                         beta_min=0.1, beta_max=20,
                                                                                         goal_resample_sigma=0.01,
                                                                                         beta_resample_sigma=0.0),
-                                                            epsilon=0.02),
+                                                            epsilon=0.02,
+                                                            n_particles=4000),
        )
 end
 
