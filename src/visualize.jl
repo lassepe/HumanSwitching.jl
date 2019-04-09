@@ -125,19 +125,22 @@ function human_particle_node(human_pos::Pos, hbm::HumanMultiGoalBoltzmann, hbs::
                              external_color="light blue", internal_color=map_to_color(hbs),
                              annotation::String="", opacity::Float64=1.0)
 
-    predicted_future_pos::Pos = human_pos
-    # predict future position
-    n_samples::Int = 1
-    sampled_future_predictions = [free_evolution(hbm, hbs, predicted_future_pos, Random.GLOBAL_RNG) for i in 1:n_samples]
+    n_prediction_steps=2
+    sampled_future_predictions = zeros(Pos, n_prediction_steps)
+    sizehint!(sampled_future_predictions, n_prediction_steps)
+    for i = 1:n_prediction_steps
+        sampled_future_predictions[i] = free_evolution(hbm, hbs, (i > 1 ? sampled_future_predictions[i-1] : human_pos),
+                                                       Random.GLOBAL_RNG)
+    end
 
     return compose(context(), [agent_with_goal_node(p,
-                                                      hbs.goal,
-                                                      annotation=annotation,
-                                                      external_color=external_color,
-                                                      curve_color=internal_color,
-                                                      goal_color=internal_color,
-                                                      goal_size=0.4,
-                                                      opacity=opacity*map_to_opacity(1.0, Float64(n_samples)))
+                                                    hbs.goal,
+                                                    annotation=annotation,
+                                                    external_color=external_color,
+                                                    curve_color=internal_color,
+                                                    goal_color=internal_color,
+                                                    goal_size=0.4,
+                                                    opacity=opacity*map_to_opacity(1.0, 1.0))
                                for p in sampled_future_predictions]...)
 end
 

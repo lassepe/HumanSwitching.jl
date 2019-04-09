@@ -39,7 +39,7 @@ function human_transition(hbs::HumanPIDBState, hbm::HumanPIDBehavior, m::HSModel
                           p::Pos, rng::AbstractRNG)
     human_pos_p = free_evolution(hbm, hbs, p)
 
-    hbs_p = (dist_to_pos(human_pos_p, human_goal(hbm, hbs)) < agent_min_distance(m) ?
+    hbs_p = (dist_to_pos(human_pos_p, human_goal(hbm, hbs)) < goal_reached_distance(m) ?
              hbs=HumanPIDBState(goal_index=next_goal_index(hbm, hbs)) : hbs)
 
     return human_pos_p, hbs_p

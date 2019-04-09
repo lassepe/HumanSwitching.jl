@@ -4,7 +4,8 @@ function generate_hspomdp(sensor::HSSensor, human_behavior_model::HumanBehaviorM
                           aspace=HSActionSpace(),
                           reward_model::HSRewardModel=HSRewardModel(),
                           robot_goal::Pos=rand_pos(room, rng),
-                          agent_min_distance::Float64=1.0,
+                          agent_min_distance::Float64=0.4,
+                          goal_reached_distance::Float64=0.2,
                           known_external_initstate::HSExternalState=external(rand_external_state(room, rng)))
 
     mdp = HSMDP(;room=room,
@@ -14,6 +15,7 @@ function generate_hspomdp(sensor::HSSensor, human_behavior_model::HumanBehaviorM
                 human_behavior_model=human_behavior_model,
                 robot_goal=robot_goal,
                 agent_min_distance=agent_min_distance,
+                goal_reached_distance=goal_reached_distance,
                 known_external_initstate=known_external_initstate)
 
     # if we generated our own init state then we also return it for external use
@@ -29,6 +31,7 @@ function generate_hspomdp(sensor::HSSensor, human_behavior_model::HumanBehaviorM
                             reward_model=reward_model(template_model),
                             robot_goal=robot_goal(template_model),
                             agent_min_distance=agent_min_distance(template_model),
+                            goal_reached_distance=goal_reached_distance(template_model),
                             known_external_initstate=mdp(template_model).known_external_initstate)
 end
 

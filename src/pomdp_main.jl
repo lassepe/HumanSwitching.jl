@@ -130,7 +130,8 @@ apply_robot_action(p::Pos, a::HSAction) = Pos(p.x + cos(a.phi)*a.d, p.y + sin(a.
     human_behavior_model::HBM = HumanPIDBehavior(room)
     physical_transition_noise_model::PTNM = HSIdentityPTNM()
     robot_goal::Pos = rand_pos(room, Random.GLOBAL_RNG)
-    agent_min_distance::Float64 = 0.3
+    agent_min_distance::Float64 = 0.5
+    goal_reached_distance::Float64 = 0.2
     known_external_initstate::Union{HSExternalState, Nothing} = nothing
 end
 
@@ -151,6 +152,7 @@ reward_model(m::HSModel) = mdp(m).reward_model
 physical_transition_noise_model(m::HSModel) = mdp(m).physical_transition_noise_model
 room(m::HSModel) = mdp(m).room
 agent_min_distance(m::HSModel) = mdp(m).agent_min_distance
+goal_reached_distance(m::HSModel) = mdp(m).goal_reached_distance
 
 """
 # Implementation of main POMDP Interface
