@@ -3,8 +3,8 @@
 """
 # the physical representation of a room
 @with_kw struct Room
-    width::Float64 = 10
-    height::Float64 = 10
+    width::Float64 = 8
+    height::Float64 = 8
 end
 
 @with_kw struct Pos <: FieldVector{2, Float64}
