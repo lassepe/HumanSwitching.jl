@@ -25,6 +25,7 @@ using Compose
 using Random
 using ProgressMeter
 using D3Trees
+using Parameters
 
 # TODO: move this to a package / module
 @everywhere begin
@@ -44,9 +45,14 @@ using D3Trees
     end
 end
 
+# TODO: move this to the main package
 @everywhere begin
     using POMDPs
+    import POMDPs: action, update
+
     using POMDPModelTools
+    import POMDPModelTools: action_info, update_info
+
     using CPUTime
 
     """
@@ -54,18 +60,42 @@ end
 
     A thin planner/policy wrapper to add the time to the action info.
     """
-    struct TimedPolicy{P <: Policy} <: Policy
+    struct TimedPolicy{P<:Policy} <: Policy
         p::P
     end
 
-    POMDPs.action(timed_policy::TimedPolicy, x) = action(timed_policy.p, x)
+    POMDPs.action(tp::TimedPolicy, x) = action(tp.p, x)
 
-    function POMDPModelTools.action_info(timed_policy::TimedPolicy, x; kwargs...)
+    function POMDPModelTools.action_info(tp::TimedPolicy, x; kwargs...)
         CPUtic()
-        action, info = action_info(timed_policy.p, x; kwargs...)
+        action, info = action_info(tp.p, x; kwargs...)
         info[:planner_cpu_time_us] = CPUtoq()
         return action, info
     end
+
+    """
+    TimedUpdater
+    """
+    struct TimedUpdater{U<:Updater} <: Updater
+        u::U
+    end
+
+    POMDPs.update(tu::TimedUpdater, b, a, o) = update(tu.u, b, a, o)
+
+    function POMDPModelTools.update_info(tu::TimedUpdater, b, a, o)
+        CPUtic()
+        bp, i = update_info(tu.u, b, a, o)
+        updater_cpu_time_us = CPUtoq()
+        if isnothing(i)
+            info = Dict(:updater_cpu_time_us=>updater_cpu_time_us)
+        else
+            i[:updater_cpu_time_us] = updater_cpu_time_us
+            info = i
+        end
+        return bp, info
+    end
+
+    POMDPs.initialize_belief(tu::TimedUpdater, d) = initialize_belief(tu.u, d)
 
     POMDPSimulators.problem(p::Policy) = p.problem
     POMDPSimulators.problem(p::DESPOTPlanner) = p.pomdp
@@ -80,7 +110,6 @@ Define three dictionaries that:
 """
 # order (human_start_pos, robot_start_pos, human_target_pos, robot_target_pos)
 const ProblemInstance = Tuple{Pos, Pos, Pos, Pos}
-const PlannerHBMEntry = Tuple{HumanBehaviorModel, Float64}
 const SimulationHBMEntry = Tuple{HumanBehaviorModel}
 
 """
@@ -184,33 +213,40 @@ function construct_models(rng::AbstractRNG, problem_instance::ProblemInstance,
     return simulation_model, belief_updater_model, planner_model
 end
 
-function belief_updater_from_planner_model(hbm::HumanBoltzmannModel, epsilon::Float64)
-    # clone the model but set the new epsilon
-    return HumanBoltzmannModel(beta_min=hbm.beta_min,
-                               beta_max=hbm.beta_max,
-                               betas=hbm.betas,
-                               epsilon=epsilon,
-                               reward_model=hbm.reward_model,
-                               aspace=hbm.aspace)
+@with_kw struct PlannerSetup{HBM<:HumanBehaviorModel}
+    hbm::HBM
+    n_particles::Int = 12000
+    epsilon::Float64 = 0.01
 end
 
-function belief_updater_from_planner_model(planner_hbm::HumanConstVelBehavior, epsilon::Float64)
+
+function belief_updater_from_planner_model(planner_setup::PlannerSetup{<:HumanBoltzmannModel})
+    # clone the model but set the new epsilon
+    return HumanBoltzmannModel(beta_min=planner_setup.hbm.beta_min,
+                               beta_max=planner_setup.hbm.beta_max,
+                               betas=planner_setup.hbm.betas,
+                               epsilon=planner_setup.epsilon,
+                               reward_model=planner_setup.hbm.reward_model,
+                               aspace=planner_setup.hbm.aspace)
+end
+
+function belief_updater_from_planner_model(planner_setup::PlannerSetup{<:HumanConstVelBehavior})
     # clone the model but set the new epsilon
     return HumanConstVelBehavior(vel_max=planner_hbm.vel_max,
-                                 vel_resample_sigma=epsilon)
+                                 vel_resample_sigma=planner_setup.epsilon)
 end
 
-function belief_updater_from_planner_model(hbm::HumanMultiGoalBoltzmann, epsilon::Float64)
+function belief_updater_from_planner_model(planner_setup::PlannerSetup{<:HumanMultiGoalBoltzmann})
     # clone the model but set the new epsilon
-    return HumanMultiGoalBoltzmann(beta_min=hbm.beta_min,
-                                   beta_max=hbm.beta_max,
-                                   goals=hbm.goals,
-                                   next_goal_generator=hbm.next_goal_generator,
-                                   initial_goal_generator=hbm.initial_goal_generator,
-                                   vel_max=hbm.vel_max,
-                                   goal_resample_sigma=hbm.goal_resample_sigma,
-                                   beta_resample_sigma=epsilon,
-                                   aspace=hbm.aspace)
+    return HumanMultiGoalBoltzmann(beta_min=planner_setup.hbm.beta_min,
+                                   beta_max=planner_setup.hbm.beta_max,
+                                   goals=planner_setup.hbm.goals,
+                                   next_goal_generator=planner_setup.hbm.next_goal_generator,
+                                   initial_goal_generator=planner_setup.hbm.initial_goal_generator,
+                                   vel_max=planner_setup.hbm.vel_max,
+                                   goal_resample_sigma=planner_setup.hbm.goal_resample_sigma,
+                                   beta_resample_sigma=planner_setup.epsilon,
+                                   aspace=planner_setup.hbm.aspace)
 end
 
 function setup_test_scenario(pi_key::String, simulation_hbm_key::String, planner_hbm_key::String, solver_setup_key::String, i_run::Int)
@@ -218,22 +254,20 @@ function setup_test_scenario(pi_key::String, simulation_hbm_key::String, planner
 
     # Load in the given instance keys.
     problem_instance = problem_instance_map()[pi_key]
-    (planner_hbm, epsilon) = planner_hbm_map(problem_instance)[planner_hbm_key]
+    planner_setup = planner_hbm_map(problem_instance)[planner_hbm_key]
     (simulation_hbm,) = simulation_hbm_map(problem_instance, i_run)[simulation_hbm_key]
 
     # Construct belief updater.
-    belief_updater_hbm = belief_updater_from_planner_model(planner_hbm, epsilon)
+    belief_updater_hbm = belief_updater_from_planner_model(planner_setup)
 
     # Construct models.
     simulation_model, belief_updater_model, planner_model = construct_models(rng, problem_instance, simulation_hbm,
-                                                                             belief_updater_hbm, planner_hbm)
+                                                                             belief_updater_hbm, planner_setup.hbm)
 
-    n_particles = 2000
     # the belief updater is run with a stochastic version of the world
-    belief_updater = BasicParticleFilter(belief_updater_model, SharedExternalStateResampler(n_particles), n_particles, deepcopy(rng))
-    solver = solver_setup_map(planner_model, planner_hbm, rng)[solver_setup_key]
+    belief_updater = BasicParticleFilter(belief_updater_model, SharedExternalStateResampler(planner_setup.n_particles), planner_setup.n_particles, deepcopy(rng))
+    solver = solver_setup_map(planner_model, planner_setup.hbm, rng)[solver_setup_key]
     planner = solve(solver, planner_model)
-    timed_planner = TimedPolicy(planner)
 
     # compose metadata
     git_commit_id = (has_uncommited_changes() ? "dirty::" : "") * current_commit_id()
@@ -246,8 +280,8 @@ function setup_test_scenario(pi_key::String, simulation_hbm_key::String, planner
 
     # compose the sim object for the `run_parallel` queue
     return Sim(simulation_model,
-               timed_planner,
-               belief_updater,
+               TimedPolicy(planner),
+               TimedUpdater(belief_updater),
                initialstate_distribution(belief_updater_model),
                initialstate(simulation_model, deepcopy(rng)),
                rng=deepcopy(rng),
@@ -267,22 +301,25 @@ end
 
 function planner_hbm_map(problem_instance::ProblemInstance)
     human_target_pos = problem_instance[3]
-    return Dict{String, PlannerHBMEntry}(
+    return Dict{String, PlannerSetup}(
         # "HumanConstVelBehavior" => (HumanConstVelBehavior(vel_max=1, vel_resample_sigma=0.0), 0.05),
         # "HumanBoltzmannModel_PI/8" => (HumanBoltzmannModel(reward_model=HumanSingleTargetRewardModel(human_target_pos),
         # TODO: room should be part of problem instance
-        "HumanMultiGoalBoltzmann_all_corners" => (HumanMultiGoalBoltzmann(goals=corner_positions(RoomRep()),
-                                                                          beta_min=0.1, beta_max=20,
-                                                                          goal_resample_sigma=0.01,
-                                                                          beta_resample_sigma=0.0), 0.02),
-        "HumanMultiGoalBoltzmann_3_corners" => (HumanMultiGoalBoltzmann(goals=corner_positions(RoomRep())[1:3],
-                                                                        beta_min=0.1, beta_max=20,
-                                                                        goal_resample_sigma=0.01,
-                                                                        beta_resample_sigma=0.0), 0.02),
-        "HumanMultiGoalBoltzmann_2_corners" => (HumanMultiGoalBoltzmann(goals=corner_positions(RoomRep())[1:2],
-                                                                        beta_min=0.1, beta_max=20,
-                                                                        goal_resample_sigma=0.01,
-                                                                        beta_resample_sigma=0.0), 0.02),
+        "HumanMultiGoalBoltzmann_all_corners" => PlannerSetup(hbm=HumanMultiGoalBoltzmann(goals=corner_positions(RoomRep()),
+                                                                                          beta_min=0.1, beta_max=20,
+                                                                                          goal_resample_sigma=0.01,
+                                                                                          beta_resample_sigma=0.0),
+                                                              epsilon=0.02),
+        "HumanMultiGoalBoltzmann_3_corners" => PlannerSetup(hbm=HumanMultiGoalBoltzmann(goals=corner_positions(RoomRep())[1:3],
+                                                                                        beta_min=0.1, beta_max=20,
+                                                                                        goal_resample_sigma=0.01,
+                                                                                        beta_resample_sigma=0.0),
+                                                            epsilon=0.02),
+        "HumanMultiGoalBoltzmann_2_corners" => PlannerSetup(hbm=HumanMultiGoalBoltzmann(goals=corner_positions(RoomRep())[1:2],
+                                                                                        beta_min=0.1, beta_max=20,
+                                                                                        goal_resample_sigma=0.01,
+                                                                                        beta_resample_sigma=0.0),
+                                                            epsilon=0.02),
        )
 end
 
@@ -357,11 +394,12 @@ function test_parallel_sim(runs::UnitRange{Int}, solver_setup_key::String="POMCP
     # Simulation is launched in parallel mode. In order for this to work, julia
     # musst be started as: `julia -p n`, where n is the number of
     # workers/processes
-    data = run_parallel(sims) do sim::Sim, hist::SimHistory
+    data = run(sims) do sim::Sim, hist::SimHistory
         return [:n_steps => n_steps(hist),
                 :discounted_reward => discounted_reward(hist),
                 :hist_validation_hash => validation_hash(hist),
                 :median_planner_time => median(ai[:planner_cpu_time_us] for ai in eachstep(hist, "ai")),
+                :median_updater_time => median(ui[:updater_cpu_time_us] for ui in eachstep(hist, "ui")),
                 :final_state_type => final_state_type(problem(sim), hist)]
     end
     return data
