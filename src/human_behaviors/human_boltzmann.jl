@@ -122,8 +122,10 @@ end
 function uniform_goal_generator(goals::Array{Pos, 1}, rng::AbstractRNG)
     return rand(rng, goals)::Pos
 end
+function uniform_goal_generator(current_goal::Pos, goals::Array{Pos, 1}, rng::AbstractRNG)
+    return rand(rng) < 0.9 ? current_goal : uniform_goal_generator(goals, rng)::Pos
+end
 
-uniform_goal_generator(::Pos, goals::Array{Pos, 1}, rng::AbstractRNG) = uniform_goal_generator(goals, rng)::Pos
 
 function compute_qval(p::Pos, hbs::HumanBoltzmannToGoalBState, a::HumanBoltzmannAction)
     return -dist_to_pos(apply_human_action(p, a), hbs.goal; p=2)
