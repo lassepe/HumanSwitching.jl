@@ -42,7 +42,7 @@ function free_space_estimate(mdp::HSMDP, s::HSState, steps::Int=0)::Float64
         reward_estimate += rm.goal_reached_reward
     end
 
-    return reward_estimate + 3
+    return reward_estimate
 end
 
 function free_space_estimate(pomdp::HSPOMDP, s::HSState, b::Any, ::Int)
