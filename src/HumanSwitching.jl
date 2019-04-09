@@ -35,13 +35,14 @@ using ARDESPOT
 
 # packages that are extended by this module
 import ParticleFilters # modified in particle_fitler.jl
-import POMDPs # modified in particle_filter.jl
-import POMDPModelTools: render # modified in visualization.jl
+import POMDPs # modified in particle_filter.jl and cpu_timing_wrappers.jl
+import POMDPModelTools: render, action_info, update_info # modified in visualization.jl
+using CPUTime
 
 export
     # util types
     Pos,
-    RoomRep,
+    Room,
 
     # post transition transformations for particle filter
     HSPhysicalTransitionNoiseModel,
@@ -74,9 +75,9 @@ export
     human_behavior_model,
     external,
     human_pos,
-    human_target,
+    human_goal,
     robot_pos,
-    robot_target,
+    robot_goal,
 
     # POMDP interface implementation
     generate_s,
@@ -110,7 +111,7 @@ export
     HumanBoltzmannBState,
     HumanBoltzmannModel,
     HumanRewardModel,
-    HumanSingleTargetRewardModel,
+    HumanSingleGoalRewardModel,
     gen_human_aspace,
     # boltzmann / multi goal
     HumanBoltzmannToGoalBState,
@@ -128,9 +129,9 @@ include("reward_model.jl")
 export
     rand_astate,
     dist_to_pos,
-    robot_dist_to_target,
+    robot_dist_to_goal,
     corner_positions,
-    target_index,
+    goal_index,
     has_collision,
     issuccess,
     isfailure
@@ -159,7 +160,7 @@ export
 include("problem_gen.jl")
 
 export
-    StraightToTarget,
+    StraightToGoal,
     free_space_estimate
 include("estimate_value_policies.jl")
 
@@ -168,7 +169,19 @@ export
     plot_full,
     plot_problem_instance,
     extract_value_compute,
-    load_data
+    load_data,
+    check_data,
+    success_rate
 include("plotting.jl")
+
+export
+    TimedPolicy,
+    TimedUpdater
+include("cpu_timing_wrappers.jl")
+
+export
+    validation_hash,
+    final_state_type
+include("simulation_utils.jl")
 
 end # module

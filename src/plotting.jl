@@ -15,7 +15,7 @@ function plot_points(data::DataFrame)
 
     scatter = plot(data, x=:total_median_cpu_time, y=:discounted_reward, color=:planner_hbm_key, Geom.point)
 
-    violin_plot_appearance = (Geom.boxplot, Gadfly.Theme(minor_label_font_size=8pt, key_position=:none))
+    violin_plot_appearance = (Geom.violin, Gadfly.Theme(minor_label_font_size=8pt, key_position=:none))
     value = plot(data, x=:planner_hbm_key, y=:discounted_reward, color=:planner_hbm_key, violin_plot_appearance...)
     compute = plot(data, x=:planner_hbm_key, y=:total_median_cpu_time, color=:planner_hbm_key, violin_plot_appearance...)
 
@@ -33,7 +33,7 @@ function plot_points(data::DataFrame)
 	display(final_plot)
 end
 
-simplify_hbm_name(s::String) = string(split(s, "Human")...)
+simplify_hbm_name(s::String) = string(split(s, "HumanMultiGoalBoltzmann")...)
 
 function plot_full(data)
 	problem_instances = unique(data[:pi_key])
@@ -88,6 +88,7 @@ function load_data(files...; shorten_names::Bool=true)
     return modified_data
 end
 
+# TODO: this should not filter. Instead, plot the success rate per planer_hbm_key!
 function success_rate(planner_hbm_key::String, all_data::DataFrame)
     filtered_data = @linq all_data |> where(:planner_hbm_key .== planner_hbm_key)
     n_total = nrow(filtered_data)

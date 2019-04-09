@@ -37,7 +37,7 @@ end;
 @testset "POMDP interface" begin
     # checking whether we can actually succesfully construct all those types
     rng = MersenneTwister(42)
-    hbm = HumanPIDBehavior(RoomRep())
+    hbm = HumanPIDBehavior(Room())
     hs_pomdp_exact_o = generate_hspomdp(ExactPositionSensor(), hbm, HSIdentityPTNM(), rng)
     hs_pomdp_noisy_o = generate_hspomdp(NoisyPositionSensor(), hbm, HSIdentityPTNM(), rng)
 
@@ -174,7 +174,7 @@ end
 
     # PID
     @test @testblock quote
-        hbm = @inferred HumanPIDBehavior(RoomRep())
+        hbm = @inferred HumanPIDBehavior(Room())
         hbs = @inferred HS.rand_hbs(rng, hbm)
         s = @inferred HSState(external=e, hbs=hbs)
     end
@@ -196,7 +196,7 @@ end
     # Uniform Mix
     # TODO: Stabilize type
     @test_broken @testblock quote
-        hbm = HumanUniformModelMix(HumanPIDBehavior(RoomRep()),
+        hbm = HumanUniformModelMix(HumanPIDBehavior(Room()),
                                    HumanBoltzmannModel(),
                                    bstate_change_likelihood=0.1)
         hbs = @inferred HS.rand_hbs(rng, hbm)

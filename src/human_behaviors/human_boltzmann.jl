@@ -26,7 +26,7 @@ end
 
 # constructing the boltzmann model in it's most general form
 function HumanBoltzmannModel(;beta_min=0.0, beta_max=15.0, betas=[0.0, 15.0],
-                              epsilon=0.0, reward_model=HumanSingleTargetRewardModel(),
+                              epsilon=0.0, reward_model=HumanSingleGoalRewardModel(),
                               aspace=gen_human_aspace())
     if beta_min == beta_max
         @assert iszero(epsilon)
@@ -46,8 +46,8 @@ function rand_hbs(rng::AbstractRNG, hbm::HumanBoltzmannModel)
                                 hbm.beta_max : rand(rng, Truncated(Exponential(5),hbm.beta_min, hbm.beta_max)))
 end
 
-@with_kw struct HumanSingleTargetRewardModel
-    human_target::Pos = Pos(5, 5)
+@with_kw struct HumanSingleGoalRewardModel
+    human_goal::Pos = Pos(5, 5)
 end
 
 @with_kw struct HumanBoltzmannAction <: FieldVector{2, Float64}
@@ -69,8 +69,8 @@ function free_evolution(hbm::HumanBoltzmannModel, hbs::HumanBoltzmannBState, p::
     p_p = apply_human_action(p, sampled_action)
 end
 
-function compute_qval(p::Pos, a::HumanBoltzmannAction, reward_model::HumanSingleTargetRewardModel)
-    return -dist_to_pos(apply_human_action(p, a), reward_model.human_target; p=2)
+function compute_qval(p::Pos, a::HumanBoltzmannAction, reward_model::HumanSingleGoalRewardModel)
+    return -dist_to_pos(apply_human_action(p, a), reward_model.human_goal; p=2)
 end
 
 function get_action_distribution(hbm::HumanBoltzmannModel, hbs::HumanBoltzmannBState, p::Pos)
@@ -97,7 +97,7 @@ HumanMultiGoalBoltzmann
 @with_kw struct HumanMultiGoalBoltzmann{NA, TA} <: HumanBehaviorModel
     beta_min::Float64
     beta_max::Float64
-    goals::Array{Pos, 1} = corner_positions(RoomRep())
+    goals::Array{Pos, 1} = corner_positions(Room())
     next_goal_generator::Function = uniform_goal_generator
     initial_goal_generator::Function = uniform_goal_generator
     vel_max::Float64 = 0.4

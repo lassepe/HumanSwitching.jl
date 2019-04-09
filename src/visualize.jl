@@ -20,7 +20,7 @@ Composes a room node for the visualization graph
 Fields:
 - `rr` a representation of the room
 """
-function room_node(rr::RoomRep; fill_color="bisque", stroke_color="black")::Context
+function room_node(rr::Room; fill_color="bisque", stroke_color="black")::Context
     compose(context(), fill(fill_color), stroke(stroke_color),
             rectangle(0, rr.height, rr.width, rr.height))
 end
@@ -46,14 +46,14 @@ function pos_node(p::Pos; r::Float64=0.15,
 end
 
 """
-target_node
+goal_node
 
-Composes a target node (states that agents want to reach) for the visualization graph
+Composes a goal node (states that agents want to reach) for the visualization graph
 
 Fields:
-- `ts` the target state to be visualized
+- `ts` the goal state to be visualized
 """
-function target_node(p::Pos;
+function goal_node(p::Pos;
                      annotation::String="",
                      size=0.15, fill_color="deepskyblue",
                      stroke_color="black",
@@ -65,59 +65,59 @@ function target_node(p::Pos;
 end
 
 """
-start_target_line_node
+start_goal_line_node
 
-Composes a line from a given start to a given target to associate an agent with it's target
+Composes a line from a given start to a given goal to associate an agent with it's goal
 
 Fields:
 - `start_pos` the pos from where the curve starts (defining position and slope of the curve)
-- `target` the target position towards which the curve points (end anchor point, only for position)
+- `goal` the goal position towards which the curve points (end anchor point, only for position)
 - `r` the visual radius of the agent
 """
-function start_target_line_node(start_pos::Pos, target::Pos;
+function start_goal_line_node(start_pos::Pos, goal::Pos;
                                  r::Float64=0.5,
                                  stroke_color="green", opacity::Float64=1.0)::Context
 
     # the start and end anchor point for the bezier curve
     p_start = [Tuple(start_pos[1:2])]
-    p_end = [Tuple(target[1:2])]
+    p_end = [Tuple(goal[1:2])]
 
     compose(context(), stroke(stroke_color), strokeopacity(opacity),
             line([p_start..., p_end...]))
 end
 
-function agent_with_target_node(agent_pos::Pos, target::Pos;
+function agent_with_goal_node(agent_pos::Pos, goal::Pos;
                                 annotation::String="",
-                                target_size::Float64=0.2,
+                                goal_size::Float64=0.2,
                                 external_color="tomato", curve_color="green",
-                                target_color="light green", opacity::Float64=1.0)::Context
-    # the actual target of the human
-    current_target_viz = target_node(target,
+                                goal_color="light green", opacity::Float64=1.0)::Context
+    # the actual goal of the human
+    current_goal_viz = goal_node(goal,
                                      annotation=annotation,
-                                     size=target_size,
-                                     fill_color=target_color,
+                                     size=goal_size,
+                                     fill_color=goal_color,
                                      opacity=opacity)
     # the current pos of the human
     agent_pos_viz = pos_node(agent_pos,
                                fill_color=external_color, opacity=opacity)
-    # a connection line between the human and the target
-    target_curve_viz = start_target_line_node(agent_pos, target,
+    # a connection line between the human and the goal
+    goal_curve_viz = start_goal_line_node(agent_pos, goal,
                                                stroke_color=curve_color, opacity=opacity)
 
-    compose(context(), agent_pos_viz, current_target_viz, target_curve_viz)
+    compose(context(), agent_pos_viz, current_goal_viz, goal_curve_viz)
 end
 
 function human_particle_node(human_pos::Pos, hbm::HumanPIDBehavior, hbs::HumanPIDBState;
                              external_color="light blue", internal_color=map_to_color(hbs),
                              annotation::String="", opacity::Float64=1.0)
 
-    return agent_with_target_node(human_pos,
-                                  human_target(hbm, hbs),
+    return agent_with_goal_node(human_pos,
+                                  human_goal(hbm, hbs),
                                   external_color=external_color,
                                   curve_color=internal_color,
                                   annotation=annotation,
-                                  target_color=internal_color,
-                                  target_size=0.4,
+                                  goal_color=internal_color,
+                                  goal_size=0.4,
                                   opacity=opacity)
 end
 
@@ -130,13 +130,13 @@ function human_particle_node(human_pos::Pos, hbm::HumanMultiGoalBoltzmann, hbs::
     n_samples::Int = 1
     sampled_future_predictions = [free_evolution(hbm, hbs, predicted_future_pos, Random.GLOBAL_RNG) for i in 1:n_samples]
 
-    return compose(context(), [agent_with_target_node(p,
+    return compose(context(), [agent_with_goal_node(p,
                                                       hbs.goal,
                                                       annotation=annotation,
                                                       external_color=external_color,
                                                       curve_color=internal_color,
-                                                      target_color=internal_color,
-                                                      target_size=0.4,
+                                                      goal_color=internal_color,
+                                                      goal_size=0.4,
                                                       opacity=opacity*map_to_opacity(1.0, Float64(n_samples)))
                                for p in sampled_future_predictions]...)
 end
@@ -151,12 +151,12 @@ function human_particle_node(human_pos::Pos, hbm::HumanConstVelBehavior, hbs::Hu
         predicted_future_pos = free_evolution(hbs, predicted_future_pos)
     end
 
-    return agent_with_target_node(human_pos,
+    return agent_with_goal_node(human_pos,
                                   predicted_future_pos,
                                   external_color=external_color,
                                   curve_color=internal_color,
-                                  target_color=internal_color,
-                                  target_size=0.4,
+                                  goal_color=internal_color,
+                                  goal_size=0.4,
                                   opacity=opacity)
 end
 
@@ -169,12 +169,12 @@ function human_particle_node(human_pos::Pos, hbm::HumanBoltzmannModel, hbs::Huma
     n_samples::Int = 1
     sampled_future_predictions = [free_evolution(hbm, hbs, predicted_future_pos, Random.GLOBAL_RNG) for i in 1:n_samples]
 
-    return compose(context(), [agent_with_target_node(human_pos,
+    return compose(context(), [agent_with_goal_node(human_pos,
                                                       p,
                                                       external_color=external_color,
                                                       curve_color=internal_color,
-                                                      target_color=internal_color,
-                                                      target_size=0.4,
+                                                      goal_color=internal_color,
+                                                      goal_size=0.4,
                                                       opacity=opacity*map_to_opacity(1.0, Float64(n_samples)))
                                for p in sampled_future_predictions]...)
 end
@@ -223,13 +223,13 @@ end
 function bstate_subplot_node(::Type{HumanPIDBState},
                              unfiltered_hbs_data::Array{<:HumanBehaviorState}, hbm::HumanBehaviorModel)::Context
     # filter data and map to sortable type
-    target_indices = [target_index(hbs)-1 for hbs in unfiltered_hbs_data if hbs isa HumanPIDBState]
+    goal_indices = [goal_index(hbs)-1 for hbs in unfiltered_hbs_data if hbs isa HumanPIDBState]
 
     # compose histogram
-    return parameter_histogram_node(target_indices, hbsColors[HumanPIDBState], 4,
-                                    Coord.Cartesian(xmin=0, xmax=length(hbm.potential_targets)),
-                                    Guide.title("PID Human: Target Index Belief"),
-                                    Guide.xlabel("Target Index"))
+    return parameter_histogram_node(goal_indices, hbsColors[HumanPIDBState], 4,
+                                    Coord.Cartesian(xmin=0, xmax=length(hbm.potential_goals)),
+                                    Guide.title("PID Human: Goal Index Belief"),
+                                    Guide.xlabel("Goal Index"))
 end
 
 function bstate_subplot_node(::Type{HumanBoltzmannToGoalBState},
@@ -336,7 +336,7 @@ function render_step_compose(m::HSModel, step::NamedTuple, sim_hist::T,
     sp = step[:sp]
 
     # extract the room prepresentation from the problem
-    room_rep::RoomRep = room(m)
+    room_rep::Room = room(m)
     # place mirror all children along the middle axis of the unit context
     mirror = context(mirror=Mirror(0, 0.5, 0.5))
     # scale all children to fit into the mirrored unit context
@@ -349,12 +349,12 @@ function render_step_compose(m::HSModel, step::NamedTuple, sim_hist::T,
     # the room background
     room_viz = room_node(room_rep)
 
-    # the human and it's target
+    # the human and it's goal
     human_ground_truth_viz = agent_pos_viz = pos_node(human_pos(sp),
                                                         fill_color="tomato", opacity=1.0)
 
-    # the robot and it's target
-    robot_with_target_viz = agent_with_target_node(robot_pos(sp), robot_target(m),
+    # the robot and it's goal
+    robot_with_goal_viz = agent_with_goal_node(robot_pos(sp), robot_goal(m),
                                                    external_color="pink", curve_color="steelblue")
 
     belief_viz = (haskey(step, :bp) && step[:bp] isa ParticleCollection ?
@@ -377,7 +377,7 @@ function render_step_compose(m::HSModel, step::NamedTuple, sim_hist::T,
 compose(context(),
         (context(), info_viz),
         (mirror, (base_scale,
-                  robot_with_target_viz,
+                  robot_with_goal_viz,
                   human_ground_truth_viz,
                   belief_viz,
                   room_viz))

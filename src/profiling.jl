@@ -62,7 +62,7 @@ end
 function profile_rollout(run::Int)
     rng = MersenneTwister(run)
     ptnm_cov = [0.01, 0.01, 0.01]
-    hbm = HumanPIDBehavior(potential_targets=[Pos(5, 5, 0)], goal_change_likelihood=0.01)
+    hbm = HumanPIDBehavior(potential_goals=[Pos(5, 5, 0)], goal_change_likelihood=0.01)
     model = generate_non_trivial_scenario(ExactPositionSensor(),
                                           hbm,
                                           HSGaussianNoisePTNM(pos_cov=ptnm_cov),
@@ -80,7 +80,7 @@ function profile_rollout(run::Int)
     b = ScenarioBelief(scenarios, rs, 0, false)
 
     @info "\n\n POMDPs.action"
-    rollout_policy = StraightToTarget(model)
+    rollout_policy = StraightToGoal(model)
     # @code_warntype POMDPs.action(rollout_policy, b)
     bench = @benchmark POMDPs.action($rollout_policy, $b)
     display(bench)

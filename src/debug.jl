@@ -27,90 +27,27 @@ using ProgressMeter
 using D3Trees
 using Parameters
 
-# TODO: move this to a package / module
-@everywhere begin
-    validation_hash(hist::SimHistory) = string(hash(collect((sp.external.robot_pos,
-                                                             sp.external.human_pos)
-                                                            for sp in eachstep(hist, "sp"))))
-
-    function final_state_type(m::HSModel, hist::SimHistory)
-        final_state = last(collect(eachstep(hist, "sp")))
-        if HS.issuccess(m, final_state)
-            return "success"
-        elseif isfailure(m, final_state)
-            return "failure"
-        else
-            return "nonterminal"
-        end
-    end
-end
-
-# TODO: move this to the main package
-@everywhere begin
-    using POMDPs
-    import POMDPs: action, update
-
-    using POMDPModelTools
-    import POMDPModelTools: action_info, update_info
-
-    using CPUTime
-
-    """
-    TimedPolicy
-
-    A thin planner/policy wrapper to add the time to the action info.
-    """
-    struct TimedPolicy{P<:Policy} <: Policy
-        p::P
-    end
-
-    POMDPs.action(tp::TimedPolicy, x) = action(tp.p, x)
-
-    function POMDPModelTools.action_info(tp::TimedPolicy, x; kwargs...)
-        CPUtic()
-        action, info = action_info(tp.p, x; kwargs...)
-        info[:planner_cpu_time_us] = CPUtoq()
-        return action, info
-    end
-
-    """
-    TimedUpdater
-    """
-    struct TimedUpdater{U<:Updater} <: Updater
-        u::U
-    end
-
-    POMDPs.update(tu::TimedUpdater, b, a, o) = update(tu.u, b, a, o)
-
-    function POMDPModelTools.update_info(tu::TimedUpdater, b, a, o)
-        CPUtic()
-        bp, i = update_info(tu.u, b, a, o)
-        updater_cpu_time_us = CPUtoq()
-        if isnothing(i)
-            info = Dict(:updater_cpu_time_us=>updater_cpu_time_us)
-        else
-            i[:updater_cpu_time_us] = updater_cpu_time_us
-            info = i
-        end
-        return bp, info
-    end
-
-    POMDPs.initialize_belief(tu::TimedUpdater, d) = initialize_belief(tu.u, d)
-
-    POMDPSimulators.problem(p::Policy) = p.problem
-    POMDPSimulators.problem(p::DESPOTPlanner) = p.pomdp
-    POMDPSimulators.problem(p::TimedPolicy) = problem(p.p)
-end
-
 """
 Define three dictionaries that:
     1. Maps a key to a corresponding problem instance.
     2. Maps a key to a corresponding model instance for the planner.
     3. Maps a key to a corresponding true model instance for the simulator.
 """
-# order (human_start_pos, robot_start_pos, human_target_pos, robot_target_pos)
-const ProblemInstance = Tuple{Pos, Pos, Pos, Pos}
-const SimulationHBMEntry = Tuple{HumanBehaviorModel}
+# order (human_start_pos, robot_start_pos, human_goal_pos, robot_goal_pos)
+const SimulationHBMEntry = HumanBehaviorModel
+
+@with_kw struct ProblemInstance
+    human_start_pos::Pos
+    robot_start_pos::Pos
+    robot_goal_pos::Pos
+    room::Room = Room()
+end
+
+@with_kw struct PlannerSetup{HBM<:HumanBehaviorModel}
+    hbm::HBM
+    n_particles::Int
+    epsilon::Float64
+end
 
 """
 current_commit_id
@@ -177,8 +114,8 @@ function construct_models(rng::AbstractRNG, problem_instance::ProblemInstance,
         rng [AbstractRNG]: The random seed to be used for these models.
         human_start_pos [Pos]: The initial position of the human.
         robot_start_pos [Pos]: The initial position of the robot.
-        human_target_pos [Pos]: The final target position of the human.
-        robot_target_pos [Pos]: The final target position of the robot.
+        human_goal_pos [Pos]: The final goal position of the human.
+        robot_goal_pos [Pos]: The final goal position of the robot.
         simulation_hbm [HumanBehaviorModel]: The "true" human model used by the simulator.
         belief_updater_hbm [HumanBehaviorModel]: The human model used by the belief updater.
         planner_hbm [HumanBehaviorModel]: The human model used by the planner.
@@ -189,14 +126,13 @@ function construct_models(rng::AbstractRNG, problem_instance::ProblemInstance,
         planner_model [HSModel]: The model of the world used by the planner.
     """
 
-    (human_start_pos, robot_start_pos, human_target_pos, robot_target_pos) = problem_instance
-
     ptnm_cov = [0.01, 0.01]
     simulation_model = generate_hspomdp(ExactPositionSensor(),
                                         simulation_hbm,
                                         HSGaussianNoisePTNM(pos_cov=ptnm_cov),
                                         deepcopy(rng),
-                                        known_external_initstate=HSExternalState(human_start_pos, robot_start_pos), robot_target=robot_target_pos)
+                                        known_external_initstate=HSExternalState(problem_instance.human_start_pos, problem_instance.robot_start_pos),
+                                        robot_goal=problem_instance.robot_goal_pos)
 
     belief_updater_model = generate_hspomdp(NoisyPositionSensor(ptnm_cov*9),
                                             belief_updater_hbm,
@@ -212,13 +148,6 @@ function construct_models(rng::AbstractRNG, problem_instance::ProblemInstance,
 
     return simulation_model, belief_updater_model, planner_model
 end
-
-@with_kw struct PlannerSetup{HBM<:HumanBehaviorModel}
-    hbm::HBM
-    n_particles::Int
-    epsilon::Float64
-end
-
 
 function belief_updater_from_planner_model(planner_setup::PlannerSetup{<:HumanBoltzmannModel})
     # clone the model but set the new epsilon
@@ -255,7 +184,7 @@ function setup_test_scenario(pi_key::String, simulation_hbm_key::String, planner
     # Load in the given instance keys.
     problem_instance = problem_instance_map()[pi_key]
     planner_setup = planner_hbm_map(problem_instance)[planner_hbm_key]
-    (simulation_hbm,) = simulation_hbm_map(problem_instance, i_run)[simulation_hbm_key]
+    simulation_hbm = simulation_hbm_map(problem_instance, i_run)[simulation_hbm_key]
 
     # Construct belief updater.
     belief_updater_hbm = belief_updater_from_planner_model(planner_setup)
@@ -290,46 +219,48 @@ function setup_test_scenario(pi_key::String, simulation_hbm_key::String, planner
 end
 
 function problem_instance_map()
-    room = RoomRep()
+    room = Room()
     return Dict{String, ProblemInstance}(
-        "DiagonalAcross" => (Pos(1/10 * room.width, 1/10 * room.height), Pos(8/10 * room.width, 4/10 * room.height),
-                             Pos(9/10 * room.width, 9/10 * room.height), Pos(1/10 * room.width, 9/10 * room.height)),
-        "FrontalCollision" => (Pos(1/2 * room.width, 1/10 * room.height), Pos(1/2 * room.width, 9/10 * room.height),
-                               Pos(1/2 * room.width, 9/10 * room.height), Pos(1/2 * room.width, 1/10 * room.height))
-       )
+    "DiagonalAcross" => ProblemInstance(human_start_pos=Pos(1/10 * room.width, 1/10 * room.height),
+                                        robot_start_pos=Pos(8/10 * room.width, 4/10 * room.height),
+                                        robot_goal_pos=Pos(1/10 * room.width, 9/10 * room.height),
+                                        room=room),
+    "FrontalCollision" => ProblemInstance(human_start_pos=Pos(1/2 * room.width, 1/10 * room.height),
+                                          robot_start_pos=Pos(1/2 * room.width, 9/10 * room.height),
+                                          robot_goal_pos=Pos(1/2 * room.width, 1/10 * room.height),
+                                          room=room)
+   )
 end
 
 function planner_hbm_map(problem_instance::ProblemInstance)
-    human_target_pos = problem_instance[3]
     return Dict{String, PlannerSetup}(
         # "HumanConstVelBehavior" => (HumanConstVelBehavior(vel_max=1, vel_resample_sigma=0.0), 0.05),
-        # "HumanBoltzmannModel_PI/8" => (HumanBoltzmannModel(reward_model=HumanSingleTargetRewardModel(human_target_pos),
-        # TODO: room should be part of problem instance
-        "HumanMultiGoalBoltzmann_all_corners" => PlannerSetup(hbm=HumanMultiGoalBoltzmann(goals=corner_positions(RoomRep()),
+        # "HumanBoltzmannModel_PI/8" => (HumanBoltzmannModel(reward_model=HumanSingleGoalRewardModel(human_goal_pos),
+        "HumanMultiGoalBoltzmann_all_corners" => PlannerSetup(hbm=HumanMultiGoalBoltzmann(goals=corner_positions(problem_instance.room),
                                                                                           beta_min=0.1, beta_max=20,
                                                                                           goal_resample_sigma=0.01,
                                                                                           beta_resample_sigma=0.0),
                                                               epsilon=0.02,
-                                                              n_particles=8000),
-        "HumanMultiGoalBoltzmann_3_corners" => PlannerSetup(hbm=HumanMultiGoalBoltzmann(goals=corner_positions(RoomRep())[1:3],
+                                                              n_particles=4000),
+        "HumanMultiGoalBoltzmann_3_corners" => PlannerSetup(hbm=HumanMultiGoalBoltzmann(goals=corner_positions(problem_instance.room)[1:3],
                                                                                         beta_min=0.1, beta_max=20,
                                                                                         goal_resample_sigma=0.01,
                                                                                         beta_resample_sigma=0.0),
                                                             epsilon=0.02,
-                                                            n_particles=6000),
-        "HumanMultiGoalBoltzmann_2_corners" => PlannerSetup(hbm=HumanMultiGoalBoltzmann(goals=corner_positions(RoomRep())[1:2],
+                                                            n_particles=3000),
+        "HumanMultiGoalBoltzmann_2_corners" => PlannerSetup(hbm=HumanMultiGoalBoltzmann(goals=corner_positions(problem_instance.room)[1:2],
                                                                                         beta_min=0.1, beta_max=20,
                                                                                         goal_resample_sigma=0.01,
                                                                                         beta_resample_sigma=0.0),
                                                             epsilon=0.02,
-                                                            n_particles=4000),
+                                                            n_particles=2000),
        )
 end
 
 function solver_setup_map(planner_model::HSModel, planner_hbm::HumanBehaviorModel, rng::MersenneTwister)
     return Dict{String, Solver}(
                                 "DESPOT" => begin
-                                    default_policy = StraightToTarget(planner_model)
+                                    default_policy = StraightToGoal(planner_model)
                                     # alternative lower bound: DefaultPolicyLB(default_policy)
                                     bounds = IndependentBounds(DefaultPolicyLB(default_policy), free_space_estimate, check_terminal=true)
 
@@ -348,16 +279,11 @@ function solver_setup_map(planner_model::HSModel, planner_hbm::HumanBehaviorMode
 end
 
 function simulation_hbm_map(problem_instance::ProblemInstance, i_run::Int)
-    human_start_pos = problem_instance[1]
-    human_target_pos = problem_instance[3]
     simulation_rng = MersenneTwister(i_run + 1)
     return Dict{String, SimulationHBMEntry}(
-        #"HumanBoltzmannModel5.0" => (HumanBoltzmannModel(reward_model=HumanSingleTargetRewardModel(human_target_pos), beta_min=5.0, beta_max=5.0),),
-        #"WayPoints_n5_sig1.0" => (HumanPIDBehavior(target_sequence=noisy_waypoints(human_start_pos, human_target_pos, 5, simulation_rng, 1.0)),),
-        # TODO: In this context it does not really make sense to distinguish between problem_instance and simulation model!
-        "HumanMultiGoalBoltzmann_all_corners" => (HumanMultiGoalBoltzmann(beta_min=20, beta_max=20,
-                                                                          goal_resample_sigma=0.01,
-                                                                          beta_resample_sigma=0.0),)
+        "HumanMultiGoalBoltzmann_all_corners" => HumanMultiGoalBoltzmann(beta_min=20, beta_max=20,
+                                                                         goal_resample_sigma=0.01,
+                                                                         beta_resample_sigma=0.0)
        )
 end
 

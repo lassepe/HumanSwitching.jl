@@ -2,7 +2,7 @@
 # Utility Types
 """
 # the physical representation of a room
-@with_kw struct RoomRep
+@with_kw struct Room
     width::Float64 = 10
     height::Float64 = 10
 end
@@ -37,7 +37,7 @@ Describes the rewards the robot cares about
     living_penalty::Float64 = -1
     collision_penalty::Float64 = -50
     left_room_penalty::Float64 = -50
-    target_reached_reward::Float64 = 40.0
+    goal_reached_reward::Float64 = 40.0
     dist_to_human_penalty::Float64 = 0
     move_to_goal_reward::Float64 = 0
     control_cost::Float64 = 0
@@ -124,12 +124,12 @@ apply_robot_action(p::Pos, a::HSAction) = Pos(p.x + cos(a.phi)*a.d, p.y + sin(a.
 - implementing the POMDPs.jl interface
 """
 @with_kw struct HSMDP{AS, HBM<:HumanBehaviorModel, PTNM<:HSPhysicalTransitionNoiseModel} <: MDP{HSState, HSAction}
-    room::RoomRep = RoomRep()
+    room::Room = Room()
     aspace::AS = HSActionSpace()
     reward_model::HSRewardModel = HSRewardModel()
     human_behavior_model::HBM = HumanPIDBehavior(room)
     physical_transition_noise_model::PTNM = HSIdentityPTNM()
-    robot_target::Pos = rand_pos(room, Random.GLOBAL_RNG)
+    robot_goal::Pos = rand_pos(room, Random.GLOBAL_RNG)
     agent_min_distance::Float64 = 0.3
     known_external_initstate::Union{HSExternalState, Nothing} = nothing
 end
@@ -146,7 +146,7 @@ const HSModel = Union{HSMDP, HSPOMDP}
 mdp(m::HSMDP) = m
 mdp(m::HSPOMDP) = m.mdp
 human_behavior_model(m::HSModel) = mdp(m).human_behavior_model
-robot_target(m::HSModel) = mdp(m).robot_target
+robot_goal(m::HSModel) = mdp(m).robot_goal
 reward_model(m::HSModel) = mdp(m).reward_model
 physical_transition_noise_model(m::HSModel) = mdp(m).physical_transition_noise_model
 room(m::HSModel) = mdp(m).room
@@ -193,7 +193,7 @@ end
 Distributions.pdf(distribution::MvNormal, sample::HSExternalState) = pdf(distribution, convert(Vector{Float64}, sample))
 
 function POMDPs.isterminal(m::HSModel, s::HSState)
-    robot_reached_target(m, s) || !isinroom(robot_pos(s), room(m)) || has_collision(m, s)
+    robot_reached_goal(m, s) || !isinroom(robot_pos(s), room(m)) || has_collision(m, s)
 end
 
 function POMDPs.initialstate(m::HSModel, rng::AbstractRNG)::HSState

@@ -1,9 +1,9 @@
 function generate_hspomdp(sensor::HSSensor, human_behavior_model::HumanBehaviorModel,
                           physical_transition_noise_model::HSPhysicalTransitionNoiseModel, rng::AbstractRNG;
-                          room::RoomRep=RoomRep(),
+                          room::Room=Room(),
                           aspace=HSActionSpace(),
                           reward_model::HSRewardModel=HSRewardModel(),
-                          robot_target::Pos=rand_pos(room, rng),
+                          robot_goal::Pos=rand_pos(room, rng),
                           agent_min_distance::Float64=1.0,
                           known_external_initstate::HSExternalState=external(rand_external_state(room, rng)))
 
@@ -12,7 +12,7 @@ function generate_hspomdp(sensor::HSSensor, human_behavior_model::HumanBehaviorM
                 aspace=aspace,
                 reward_model=reward_model,
                 human_behavior_model=human_behavior_model,
-                robot_target=robot_target,
+                robot_goal=robot_goal,
                 agent_min_distance=agent_min_distance,
                 known_external_initstate=known_external_initstate)
 
@@ -27,7 +27,7 @@ function generate_hspomdp(sensor::HSSensor, human_behavior_model::HumanBehaviorM
                             room=room(template_model),
                             aspace=mdp(template_model).aspace,
                             reward_model=reward_model(template_model),
-                            robot_target=robot_target(template_model),
+                            robot_goal=robot_goal(template_model),
                             agent_min_distance=agent_min_distance(template_model),
                             known_external_initstate=mdp(template_model).known_external_initstate)
 end
@@ -37,8 +37,8 @@ function generate_non_trivial_scenario(sensor::HSSensor, human_behavior_model::H
                                        kwargs...)
     if get(kwargs, :known_external_initstate, nothing) !== nothing
         @error "Non-trivial scenarios can't be generated from fixed external init states."
-    elseif get(kwargs, :robot_target, nothing) !== nothing
-        @error "Non-trivial scenarios can't be generated from fixed robot targets."
+    elseif get(kwargs, :robot_goal, nothing) !== nothing
+        @error "Non-trivial scenarios can't be generated from fixed robot goals."
     end
 
     simulator_rng = deepcopy(rng)
@@ -51,8 +51,8 @@ function generate_non_trivial_scenario(sensor::HSSensor, human_behavior_model::H
         fo_model = mdp(po_model)
 
         trivial_policy = FunctionPolicy(s->reduce((a1, a2) ->
-                                                  dist_to_pos(apply_robot_action(robot_pos(s), a1), robot_target(fo_model))
-                                                  < dist_to_pos(apply_robot_action(robot_pos(s), a2), robot_target(fo_model)) ?
+                                                  dist_to_pos(apply_robot_action(robot_pos(s), a1), robot_goal(fo_model))
+                                                  < dist_to_pos(apply_robot_action(robot_pos(s), a2), robot_goal(fo_model)) ?
                                                   a1 : a2,
                                                   HSActionSpace()))
 

@@ -42,31 +42,31 @@ function Base.isequal(a::HSExternalState, b::HSExternalState)
 end
 
 # determines the corner positions of the room
-corner_positions(r::RoomRep) = vec([Pos(x, y) for x in [0.1r.width, 0.9r.width], y in [0.1r.height, 0.9r.height]])
+corner_positions(r::Room) = vec([Pos(x, y) for x in [0.1r.width, 0.9r.width], y in [0.1r.height, 0.9r.height]])
 
 # determines the 2D vector from p_start to p_end
 vec_from_to(p_start::Pos, p_end::Pos) = SVector(p_end.x - p_start.x, p_end.y - p_start.y)
 # computes the 2-norm distance between p1 and p2
 dist_to_pos(p1::Pos, p2::Pos; p=1)::Float64 = norm(vec_from_to(p1, p2), p)
-# computes the distance between the robot and it's target
-robot_dist_to_target(m::HSModel, s::HSState; p=1)::Float64 = dist_to_pos(robot_pos(s), robot_target(m), p=p)
+# computes the distance between the robot and it's goal
+robot_dist_to_goal(m::HSModel, s::HSState; p=1)::Float64 = dist_to_pos(robot_pos(s), robot_goal(m), p=p)
 # checks if the state currently has a collision between the robot and some other agent
 has_collision(m::HSModel, s::HSState)::Bool = dist_to_pos(human_pos(s), robot_pos(s)) < agent_min_distance(m)
 # check if the state is a failure terminal state
 isfailure(m::HSModel, s::HSState)::Bool = has_collision(m, s) || !isinroom(robot_pos(s), room(m))
 # check if the state is a success success terminal state
-issuccess(m::HSModel, s::HSState)::Bool = !isfailure(m, s) && robot_reached_target(m ,s)
+issuccess(m::HSModel, s::HSState)::Bool = !isfailure(m, s) && robot_reached_goal(m ,s)
 
-robot_reached_target(m::HSModel, s::HSState)::Bool = robot_dist_to_target(m, s) < agent_min_distance(m)
+robot_reached_goal(m::HSModel, s::HSState)::Bool = robot_dist_to_goal(m, s) < agent_min_distance(m)
 
-function rand_pos(r::RoomRep, rng::AbstractRNG)::Pos
+function rand_pos(r::Room, rng::AbstractRNG)::Pos
     x = rand(rng) * r.width
     y = rand(rng) * r.height
     return Pos(x, y)
 end
 rand_pos(m::HSModel, rng::AbstractRNG)::Pos = rand_pos(room(m))
 
-function rand_external_state(r::RoomRep, rng::AbstractRNG)
+function rand_external_state(r::Room, rng::AbstractRNG)
     human_pos = rand_pos(r, rng)
     robot_pos = rand_pos(r, rng)
     return HSExternalState(human_pos, robot_pos)
@@ -82,6 +82,6 @@ function rand_state(m::HSModel, rng::AbstractRNG; known_external_state::Union{HS
     return HSState(external=external_state, hbs=hbs)
 end
 
-function isinroom(p::Pos, r::RoomRep)
+function isinroom(p::Pos, r::Room)
     return  0 <= p.x <= r.width && 0 <= p.y <= r.height
 end
