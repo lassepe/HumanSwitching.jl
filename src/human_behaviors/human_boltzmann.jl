@@ -55,8 +55,7 @@ end
     phi::Float64 = 0 # direction
 end
 
-function gen_human_aspace(phi_step::Float64=pi/8)
-    dist = 0.5
+function gen_human_aspace(;dist::Float64=0.2, phi_step::Float64=pi/8)
     direction_actions = [i for i in -pi:phi_step:(pi-phi_step)]
     SVector{length(direction_actions)+1, HumanBoltzmannAction}([zero(HumanBoltzmannAction),(HumanBoltzmannAction(dist, direction) for direction in direction_actions)...])
 end
@@ -100,11 +99,11 @@ HumanMultiGoalBoltzmann
     goals::Array{Pos, 1} = corner_positions(Room())
     next_goal_generator::Function = uniform_goal_generator
     initial_goal_generator::Function = uniform_goal_generator
-    vel_max::Float64 = 0.4
+    vel_max::Float64 = 0.2
     goal_resample_sigma::Float64 = 0.01
     beta_resample_sigma::Float64 = 0.01
 
-    aspace::SVector{NA, TA} = gen_human_aspace()
+    aspace::SVector{NA, TA} = gen_human_aspace(dist=vel_max)
     _aprob_mem::MVector{NA, Float64} = @MVector(zeros(length(aspace)))
 end
 

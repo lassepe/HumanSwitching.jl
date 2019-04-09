@@ -3,7 +3,7 @@ HumanPIDBehavior
 """
 @with_kw struct HumanPIDBState <: HumanBehaviorState
     goal_index::Int = 1
-    vel_max::Float64 = 0.4
+    vel_max::Float64 = 0.2
 end
 
 goal_index(hbs::HumanPIDBState) = hbs.goal_index
