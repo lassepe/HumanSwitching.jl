@@ -225,10 +225,10 @@ function problem_instance_map()
                                         robot_start_pos=Pos(8/10 * room.width, 4/10 * room.height),
                                         robot_goal_pos=Pos(1/10 * room.width, 9/10 * room.height),
                                         room=room),
-    "FrontalCollision" => ProblemInstance(human_start_pos=Pos(1/2 * room.width, 1/10 * room.height),
-                                          robot_start_pos=Pos(1/2 * room.width, 9/10 * room.height),
-                                          robot_goal_pos=Pos(1/2 * room.width, 1/10 * room.height),
-                                          room=room)
+    # "FrontalCollision" => ProblemInstance(human_start_pos=Pos(1/2 * room.width, 1/10 * room.height),
+    #                                       robot_start_pos=Pos(1/2 * room.width, 9/10 * room.height),
+    #                                       robot_goal_pos=Pos(1/2 * room.width, 1/10 * room.height),
+    #                                       room=room)
    )
 end
 
@@ -270,7 +270,7 @@ function solver_setup_map(planner_setup::PlannerSetup, planner_model::HSModel, r
                                 end,
                                 "POMCPOW" => begin
                                     # TODO: use separate setting for tree quries
-                                    solver = POMCPOWSolver(tree_queries=floor(planner_setup.n_particles*2), max_depth=70, criterion=MaxUCB(80),
+                                    solver = POMCPOWSolver(tree_queries=floor(planner_setup.n_particles*2.5), max_depth=70, criterion=MaxUCB(80),
                                                            k_observation=5, alpha_observation=1.0/30.0,
                                                            enable_action_pw=false,
                                                            check_repeat_obs=!(planner_setup.hbm isa HumanConstVelBehavior),
