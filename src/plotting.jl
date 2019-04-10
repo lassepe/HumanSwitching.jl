@@ -76,10 +76,10 @@ function load_data(files...; shorten_names::Bool=true)
     # stack them to one long table
     all_data = vcat(data_frames...)
 
-    return transform_data(all_data; kwargs...)
+    return transform_data(all_data; shorten_names=shorten_names)
 end
 
-function transform_data(data::DataFrame, shorten_names::Bool=true)
+function transform_data(data::DataFrame; shorten_names::Bool=true)
     modified_data = !shorten_names ? data : @linq data |> transform(planner_hbm_key=simplify_hbm_name.(:planner_hbm_key),
                                                                             simulation_hbm_key=simplify_hbm_name.(:simulation_hbm_key))
 
