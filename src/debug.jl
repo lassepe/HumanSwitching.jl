@@ -241,8 +241,8 @@ function problem_instance_map()
 end
 
 human_goal_list(room::Room) = vcat(corner_positions(room, 0.1),
-                                   corner_positions(room, 0.2),
-                                   corner_positions(room, 0.3))
+                                   corner_positions(room, 0.25),
+                                   corner_positions(room, 0.4))
 
 function planner_hbm_map(problem_instance::ProblemInstance)
     return Dict{String, PlannerSetup}(
@@ -295,9 +295,10 @@ end
 function simulation_hbm_map(problem_instance::ProblemInstance, i_run::Int)
     simulation_rng = MersenneTwister(i_run + 1)
     return Dict{String, SimulationHBMEntry}(
-        "HumanMultiGoalBoltzmann_all_goals" => HumanMultiGoalBoltzmann(beta_min=50, beta_max=50,
-                                                                         goal_resample_sigma=0.01,
-                                                                         beta_resample_sigma=0.0)
+        "HumanMultiGoalBoltzmann_all_goals" => HumanMultiGoalBoltzmann(goals=human_goal_list(problem_instance.room),
+                                                                       beta_min=50, beta_max=50,
+                                                                       goal_resample_sigma=0.01,
+                                                                       beta_resample_sigma=0.0)
        )
 end
 
