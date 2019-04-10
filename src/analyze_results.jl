@@ -1,15 +1,3 @@
-function extract_value_compute(data::DataFrame)
-	planner_models = unique(data[:planner_hbm_key])
-	planner_metrics = Dict{String,Tuple{Array, Array}}()
-	for planner_type in planner_models
-		relevant_rows = data[data[:planner_hbm_key] .== planner_type, :]
-		value = relevant_rows[:discounted_reward]
-		compute = relevant_rows[:median_planner_time]
-		planner_metrics[planner_type] = (value, compute)
-	end
-	return planner_metrics
-end
-
 function plot_points(data::DataFrame)
 	Gadfly.set_default_plot_size(30cm,30cm)
 
