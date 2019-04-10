@@ -1,11 +1,11 @@
 function plot_points(data::DataFrame)
 	Gadfly.set_default_plot_size(30cm,30cm)
 
-    scatter = plot(data, x=:total_median_cpu_time, y=:discounted_reward, color=:planner_hbm_key, Geom.point)
+    scatter = plot(data, x=:combined_median_cpu_time, y=:normalized_discounted_reward, color=:planner_hbm_key, Geom.point)
 
     violin_plot_appearance = (Geom.violin, Gadfly.Theme(minor_label_font_size=8pt, key_position=:none))
-    value = plot(data, x=:planner_hbm_key, y=:discounted_reward, color=:planner_hbm_key, violin_plot_appearance...)
-    compute = plot(data, x=:planner_hbm_key, y=:total_median_cpu_time, color=:planner_hbm_key, violin_plot_appearance...)
+    value = plot(data, x=:planner_hbm_key, y=:normalized_discounted_reward, color=:planner_hbm_key, violin_plot_appearance...)
+    compute = plot(data, x=:planner_hbm_key, y=:combined_median_cpu_time, color=:planner_hbm_key, violin_plot_appearance...)
 
     success_rate =  plot(data, xgroup=:planner_hbm_key, x=:final_state_type, color=:planner_hbm_key, Geom.subplot_grid(Geom.histogram),
                          Gadfly.Theme(major_label_font_size=8pt, minor_label_font_size=8pt, key_position=:none))
@@ -71,7 +71,8 @@ function transform_data(data::DataFrame; shorten_names::Bool=true)
     modified_data = !shorten_names ? data : @linq data |> transform(planner_hbm_key=simplify_hbm_name.(:planner_hbm_key),
                                                                             simulation_hbm_key=simplify_hbm_name.(:simulation_hbm_key))
 
-    modified_data[:total_median_cpu_time] = modified_data[:median_updater_time] .+ modified_data[:median_planner_time]
+    modified_data[:combined_median_cpu_time] = modified_data[:median_updater_time] .+ modified_data[:median_planner_time]
+    modified_data[:normalized_discounted_reward] = modified_data[:discounted_reward] .- modified_data[:free_space_estimate]
 
     # sanity check the data
     check_data(modified_data)
