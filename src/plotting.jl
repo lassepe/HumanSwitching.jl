@@ -76,15 +76,17 @@ function load_data(files...; shorten_names::Bool=true)
     # stack them to one long table
     all_data = vcat(data_frames...)
 
+    return transform_data(all_data; kwargs...)
+end
 
-    modified_data = !shorten_names ? all_data : @linq all_data |> transform(planner_hbm_key=simplify_hbm_name.(:planner_hbm_key),
+function transform_data(data::DataFrame, shorten_names::Bool=true)
+    modified_data = !shorten_names ? data : @linq data |> transform(planner_hbm_key=simplify_hbm_name.(:planner_hbm_key),
                                                                             simulation_hbm_key=simplify_hbm_name.(:simulation_hbm_key))
 
     modified_data[:total_median_cpu_time] = modified_data[:median_updater_time] .+ modified_data[:median_planner_time]
 
     # sanity check the data
     check_data(modified_data)
-
     return modified_data
 end
 
