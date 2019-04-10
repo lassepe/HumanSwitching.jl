@@ -37,10 +37,11 @@ Define three dictionaries that:
 const SimulationHBMEntry = HumanBehaviorModel
 
 @with_kw struct ProblemInstance
-    human_start_pos::Pos
-    robot_start_pos::Pos
-    robot_goal_pos::Pos
+    human_start_pos::Union{Pos, Nothing} = nothing
+    robot_start_pos::Union{Pos, Nothing} = nothing
+    robot_goal_pos::Union{Pos, Nothing} = nothing
     room::Room = Room()
+    force_nontrivial::Bool = false
 end
 
 @with_kw struct PlannerSetup{HBM<:HumanBehaviorModel}
@@ -112,10 +113,7 @@ function construct_models(rng::AbstractRNG, problem_instance::ProblemInstance,
 
     Params:
         rng [AbstractRNG]: The random seed to be used for these models.
-        human_start_pos [Pos]: The initial position of the human.
-        robot_start_pos [Pos]: The initial position of the robot.
-        human_goal_pos [Pos]: The final goal position of the human.
-        robot_goal_pos [Pos]: The final goal position of the robot.
+        problem_instance [ProblemInstance]: defines the setup of the problem (e.g. initial conditionsa and goals for all agents)
         simulation_hbm [HumanBehaviorModel]: The "true" human model used by the simulator.
         belief_updater_hbm [HumanBehaviorModel]: The human model used by the belief updater.
         planner_hbm [HumanBehaviorModel]: The human model used by the planner.
@@ -127,11 +125,20 @@ function construct_models(rng::AbstractRNG, problem_instance::ProblemInstance,
     """
 
     ptnm_cov = [0.01, 0.01]
-    # TODO: DO THIS PROPERLY!
-    simulation_model = generate_non_trivial_scenario(ExactPositionSensor(),
-                                        simulation_hbm,
-                                        HSGaussianNoisePTNM(pos_cov=ptnm_cov),
-                                        deepcopy(rng))
+    if problem_instance.force_nontrivial
+        simulation_model = generate_non_trivial_scenario(ExactPositionSensor(),
+                                            simulation_hbm,
+                                            HSGaussianNoisePTNM(pos_cov=ptnm_cov),
+                                            deepcopy(rng))
+    else
+        simulation_model = generate_hspomdp(ExactPositionSensor(),
+                                            simulation_hbm,
+                                            HSGaussianNoisePTNM(pos_cov=ptnm_cov),
+                                            deepcopy(rng),
+                                            known_external_initstate=HSExternalState(problem_instance.human_start_pos, problem_instance.robot_start_pos),
+                                            robot_goal=problem_instance.robot_goal_pos)
+    end
+
 
     belief_updater_model = generate_hspomdp(NoisyPositionSensor(ptnm_cov*9),
                                             belief_updater_hbm,
@@ -220,14 +227,16 @@ end
 function problem_instance_map()
     room = Room()
     return Dict{String, ProblemInstance}(
-    "DiagonalAcross" => ProblemInstance(human_start_pos=Pos(1/10 * room.width, 1/10 * room.height),
-                                        robot_start_pos=Pos(8/10 * room.width, 4/10 * room.height),
-                                        robot_goal_pos=Pos(1/10 * room.width, 9/10 * room.height),
-                                        room=room),
+    # "DiagonalAcross" => ProblemInstance(human_start_pos=Pos(1/10 * room.width, 1/10 * room.height),
+    #                                     robot_start_pos=Pos(8/10 * room.width, 4/10 * room.height),
+    #                                     robot_goal_pos=Pos(1/10 * room.width, 9/10 * room.height),
+    #                                     room=room),
     # "FrontalCollision" => ProblemInstance(human_start_pos=Pos(1/2 * room.width, 1/10 * room.height),
     #                                       robot_start_pos=Pos(1/2 * room.width, 9/10 * room.height),
     #                                       robot_goal_pos=Pos(1/2 * room.width, 1/10 * room.height),
-    #                                       room=room)
+    #                                       room=room),
+    "RandomNontrivial" => ProblemInstance(force_nontrivial=true,
+                                                 room=room)
    )
 end
 
