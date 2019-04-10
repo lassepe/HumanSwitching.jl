@@ -174,7 +174,7 @@ export
     success_rate,
     filter_by_planner,
     tail_expectation
-include("plotting.jl")
+include("analyze_results.jl")
 
 export
     TimedPolicy,
