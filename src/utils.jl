@@ -42,7 +42,7 @@ function Base.isequal(a::HSExternalState, b::HSExternalState)
 end
 
 # determines the corner positions of the room
-corner_positions(r::Room) = vec([Pos(x, y) for x in [0.1r.width, 0.9r.width], y in [0.1r.height, 0.9r.height]])
+corner_positions(r::Room) = vec([Pos(x, y) for x in [0.25r.width, 0.75r.width], y in [0.25r.height, 0.75r.height]])
 
 # determines the 2D vector from p_start to p_end
 vec_from_to(p_start::Pos, p_end::Pos) = SVector(p_end.x - p_start.x, p_end.y - p_start.y)
