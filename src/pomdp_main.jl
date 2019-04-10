@@ -134,7 +134,7 @@ apply_robot_action(p::Pos, a::HSAction) = Pos(p.x + cos(a.phi)*a.d, p.y + sin(a.
     physical_transition_noise_model::PTNM = HSIdentityPTNM()
     robot_goal::Pos = rand_pos(room, Random.GLOBAL_RNG)
     agent_min_distance::Float64 = 0.5
-    goal_reached_distance::Float64 = 0.2
+    goal_reached_distance::Float64 = 0.35
     known_external_initstate::Union{HSExternalState, Nothing} = nothing
 end
 
