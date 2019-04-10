@@ -97,3 +97,12 @@ function success_rate(planner_hbm_key::String, all_data::DataFrame)
     n_success = nrow((@linq filtered_data |> where(:final_state_type .== "success")))
     return n_success / n_total
 end
+
+filter_by_planner(data::DataFrame, s::String) = data[occursin.(s, data.planner_hbm_key), :]
+
+# TODO: Is this a correct cvar implementation??? Talk to Zach
+function tail_expectation(vals::Array, q::Float64)
+    @assert 0 <= q <= 1
+    n_lower_q_vals::Int = floor(q * length(vals))
+    return mean(sort(vals)[1:n_lower_q_vals])
+end

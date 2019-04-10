@@ -171,7 +171,9 @@ export
     extract_value_compute,
     load_data,
     check_data,
-    success_rate
+    success_rate,
+    filter_by_planner,
+    tail_expectation
 include("plotting.jl")
 
 export
