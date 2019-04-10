@@ -288,14 +288,16 @@ function belief_node(b::ParticleCollection, m::HSPOMDP)::Context
         weight_sum += w
     end
     @assert(weight_sum > 0)
+
+    max_visualized_particles = 4000
     human_particles = [human_particle_node(human_pos(p), select_submodel(hbm, hbs(p)), hbs(p);
                                            annotation=string(round(state_count/weight_sum, digits=3)),
                                            opacity=map_to_opacity(state_count, weight_sum))
-                       for (p, state_count) in state_belief_counter]
+                       for (idx, (p, state_count)) in enumerate(state_belief_counter) if idx < max_visualized_particles]
 
     robot_particles = [pos_node(robot_pos(p),
                                  fill_color="light green")
-                       for (p, state_count) in state_belief_counter]
+                       for (idx, (p, state_count)) in enumerate(state_belief_counter) if idx < max_visualized_particles]
 
     belief_viz = compose(context(), robot_particles, human_particles)
 
