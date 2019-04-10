@@ -1,6 +1,9 @@
 """
 # Utility Types
 """
+
+const dt = 0.15
+
 # the physical representation of a room
 @with_kw struct Room
     width::Float64 = 8
@@ -110,7 +113,7 @@ end
 
 # defining the default action space
 function HSActionSpace()
-    dist_actions = 0.2
+    dist_actions = 1.5 * dt
     direction_actions = (-pi:pi/2:(pi-pi/2))
 
     return vec([zero(HSAction),

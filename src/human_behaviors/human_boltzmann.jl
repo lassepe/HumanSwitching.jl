@@ -99,11 +99,11 @@ HumanMultiGoalBoltzmann
     goals::Array{Pos, 1} = corner_positions(Room())
     next_goal_generator::Function = uniform_goal_generator
     initial_goal_generator::Function = uniform_goal_generator
-    vel_max::Float64 = 0.2
+    vel_max::Float64 = 1.4
     goal_resample_sigma::Float64 = 0.01
     beta_resample_sigma::Float64 = 0.01
 
-    aspace::SVector{NA, TA} = gen_human_aspace(dist=vel_max)
+    aspace::SVector{NA, TA} = gen_human_aspace(dist=dt*vel_max)
     _aprob_mem::MVector{NA, Float64} = @MVector(zeros(length(aspace)))
 end
 
