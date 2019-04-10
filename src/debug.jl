@@ -127,12 +127,11 @@ function construct_models(rng::AbstractRNG, problem_instance::ProblemInstance,
     """
 
     ptnm_cov = [0.01, 0.01]
-    simulation_model = generate_hspomdp(ExactPositionSensor(),
+    # TODO: DO THIS PROPERLY!
+    simulation_model = generate_non_trivial_scenario(ExactPositionSensor(),
                                         simulation_hbm,
                                         HSGaussianNoisePTNM(pos_cov=ptnm_cov),
-                                        deepcopy(rng),
-                                        known_external_initstate=HSExternalState(problem_instance.human_start_pos, problem_instance.robot_start_pos),
-                                        robot_goal=problem_instance.robot_goal_pos)
+                                        deepcopy(rng))
 
     belief_updater_model = generate_hspomdp(NoisyPositionSensor(ptnm_cov*9),
                                             belief_updater_hbm,
