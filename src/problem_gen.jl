@@ -54,8 +54,8 @@ function generate_non_trivial_scenario(sensor::HSSensor, human_behavior_model::H
         fo_model = mdp(po_model)
 
         trivial_policy = FunctionPolicy(s->reduce((a1, a2) ->
-                                                  dist_to_pos(apply_robot_action(robot_pos(s), a1), robot_goal(fo_model))
-                                                  < dist_to_pos(apply_robot_action(robot_pos(s), a2), robot_goal(fo_model)) ?
+                                                  dist_to_pos(apply_robot_action(robot_pos(s), a1), robot_goal(fo_model), p=2)
+                                                  < dist_to_pos(apply_robot_action(robot_pos(s), a2), robot_goal(fo_model), p=2) ?
                                                   a1 : a2,
                                                   HSActionSpace()))
 
