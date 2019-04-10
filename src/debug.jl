@@ -195,7 +195,7 @@ function setup_test_scenario(pi_key::String, simulation_hbm_key::String, planner
 
     # the belief updater is run with a stochastic version of the world
     belief_updater = BasicParticleFilter(belief_updater_model, SharedExternalStateResampler(planner_setup.n_particles), planner_setup.n_particles, deepcopy(rng))
-    solver = solver_setup_map(planner_model, planner_setup.hbm, rng)[solver_setup_key]
+    solver = solver_setup_map(planner_setup, planner_model, rng)[solver_setup_key]
     planner = solve(solver, planner_model)
 
     # compose metadata
@@ -214,7 +214,7 @@ function setup_test_scenario(pi_key::String, simulation_hbm_key::String, planner
                initialstate_distribution(belief_updater_model),
                initialstate(simulation_model, deepcopy(rng)),
                rng=deepcopy(rng),
-               max_steps=100,
+               max_steps=500,
                metadata=md)
 end
 
@@ -257,21 +257,23 @@ function planner_hbm_map(problem_instance::ProblemInstance)
        )
 end
 
-function solver_setup_map(planner_model::HSModel, planner_hbm::HumanBehaviorModel, rng::MersenneTwister)
+function solver_setup_map(planner_setup::PlannerSetup, planner_model::HSModel, rng::MersenneTwister)
     return Dict{String, Solver}(
+                                # TODO: DESPOT needs value estimate at end to reduce rollout length!
                                 "DESPOT" => begin
                                     default_policy = StraightToGoal(planner_model)
                                     # alternative lower bound: DefaultPolicyLB(default_policy)
                                     bounds = IndependentBounds(DefaultPolicyLB(default_policy), free_space_estimate, check_terminal=true)
 
-                                    solver = DESPOTSolver(K=200, D=42, max_trials=10, T_max=Inf, lambda=0.01,
+                                    solver = DESPOTSolver(K=200, D=60, max_trials=10, T_max=Inf, lambda=0.01,
                                                           bounds=bounds, rng=deepcopy(rng), tree_in_info=true)
                                 end,
                                 "POMCPOW" => begin
-                                    solver = POMCPOWSolver(tree_queries=12000, max_depth=70, criterion=MaxUCB(80),
+                                    # TODO: use separate setting for tree quries
+                                    solver = POMCPOWSolver(tree_queries=floor(planner_setup.n_particles*2), max_depth=70, criterion=MaxUCB(80),
                                                            k_observation=5, alpha_observation=1.0/30.0,
                                                            enable_action_pw=false,
-                                                           check_repeat_obs=!(planner_hbm isa HumanConstVelBehavior),
+                                                           check_repeat_obs=!(planner_setup.hbm isa HumanConstVelBehavior),
                                                            check_repeat_act=true,
                                                            estimate_value=free_space_estimate, rng=deepcopy(rng))
                                 end

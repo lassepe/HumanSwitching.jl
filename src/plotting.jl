@@ -52,7 +52,7 @@ function plot_problem_instance(data::DataFrame)
 end
 
 function check_data(data::DataFrame)
-    non_terminal_data = @linq data |> where(:final_state_type .== "non-terminal")
+    non_terminal_data = @linq data |> where(:final_state_type .== "nonterminal")
     if nrow(non_terminal_data) > 0
         @warn "There were non-terminal runs:"
         display(non_terminal_data)
