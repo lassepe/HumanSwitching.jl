@@ -240,9 +240,12 @@ function problem_instance_map()
    )
 end
 
-human_goal_list(room::Room) = vcat(corner_positions(room, 0.1),
-                                   corner_positions(room, 0.25),
-                                   corner_positions(room, 0.4))
+abs_pos(rel_pos::Pos, room::Room) = Pos(rel_pos.x*room.width, rel_pos.y*room.height)
+
+human_goal_list(room::Room) = vcat(corner_positions(room),
+                                   [abs_pos(p, room) for p in [Pos(0.5, 0.5),
+                                                               Pos(0.5, 0.1), Pos(0.5, 0.9),
+                                                               Pos(0.1, 0.5), Pos(0.9, 0.5)]])
 
 function planner_hbm_map(problem_instance::ProblemInstance)
     return Dict{String, PlannerSetup}(
@@ -254,18 +257,18 @@ function planner_hbm_map(problem_instance::ProblemInstance)
                                                                                         beta_resample_sigma=0.0),
                                                             epsilon=0.02,
                                                             n_particles=6000),
-        "HumanMultiGoalBoltzmann_4_goals" => PlannerSetup(hbm=HumanMultiGoalBoltzmann(goals=human_goal_list(problem_instance.room)[5:8],
+        "HumanMultiGoalBoltzmann_5_goals" => PlannerSetup(hbm=HumanMultiGoalBoltzmann(goals=human_goal_list(problem_instance.room)[5:9],
                                                                                       beta_min=0.1, beta_max=50,
                                                                                       goal_resample_sigma=0.01,
                                                                                       beta_resample_sigma=0.0),
                                                           epsilon=0.02,
                                                           n_particles=3000),
-        # "HumanMultiGoalBoltzmann_2_corners" => PlannerSetup(hbm=HumanMultiGoalBoltzmann(goals=corner_positions(problem_instance.room)[1:2],
-        #                                                                                 beta_min=0.1, beta_max=50,
-        #                                                                                 goal_resample_sigma=0.01,
-        #                                                                                 beta_resample_sigma=0.0),
-        #                                                     epsilon=0.02,
-        #                                                     n_particles=2000),
+        "HumanMultiGoalBoltzmann_4_goals" => PlannerSetup(hbm=HumanMultiGoalBoltzmann(goals=human_goal_list(problem_instance.room)[6:9],
+                                                                                      beta_min=0.1, beta_max=50,
+                                                                                      goal_resample_sigma=0.01,
+                                                                                      beta_resample_sigma=0.0),
+                                                          epsilon=0.02,
+                                                          n_particles=2000),
        )
 end
 
