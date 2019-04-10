@@ -237,19 +237,19 @@ function planner_hbm_map(problem_instance::ProblemInstance)
         # "HumanConstVelBehavior" => (HumanConstVelBehavior(vel_max=1, vel_resample_sigma=0.0), 0.05),
         # "HumanBoltzmannModel_PI/8" => (HumanBoltzmannModel(reward_model=HumanSingleGoalRewardModel(human_goal_pos),
         "HumanMultiGoalBoltzmann_all_corners" => PlannerSetup(hbm=HumanMultiGoalBoltzmann(goals=corner_positions(problem_instance.room),
-                                                                                          beta_min=0.1, beta_max=30,
+                                                                                          beta_min=0.1, beta_max=50,
                                                                                           goal_resample_sigma=0.01,
                                                                                           beta_resample_sigma=0.0),
                                                               epsilon=0.02,
                                                               n_particles=4000),
         "HumanMultiGoalBoltzmann_3_corners" => PlannerSetup(hbm=HumanMultiGoalBoltzmann(goals=corner_positions(problem_instance.room)[1:3],
-                                                                                        beta_min=0.1, beta_max=30,
+                                                                                        beta_min=0.1, beta_max=50,
                                                                                         goal_resample_sigma=0.01,
                                                                                         beta_resample_sigma=0.0),
                                                             epsilon=0.02,
                                                             n_particles=3000),
         "HumanMultiGoalBoltzmann_2_corners" => PlannerSetup(hbm=HumanMultiGoalBoltzmann(goals=corner_positions(problem_instance.room)[1:2],
-                                                                                        beta_min=0.1, beta_max=30,
+                                                                                        beta_min=0.1, beta_max=50,
                                                                                         goal_resample_sigma=0.01,
                                                                                         beta_resample_sigma=0.0),
                                                             epsilon=0.02,
@@ -283,7 +283,7 @@ end
 function simulation_hbm_map(problem_instance::ProblemInstance, i_run::Int)
     simulation_rng = MersenneTwister(i_run + 1)
     return Dict{String, SimulationHBMEntry}(
-        "HumanMultiGoalBoltzmann_all_corners" => HumanMultiGoalBoltzmann(beta_min=20, beta_max=20,
+        "HumanMultiGoalBoltzmann_all_corners" => HumanMultiGoalBoltzmann(beta_min=50, beta_max=50,
                                                                          goal_resample_sigma=0.01,
                                                                          beta_resample_sigma=0.0)
        )
