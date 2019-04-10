@@ -42,7 +42,7 @@ function Base.isequal(a::HSExternalState, b::HSExternalState)
 end
 
 # determines the corner positions of the room
-function corner_positions(r::Room; relative_margin::Float64=0.25)
+function corner_positions(r::Room, relative_margin::Float64=0.25)
     @assert 0 < relative_margin < 0.5
     return vec([Pos(x, y)
                 for x in [relative_margin*r.width, (1-relative_margin)*r.width],

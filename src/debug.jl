@@ -240,28 +240,32 @@ function problem_instance_map()
    )
 end
 
+human_goal_list(room::Room) = vcat(corner_positions(room, 0.1),
+                                   corner_positions(room, 0.2),
+                                   corner_positions(room, 0.3))
+
 function planner_hbm_map(problem_instance::ProblemInstance)
     return Dict{String, PlannerSetup}(
         # "HumanConstVelBehavior" => (HumanConstVelBehavior(vel_max=1, vel_resample_sigma=0.0), 0.05),
         # "HumanBoltzmannModel_PI/8" => (HumanBoltzmannModel(reward_model=HumanSingleGoalRewardModel(human_goal_pos),
-        "HumanMultiGoalBoltzmann_all_corners" => PlannerSetup(hbm=HumanMultiGoalBoltzmann(goals=corner_positions(problem_instance.room),
-                                                                                          beta_min=0.1, beta_max=50,
-                                                                                          goal_resample_sigma=0.01,
-                                                                                          beta_resample_sigma=0.0),
-                                                              epsilon=0.02,
-                                                              n_particles=4000),
-        "HumanMultiGoalBoltzmann_3_corners" => PlannerSetup(hbm=HumanMultiGoalBoltzmann(goals=corner_positions(problem_instance.room)[1:3],
+        "HumanMultiGoalBoltzmann_all_goals" => PlannerSetup(hbm=HumanMultiGoalBoltzmann(goals=human_goal_list(problem_instance.room),
                                                                                         beta_min=0.1, beta_max=50,
                                                                                         goal_resample_sigma=0.01,
                                                                                         beta_resample_sigma=0.0),
                                                             epsilon=0.02,
-                                                            n_particles=3000),
-        "HumanMultiGoalBoltzmann_2_corners" => PlannerSetup(hbm=HumanMultiGoalBoltzmann(goals=corner_positions(problem_instance.room)[1:2],
-                                                                                        beta_min=0.1, beta_max=50,
-                                                                                        goal_resample_sigma=0.01,
-                                                                                        beta_resample_sigma=0.0),
-                                                            epsilon=0.02,
-                                                            n_particles=2000),
+                                                            n_particles=6000),
+        "HumanMultiGoalBoltzmann_4_goals" => PlannerSetup(hbm=HumanMultiGoalBoltzmann(goals=human_goal_list(problem_instance.room)[5:8],
+                                                                                      beta_min=0.1, beta_max=50,
+                                                                                      goal_resample_sigma=0.01,
+                                                                                      beta_resample_sigma=0.0),
+                                                          epsilon=0.02,
+                                                          n_particles=3000),
+        # "HumanMultiGoalBoltzmann_2_corners" => PlannerSetup(hbm=HumanMultiGoalBoltzmann(goals=corner_positions(problem_instance.room)[1:2],
+        #                                                                                 beta_min=0.1, beta_max=50,
+        #                                                                                 goal_resample_sigma=0.01,
+        #                                                                                 beta_resample_sigma=0.0),
+        #                                                     epsilon=0.02,
+        #                                                     n_particles=2000),
        )
 end
 
@@ -291,7 +295,7 @@ end
 function simulation_hbm_map(problem_instance::ProblemInstance, i_run::Int)
     simulation_rng = MersenneTwister(i_run + 1)
     return Dict{String, SimulationHBMEntry}(
-        "HumanMultiGoalBoltzmann_all_corners" => HumanMultiGoalBoltzmann(beta_min=50, beta_max=50,
+        "HumanMultiGoalBoltzmann_all_goals" => HumanMultiGoalBoltzmann(beta_min=50, beta_max=50,
                                                                          goal_resample_sigma=0.01,
                                                                          beta_resample_sigma=0.0)
        )
