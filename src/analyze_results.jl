@@ -4,7 +4,7 @@ function plot_points(data::DataFrame)
     scatter = plot(data, x=:combined_median_cpu_time, y=:normalized_discounted_reward, color=:planner_hbm_key, Geom.point)
 
     detailed_theme = Gadfly.Theme(minor_label_font_size=8pt, key_position=:none)
-    value = plot(data, x=:planner_hbm_key, y=:normalized_discounted_reward, color=:planner_hbm_key, detailed_theme, Geom.violin)
+    value = plot(data, x=:planner_hbm_key, y=:normalized_discounted_reward, color=:planner_hbm_key, detailed_theme, Geom.boxplot)
     compute = plot(data, x=:planner_hbm_key, y=:combined_median_cpu_time, color=:planner_hbm_key, detailed_theme, Geom.boxplot)
 
     success_rate =  plot(data, xgroup=:planner_hbm_key, x=:final_state_type, color=:planner_hbm_key, Geom.subplot_grid(Geom.histogram),
@@ -73,6 +73,9 @@ function transform_data(data::DataFrame; shorten_names::Bool=true)
 
     modified_data[:combined_median_cpu_time] = modified_data[:median_updater_time] .+ modified_data[:median_planner_time]
     modified_data[:normalized_discounted_reward] = modified_data[:discounted_reward] .- modified_data[:free_space_estimate]
+    # TODO: Do this properly!
+    # modified_data[:relative_discounted_reward] = modified_data[:discounted_reward] .- vcat(modified_data[:discounted_reward][1],
+    #                                                                                        modified_data[:discounted_reward][1:end-1])
 
     # sanity check the data
     check_data(modified_data)
@@ -94,4 +97,19 @@ function tail_expectation(vals::Array, q::Float64)
     @assert 0 <= q <= 1
     n_lower_q_vals::Int = floor(q * length(vals))
     return mean(sort(vals)[1:n_lower_q_vals])
+end
+
+function statistics(data::DataFrame)
+    for p in unique(data.planner_hbm_key)
+        planner_data = filter_by_planner(data, p)
+        println("""
+                ---------------------------------------------------------------------------------
+
+                Planner: $p
+
+                tail_expectation: $(tail_expectation(planner_data.normalized_discounted_reward, 0.20))
+                mean: $(mean(planner_data.normalized_discounted_reward))
+                lcb: $(mean(planner_data.normalized_discounted_reward) - std(planner_data.normalized_discounted_reward))
+                """)
+    end
 end
