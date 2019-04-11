@@ -123,7 +123,7 @@ function uniform_goal_generator(goals::Array{Pos, 1}, rng::AbstractRNG)
     return rand(rng, goals)::Pos
 end
 function uniform_goal_generator(current_goal::Pos, goals::Array{Pos, 1}, rng::AbstractRNG)
-    return rand(rng) < 0.9 ? current_goal : uniform_goal_generator(goals, rng)::Pos
+    return rand(rng) < 0.0 ? current_goal : uniform_goal_generator(goals, rng)::Pos
 end
 
 
