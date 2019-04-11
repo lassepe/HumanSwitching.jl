@@ -42,6 +42,7 @@ const SimulationHBMEntry = HumanBehaviorModel
     robot_goal_pos::Union{Pos, Nothing} = nothing
     room::Room = Room()
     force_nontrivial::Bool = false
+    human_goals::Union{Function, Nothing} = nothing
 end
 
 @with_kw struct PlannerSetup{HBM<:HumanBehaviorModel}
@@ -126,10 +127,14 @@ function construct_models(rng::AbstractRNG, problem_instance::ProblemInstance,
 
     ptnm_cov = [0.01, 0.01]
     if problem_instance.force_nontrivial
-        simulation_model = generate_non_trivial_scenario(ExactPositionSensor(),
-                                            simulation_hbm,
-                                            HSGaussianNoisePTNM(pos_cov=ptnm_cov),
-                                            deepcopy(rng))
+        if isnothing(problem_instance.robot_start_pos) && isnothing(problem_instance.robot_goal_pos) && isnothing(problem_instance.human_start_pos)
+            simulation_model = generate_non_trivial_scenario(ExactPositionSensor(),
+                                                             simulation_hbm,
+                                                             HSGaussianNoisePTNM(pos_cov=ptnm_cov),
+                                                             deepcopy(rng))
+        else
+            throw("Illegal problem instance!")
+        end
     else
         simulation_model = generate_hspomdp(ExactPositionSensor(),
                                             simulation_hbm,
@@ -236,39 +241,49 @@ function problem_instance_map()
     #                                       robot_goal_pos=Pos(1/2 * room.width, 1/10 * room.height),
     #                                       room=room),
     "RandomNontrivial" => ProblemInstance(force_nontrivial=true,
-                                                 room=room)
+                                          room=room,
+                                          human_goals=symmetric_goals),
+    "DiningHallNontrivial" => ProblemInstance(force_nontrivial=true,
+                                              room=room,
+                                              human_goals=dining_hall_goals)
    )
 end
 
 abs_pos(rel_pos::Pos, room::Room) = Pos(rel_pos.x*room.width, rel_pos.y*room.height)
 
-human_goal_list(room::Room) = vcat(corner_positions(room),
-                                   [abs_pos(p, room) for p in [Pos(0.5, 0.5),
-                                                               Pos(0.5, 0.1), Pos(0.5, 0.9),
-                                                               Pos(0.1, 0.5), Pos(0.9, 0.5)]])
+symmetric_goals(room::Room) = vcat(corner_positions(room),
+                                    [abs_pos(p, room) for p in [Pos(0.5, 0.5),
+                                                                Pos(0.5, 0.1), Pos(0.5, 0.9),
+                                                                Pos(0.1, 0.5), Pos(0.9, 0.5)]])
+
+dining_hall_goals(room::Room) = vcat([abs_pos(p, room) for p in [Pos(0.2, 0.7), Pos(0.5, 0.7), Pos(0.8, 0.7),
+                                                                 Pos(0.2, 0.3), Pos(0.5, 0.3), Pos(0.8, 0.3)]])
 
 function planner_hbm_map(problem_instance::ProblemInstance)
     return Dict{String, PlannerSetup}(
         # "HumanConstVelBehavior" => (HumanConstVelBehavior(vel_max=1, vel_resample_sigma=0.0), 0.05),
         # "HumanBoltzmannModel_PI/8" => (HumanBoltzmannModel(reward_model=HumanSingleGoalRewardModel(human_goal_pos),
-        "HumanMultiGoalBoltzmann_all_goals" => PlannerSetup(hbm=HumanMultiGoalBoltzmann(goals=human_goal_list(problem_instance.room),
+        "HumanMultiGoalBoltzmann_all_goals" => PlannerSetup(hbm=HumanMultiGoalBoltzmann(goals=problem_instance.human_goals(problem_instance.room),
                                                                                         beta_min=0.1, beta_max=50,
                                                                                         goal_resample_sigma=0.01,
                                                                                         beta_resample_sigma=0.0),
                                                             epsilon=0.02,
                                                             n_particles=6000),
-        "HumanMultiGoalBoltzmann_5_goals" => PlannerSetup(hbm=HumanMultiGoalBoltzmann(goals=human_goal_list(problem_instance.room)[5:9],
-                                                                                      beta_min=0.1, beta_max=50,
-                                                                                      goal_resample_sigma=0.01,
-                                                                                      beta_resample_sigma=0.0),
-                                                          epsilon=0.02,
-                                                          n_particles=3000),
-        "HumanMultiGoalBoltzmann_4_goals" => PlannerSetup(hbm=HumanMultiGoalBoltzmann(goals=human_goal_list(problem_instance.room)[6:9],
-                                                                                      beta_min=0.1, beta_max=50,
-                                                                                      goal_resample_sigma=0.01,
-                                                                                      beta_resample_sigma=0.0),
-                                                          epsilon=0.02,
-                                                          n_particles=2000),
+        "HumanConstVelBehavior" => PlannerSetup(hbm=HumanConstVelBehavior(vel_max=1, vel_resample_sigma=0.0),
+                                                epsilon=0.1,
+                                                n_particles=1000),
+        # "HumanMultiGoalBoltzmann_5_goals" => PlannerSetup(hbm=HumanMultiGoalBoltzmann(goals=problem_instance.human_goals(problem_instance.room)[5:9],
+        #                                                                               beta_min=0.1, beta_max=50,
+        #                                                                               goal_resample_sigma=0.01,
+        #                                                                               beta_resample_sigma=0.0),
+        #                                                   epsilon=0.02,
+        #                                                   n_particles=3000),
+        # "HumanMultiGoalBoltzmann_4_goals" => PlannerSetup(hbm=HumanMultiGoalBoltzmann(goals=problem_instance.human_goals(problem_instance.room)[6:9],
+        #                                                                               beta_min=0.1, beta_max=50,
+        #                                                                               goal_resample_sigma=0.01,
+        #                                                                               beta_resample_sigma=0.0),
+        #                                                   epsilon=0.02,
+        #                                                   n_particles=2000),
        )
 end
 
@@ -298,7 +313,7 @@ end
 function simulation_hbm_map(problem_instance::ProblemInstance, i_run::Int)
     simulation_rng = MersenneTwister(i_run + 1)
     return Dict{String, SimulationHBMEntry}(
-        "HumanMultiGoalBoltzmann_all_goals" => HumanMultiGoalBoltzmann(goals=human_goal_list(problem_instance.room),
+        "HumanMultiGoalBoltzmann_all_goals" => HumanMultiGoalBoltzmann(goals=problem_instance.human_goals(problem_instance.room),
                                                                        beta_min=50, beta_max=50,
                                                                        goal_resample_sigma=0.01,
                                                                        beta_resample_sigma=0.0)
