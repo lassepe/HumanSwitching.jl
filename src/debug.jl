@@ -172,7 +172,7 @@ end
 
 function belief_updater_from_planner_model(planner_setup::PlannerSetup{<:HumanConstVelBehavior})
     # clone the model but set the new epsilon
-    return HumanConstVelBehavior(vel_max=planner_hbm.vel_max,
+    return HumanConstVelBehavior(vel_max=planner_setup.hbm.vel_max,
                                  vel_resample_sigma=planner_setup.epsilon)
 end
 

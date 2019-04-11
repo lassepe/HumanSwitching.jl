@@ -6,7 +6,7 @@ struct HumanConstVelBState <: HumanBehaviorState
     vy::Float64
 end
 
-free_evolution(hbs::HumanConstVelBState, p::Pos) = Pos(p.x + hbs.vx, p.y + hbs.vy)
+free_evolution(hbs::HumanConstVelBState, p::Pos) = Pos(p.x + dt*hbs.vx, p.y + dt*hbs.vy)
 
 @with_kw struct HumanConstVelBehavior <: HumanBehaviorModel
     vel_max::Float64 = 1.0
