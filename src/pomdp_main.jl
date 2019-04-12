@@ -112,13 +112,13 @@ robot_pos(s::Union{HSState, HSExternalState}) = external(s).robot_pos
 end
 
 # defining the default action space
-function HSActionSpace()
-    dist_actions = 1.2 * dt
+function HSActionSpace(robot_max_speed::Float64)
+    dist_action = robot_max_speed * dt
     direction_actions = (-pi:pi/2:(pi-pi/2))
 
-    # two zero actions: a true zero action and a place holder for the special action
-    return vec([zero(HSAction),
-                (HSAction(d, phi) for d in dist_actions, phi in direction_actions)...])
+    # first action is place holder for special action
+    return vec([HSAction(dist_action, 0), zero(HSAction),
+                (HSAction(dist_action, phi) for phi in direction_actions)...])
 end
 
 apply_robot_action(p::Pos, a::HSAction) = Pos(p.x + cos(a.phi)*a.d, p.y + sin(a.phi)*a.d)
@@ -129,7 +129,7 @@ apply_robot_action(p::Pos, a::HSAction) = Pos(p.x + cos(a.phi)*a.d, p.y + sin(a.
 """
 @with_kw struct HSMDP{AS, HBM<:HumanBehaviorModel, PTNM<:HSPhysicalTransitionNoiseModel} <: MDP{HSState, HSAction}
     room::Room = Room()
-    aspace::AS = HSActionSpace()
+    aspace::AS = HSActionSpace(1.2)
     reward_model::HSRewardModel = HSRewardModel()
     human_behavior_model::HBM = HumanPIDBehavior(room)
     physical_transition_noise_model::PTNM = HSIdentityPTNM()
@@ -156,20 +156,26 @@ reward_model(m::HSModel) = mdp(m).reward_model
 physical_transition_noise_model(m::HSModel) = mdp(m).physical_transition_noise_model
 room(m::HSModel) = mdp(m).room
 agent_min_distance(m::HSModel) = mdp(m).agent_min_distance
+robot_max_speed(as::A) where A <: AbstractVector{HSAction} = first(as).d
 goal_reached_distance(m::HSModel) = mdp(m).goal_reached_distance
 
 """
 # Implementation of main POMDP Interface
 """
 POMDPs.actions(m::HSModel) = mdp(m).aspace
-function POMDPs.actions(m::HSModel, obs_node::T) where T <: POWTreeObsNode
-    rp::Pos = robot_pos(isroot(obs_node) ? obs_node |> belief |> particles |> first |> external : current_obs(obs_node))
-    robot_to_goal = vec_from_to(rp, robot_goal(m))
-    phi = atan(robot_to_goal[2], robot_to_goal[1])
-    d = robot_max_speed
-    # TODO: This is most likely really slow. Avoid using splat. Time this!
-    return [HSAction(d, phi), actions(m)...]
+
+function POMDPs.actions(m::HSModel, e::HSExternalState)
+    robot_to_goal = vec_from_to(robot_pos(e), robot_goal(m))
+    # replace the first action with the current "straight to goal" action
+    actions(m)[1] = HSAction(first(actions(m)).d, atan(robot_to_goal[2], robot_to_goal[1]))
+    return actions(m)
 end
+
+function POMDPs.actions(m::HSModel, obs_node::T) where T <: POWTreeObsNode
+    e::HSExternalState = isroot(obs_node) ? obs_node |> belief |> particles |> first |> external : current_obs(obs_node)
+    return actions(m, e)
+end
+
 POMDPs.n_actions(m::HSModel) = length(mdp(m).aspace)
 POMDPs.discount(m::HSModel) = reward_model(m).discount_factor
 

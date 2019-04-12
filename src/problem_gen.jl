@@ -1,7 +1,7 @@
 function generate_hspomdp(sensor::HSSensor, human_behavior_model::HumanBehaviorModel,
                           physical_transition_noise_model::HSPhysicalTransitionNoiseModel, rng::AbstractRNG;
                           room::Room=Room(),
-                          aspace=HSActionSpace(),
+                          aspace=HSActionSpace(1.2),
                           reward_model::HSRewardModel=HSRewardModel(),
                           robot_goal::Pos=rand_pos(room, rng),
                           agent_min_distance::Float64=0.5,
