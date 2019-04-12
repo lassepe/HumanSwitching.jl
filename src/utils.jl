@@ -49,6 +49,8 @@ function corner_positions(r::Room, relative_margin::Float64=0.25)
                 y in [relative_margin*r.height, (1-relative_margin)*r.height]])
 end
 
+dist_to_wall(p::Pos, room::Room) = minimum([p.x, room.width-p.x, p.y, room.height-p.y])
+
 # determines the 2D vector from p_start to p_end
 vec_from_to(p_start::Pos, p_end::Pos) = SVector(p_end.x - p_start.x, p_end.y - p_start.y)
 # computes the 2-norm distance between p1 and p2

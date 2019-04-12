@@ -64,7 +64,7 @@ function generate_non_trivial_scenario(sensor::HSSensor, human_behavior_model::H
         sim_hist = simulate(simulator, fo_model, trivial_policy)
 
         state_history = collect(eachstep(sim_hist, "sp"))
-        if length(state_history) == 0
+        if length(state_history) == 0 || dist_to_wall(robot_goal(po_model), room(po_model)) < 2*agent_min_distance(po_model)
             continue
         end
         last_state = last(state_history)
