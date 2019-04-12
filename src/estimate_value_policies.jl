@@ -27,7 +27,7 @@ function free_space_estimate(mdp::HSMDP, s::HSState, steps::Int=0)::Float64
         return 0
     end
     rm = reward_model(mdp)
-    remaining_step_estimate = fld(clamp(robot_dist_to_goal(mdp, s, p=1) - goal_reached_distance(mdp), 0, Inf), robot_max_speed)
+    remaining_step_estimate = fld(clamp(robot_dist_to_goal(mdp, s, p=2) - goal_reached_distance(mdp), 0, Inf), robot_max_speed)
 
     reward_estimate::Float64 = 0
     # stage cost
