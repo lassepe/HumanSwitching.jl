@@ -32,6 +32,7 @@ using POMDPSimulators
 using POMDPPolicies
 using ParticleFilters
 using ARDESPOT
+using POMCPOW
 
 # packages that are extended by this module
 import ParticleFilters # modified in particle_fitler.jl

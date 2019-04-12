@@ -116,6 +116,7 @@ function HSActionSpace()
     dist_actions = 1.2 * dt
     direction_actions = (-pi:pi/2:(pi-pi/2))
 
+    # two zero actions: a true zero action and a place holder for the special action
     return vec([zero(HSAction),
                 (HSAction(d, phi) for d in dist_actions, phi in direction_actions)...])
 end
@@ -161,12 +162,21 @@ goal_reached_distance(m::HSModel) = mdp(m).goal_reached_distance
 # Implementation of main POMDP Interface
 """
 POMDPs.actions(m::HSModel) = mdp(m).aspace
+function POMDPs.actions(m::HSModel, obs_node::T) where T <: POWTreeObsNode
+    rp::Pos = robot_pos(isroot(obs_node) ? obs_node |> belief |> particles |> first |> external : current_obs(obs_node))
+    robot_to_goal = vec_from_to(rp, robot_goal(m))
+    phi = atan(robot_to_goal[2], robot_to_goal[1])
+    d = robot_max_speed
+    # TODO: This is most likely really slow. Avoid using splat. Time this!
+    return [HSAction(d, phi), actions(m)...]
+end
 POMDPs.n_actions(m::HSModel) = length(mdp(m).aspace)
 POMDPs.discount(m::HSModel) = reward_model(m).discount_factor
 
 # this simple forwards to the different transition models
 function POMDPs.generate_s(m::HSModel, s::HSState, a::HSAction, rng::AbstractRNG)
-    @assert (a in actions(m))
+    # TODO: Reintroduce
+    #@assert (a in actions(m))
 
     human_pos_intent, hbs_p = human_transition(hbs(s), human_behavior_model(m), m, human_pos(s), rng)
     robot_pos_intent = apply_robot_action(robot_pos(s), a)
