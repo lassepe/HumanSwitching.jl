@@ -37,11 +37,11 @@ Describes the rewards the robot cares about
 
 @with_kw struct HSRewardModel
     discount_factor::Float64 = 0.99
-    living_penalty::Float64 = -2
-    collision_penalty::Float64 = -100
-    left_room_penalty::Float64 = -100
-    goal_reached_reward::Float64 = 100.0
-    dist_to_human_penalty::Float64 = -15
+    living_penalty::Float64 = -1
+    collision_penalty::Float64 = -1000
+    left_room_penalty::Float64 = -1000
+    goal_reached_reward::Float64 = 0
+    dist_to_human_penalty::Float64 = -20
     move_to_goal_reward::Float64 = 0
     control_cost::Float64 = 0
 end
