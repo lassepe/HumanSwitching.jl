@@ -113,7 +113,7 @@ end
 
 # defining the default action space
 function HSActionSpace()
-    dist_actions = 1.5 * dt
+    dist_actions = 1.2 * dt
     direction_actions = (-pi:pi/2:(pi-pi/2))
 
     return vec([zero(HSAction),
