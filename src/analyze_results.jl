@@ -73,9 +73,6 @@ function transform_data(data::DataFrame; shorten_names::Bool=true)
 
     modified_data[:combined_median_cpu_time] = modified_data[:median_updater_time] .+ modified_data[:median_planner_time]
     modified_data[:normalized_discounted_reward] = modified_data[:discounted_reward] .- modified_data[:free_space_estimate]
-    # TODO: Do this properly!
-    # modified_data[:relative_discounted_reward] = modified_data[:discounted_reward] .- vcat(modified_data[:discounted_reward][1],
-    #                                                                                        modified_data[:discounted_reward][1:end-1])
 
     # sanity check the data
     check_data(modified_data)
