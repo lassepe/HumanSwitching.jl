@@ -225,7 +225,7 @@ function setup_test_scenario(pi_key::String, simulation_hbm_key::String, planner
                initialstate_distribution(belief_updater_model),
                initialstate(simulation_model, deepcopy(rng)),
                rng=deepcopy(rng),
-               max_steps=500,
+               max_steps=200,
                metadata=md)
 end
 
@@ -399,4 +399,10 @@ end
 function debug(data, idx; kwargs...)
     viz = reproduce_scenario(data[idx, :]; kwargs...)
     visualize(viz[1:2]..., filename="$idx")
+end
+
+function debug(data; kwargs...)
+    for idx in 1:nrow(data)
+        debug(data, idx; kwargs...)
+    end
 end
