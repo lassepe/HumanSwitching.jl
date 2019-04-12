@@ -53,12 +53,7 @@ function generate_non_trivial_scenario(sensor::HSSensor, human_behavior_model::H
         # observable problem
         fo_model = mdp(po_model)
 
-        trivial_policy = FunctionPolicy(s->reduce((a1, a2) ->
-                                                  dist_to_pos(apply_robot_action(robot_pos(s), a1), robot_goal(fo_model), p=2)
-                                                  < dist_to_pos(apply_robot_action(robot_pos(s), a2), robot_goal(fo_model), p=2) ?
-                                                  a1 : a2,
-                                                  HSActionSpace()))
-
+        trivial_policy = StraightToGoal(po_model)
 
         simulator = HistoryRecorder(max_steps=100, show_progress=false, rng=deepcopy(simulator_rng))
         sim_hist = simulate(simulator, fo_model, trivial_policy)

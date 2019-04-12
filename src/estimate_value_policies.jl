@@ -7,19 +7,10 @@ function POMDPs.action(p::StraightToGoal, s::HSState)
     best_action = reduce((a1, a2) -> dist_to_pos(apply_robot_action(robot_pos(s), a1), robot_goal(p.m))
                          < dist_to_pos(apply_robot_action(robot_pos(s), a2), robot_goal(p.m)) ?
                          a1 : a2,
-                         HSActionSpace())
+                         actions(p.m, s))
 end
 
-function POMDPs.action(p::StraightToGoal, b::AbstractParticleBelief)
-    s = first(particles(b))
-    # take the action that moves me closest to goal as a rollout
-    best_action = reduce((a1, a2) -> dist_to_pos(apply_robot_action(robot_pos(s), a1), robot_goal(p.m))
-                         < dist_to_pos(apply_robot_action(robot_pos(s), a2), robot_goal(p.m)) ?
-                         a1 : a2,
-                         HSActionSpace())
-end
-
-const robot_max_speed = maximum(a[1] for a in HSActionSpace())
+POMDPs.action(p::StraightToGoal, b::AbstractParticleBelief) = action(p, first(particles(b)))
 
 # depth is the solver `depth` parameter less the number of timesteps that have already passed (it can be ignored in many cases)
 function free_space_estimate(mdp::HSMDP, s::HSState, steps::Int=0)::Float64
