@@ -240,12 +240,15 @@ function problem_instance_map()
     #                                       robot_start_pos=Pos(1/2 * room.width, 9/10 * room.height),
     #                                       robot_goal_pos=Pos(1/2 * room.width, 1/10 * room.height),
     #                                       room=room),
-    "RandomNontrivial" => ProblemInstance(force_nontrivial=true,
-                                          room=room,
-                                          human_goals=symmetric_goals),
-    "DiningHallNontrivial" => ProblemInstance(force_nontrivial=true,
-                                              room=room,
-                                              human_goals=dining_hall_goals)
+    #"RandomNontrivial" => ProblemInstance(force_nontrivial=true,
+    #                                      room=room,
+    #                                      human_goals=symmetric_goals),
+    #"DiningHallNontrivial" => ProblemInstance(force_nontrivial=true,
+    #                                          room=room,
+    #                                          human_goals=dining_hall_goals)
+    "CornerGoalsNonTrivial" => ProblemInstance(force_nontrivial=true,
+                                             room=room,
+                                             human_goals=corner_positions)
    )
 end
 
@@ -269,6 +272,12 @@ function planner_hbm_map(problem_instance::ProblemInstance)
                                                                                         beta_resample_sigma=0.0),
                                                             epsilon=0.02,
                                                             n_particles=6000),
+        "HumanMultiGoalBoltzmann_3_goals" => PlannerSetup(hbm=HumanMultiGoalBoltzmann(goals=problem_instance.human_goals(problem_instance.room)[1:3],
+                                                                                        beta_min=0.1, beta_max=50,
+                                                                                        goal_resample_sigma=0.01,
+                                                                                        beta_resample_sigma=0.0),
+                                                            epsilon=0.02,
+                                                            n_particles=4500),
         "HumanConstVelBehavior" => PlannerSetup(hbm=HumanConstVelBehavior(vel_max=1, vel_resample_sigma=0.0),
                                                 epsilon=0.1,
                                                 n_particles=1000),
