@@ -4,8 +4,8 @@ function generate_hspomdp(sensor::HSSensor, human_behavior_model::HumanBehaviorM
                           aspace=HSActionSpace(),
                           reward_model::HSRewardModel=HSRewardModel(),
                           robot_goal::Pos=rand_pos(room, rng),
-                          agent_min_distance::Float64=0.4,
-                          goal_reached_distance::Float64=0.2,
+                          agent_min_distance::Float64=0.5,
+                          goal_reached_distance::Float64=0.35,
                           known_external_initstate::HSExternalState=external(rand_external_state(room, rng)))
 
     mdp = HSMDP(;room=room,
