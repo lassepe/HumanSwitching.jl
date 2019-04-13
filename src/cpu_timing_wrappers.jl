@@ -11,8 +11,14 @@ POMDPs.action(tp::TimedPolicy, x) = action(tp.p, x)
 
 function POMDPModelTools.action_info(tp::TimedPolicy, x; kwargs...)
     CPUtic()
-    action, info = action_info(tp.p, x; kwargs...)
-    info[:planner_cpu_time_us] = CPUtoq()
+    action, i = action_info(tp.p, x; kwargs...)
+    planner_cpu_time_us = CPUtoq()
+    if isnothing(i)
+        info = Dict(:planner_cpu_time_us=>planner_cpu_time_us)
+    else
+        i[:planner_cpu_time_us] = planner_cpu_time_us
+        info = i
+    end
     return action, info
 end
 
