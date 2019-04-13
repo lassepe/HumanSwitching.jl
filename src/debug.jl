@@ -203,11 +203,10 @@ function setup_test_scenario(pi_key::String, simulation_hbm_key::String, planner
     # Construct models.
     simulation_model, belief_updater_model, planner_model = construct_models(rng, problem_instance, simulation_hbm,
                                                                              belief_updater_hbm, planner_setup.hbm)
-
     # the belief updater is run with a stochastic version of the world
     belief_updater = BasicParticleFilter(belief_updater_model, SharedExternalStateResampler(planner_setup.n_particles), planner_setup.n_particles, deepcopy(rng))
     solver = solver_setup_map(planner_setup, planner_model, rng)[solver_setup_key]
-    planner = solve(solver, planner_model)
+    planner = solver isa Policy ? solver : solve(solver, planner_model)
 
     # compose metadata
     git_commit_id = (has_uncommited_changes() ? "dirty::" : "") * current_commit_id()
@@ -264,8 +263,6 @@ dining_hall_goals(room::Room) = vcat([abs_pos(p, room) for p in [Pos(0.2, 0.7), 
 
 function planner_hbm_map(problem_instance::ProblemInstance)
     return Dict{String, PlannerSetup}(
-        # "HumanConstVelBehavior" => (HumanConstVelBehavior(vel_max=1, vel_resample_sigma=0.0), 0.05),
-        # "HumanBoltzmannModel_PI/8" => (HumanBoltzmannModel(reward_model=HumanSingleGoalRewardModel(human_goal_pos),
         "HumanMultiGoalBoltzmann_all_goals" => PlannerSetup(hbm=HumanMultiGoalBoltzmann(goals=problem_instance.human_goals(problem_instance.room),
                                                                                         beta_min=0.1, beta_max=50,
                                                                                         goal_resample_sigma=0.1,
@@ -280,24 +277,12 @@ function planner_hbm_map(problem_instance::ProblemInstance)
                                                             n_particles=4500),
         "HumanConstVelBehavior" => PlannerSetup(hbm=HumanConstVelBehavior(vel_max=1, vel_resample_sigma=0.0),
                                                 epsilon=0.1,
-                                                n_particles=1000),
-        # "HumanMultiGoalBoltzmann_5_goals" => PlannerSetup(hbm=HumanMultiGoalBoltzmann(goals=problem_instance.human_goals(problem_instance.room)[5:9],
-        #                                                                               beta_min=0.1, beta_max=50,
-        #                                                                               goal_resample_sigma=0.1,
-        #                                                                               beta_resample_sigma=0.0),
-        #                                                   epsilon=0.02,
-        #                                                   n_particles=3000),
-        # "HumanMultiGoalBoltzmann_4_goals" => PlannerSetup(hbm=HumanMultiGoalBoltzmann(goals=problem_instance.human_goals(problem_instance.room)[6:9],
-        #                                                                               beta_min=0.1, beta_max=50,
-        #                                                                               goal_resample_sigma=0.1,
-        #                                                                               beta_resample_sigma=0.0),
-        #                                                   epsilon=0.02,
-        #                                                   n_particles=2000),
+                                                n_particles=1000)
        )
 end
 
 function solver_setup_map(planner_setup::PlannerSetup, planner_model::HSModel, rng::MersenneTwister)
-    return Dict{String, Solver}(
+    return Dict{String, Union{Solver, Policy}}(
                                 # TODO: DESPOT needs value estimate at end to reduce rollout length!
                                 "DESPOT" => begin
                                     default_policy = StraightToGoal(planner_model)
@@ -307,6 +292,7 @@ function solver_setup_map(planner_setup::PlannerSetup, planner_model::HSModel, r
                                     solver = DESPOTSolver(K=200, D=60, max_trials=10, T_max=Inf, lambda=0.01,
                                                           bounds=bounds, rng=deepcopy(rng), tree_in_info=true)
                                 end,
+                                "StraightToGoal" => StraightToGoal(planner_model),
                                 "POMCPOW" => begin
                                     # TODO: use separate setting for tree quries
                                     solver = POMCPOWSolver(tree_queries=floor(planner_setup.n_particles*2.5), max_depth=70, criterion=MaxUCB(80),
