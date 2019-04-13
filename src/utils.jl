@@ -54,9 +54,9 @@ dist_to_wall(p::Pos, room::Room) = minimum([p.x, room.width-p.x, p.y, room.heigh
 # determines the 2D vector from p_start to p_end
 vec_from_to(p_start::Pos, p_end::Pos) = SVector(p_end.x - p_start.x, p_end.y - p_start.y)
 # computes the 2-norm distance between p1 and p2
-dist_to_pos(p1::Pos, p2::Pos; p=1)::Float64 = norm(vec_from_to(p1, p2), p)
+dist_to_pos(p1::Pos, p2::Pos; p=2)::Float64 = norm(vec_from_to(p1, p2), p)
 # computes the distance between the robot and it's goal
-robot_dist_to_goal(m::HSModel, s::HSState; p=1)::Float64 = dist_to_pos(robot_pos(s), robot_goal(m), p=p)
+robot_dist_to_goal(m::HSModel, s::HSState; p=2)::Float64 = dist_to_pos(robot_pos(s), robot_goal(m), p=p)
 # checks if the state currently has a collision between the robot and some other agent
 has_collision(m::HSModel, s::HSState)::Bool = dist_to_pos(human_pos(s), robot_pos(s)) < agent_min_distance(m)
 # check if the state is a failure terminal state

@@ -2,8 +2,6 @@
 reward
 
 The reward function for this problem.
-
-NOTE: Nothing intereseting here until the agent is also moving
 """
 function POMDPs.reward(m::HSModel, s::HSState, a::HSAction, sp::HSState)::Float64
     rm = reward_model(m)
