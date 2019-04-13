@@ -49,17 +49,17 @@ function generate_non_trivial_scenario(sensor::HSSensor, human_behavior_model::H
     while true
         # sample a new, partially observable setup
         po_model = generate_hspomdp(sensor, human_behavior_model, physical_transition_noise_model, rng; kwargs...)
+
         # check if the trivial policy (go straight to goal, ignoring human) works well on the full
         # observable problem
         fo_model = mdp(po_model)
-
-        trivial_policy = StraightToGoal(po_model)
+        trivial_policy = StraightToGoal(fo_model)
 
         simulator = HistoryRecorder(max_steps=100, show_progress=false, rng=deepcopy(simulator_rng))
-        sim_hist = simulate(simulator, fo_model, trivial_policy)
+        sim_hist = simulate(simulator, fo_model, trivial_policy, initialstate(fo_model, deepcopy(simulator_rng)))
 
         state_history = collect(eachstep(sim_hist, "sp"))
-        if length(state_history) == 0 || dist_to_wall(robot_goal(po_model), room(po_model)) < 2*agent_min_distance(po_model)
+        if length(state_history) == 0 || dist_to_wall(robot_goal(fo_model), room(fo_model)) < 2*agent_min_distance(fo_model)
             continue
         end
         last_state = last(state_history)
