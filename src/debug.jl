@@ -239,12 +239,12 @@ function problem_instance_map()
     #                                       robot_start_pos=Pos(1/2 * room.width, 9/10 * room.height),
     #                                       robot_goal_pos=Pos(1/2 * room.width, 1/10 * room.height),
     #                                       room=room),
-    #"RandomNontrivial" => ProblemInstance(force_nontrivial=true,
-    #                                      room=room,
-    #                                      human_goals=symmetric_goals),
-    #"DiningHallNontrivial" => ProblemInstance(force_nontrivial=true,
-    #                                          room=room,
-    #                                          human_goals=dining_hall_goals)
+    "RandomNontrivial" => ProblemInstance(force_nontrivial=true,
+                                          room=room,
+                                          human_goals=symmetric_goals),
+    "DiningHallNontrivial" => ProblemInstance(force_nontrivial=true,
+                                              room=room,
+                                              human_goals=dining_hall_goals),
     "CornerGoalsNonTrivial" => ProblemInstance(force_nontrivial=true,
                                              room=room,
                                              human_goals=corner_positions)
@@ -265,19 +265,19 @@ function planner_hbm_map(problem_instance::ProblemInstance)
     return Dict{String, PlannerSetup}(
         "HumanMultiGoalBoltzmann_all_goals" => PlannerSetup(hbm=HumanMultiGoalBoltzmann(goals=problem_instance.human_goals(problem_instance.room),
                                                                                         beta_min=0.1, beta_max=50,
-                                                                                        goal_resample_sigma=0.1,
+                                                                                        goal_resample_sigma=0.05,
                                                                                         beta_resample_sigma=0.0),
                                                             epsilon=0.02,
-                                                            n_particles=6000),
-        "HumanMultiGoalBoltzmann_3_goals" => PlannerSetup(hbm=HumanMultiGoalBoltzmann(goals=problem_instance.human_goals(problem_instance.room)[1:3],
+                                                            n_particles=8000),
+        "HumanMultiGoalBoltzmann_half_goals" => PlannerSetup(hbm=HumanMultiGoalBoltzmann(goals=problem_instance.human_goals(problem_instance.room)[1:cld(length(problem_instance.human_goals(problem_instance.room)), 2)],
                                                                                         beta_min=0.1, beta_max=50,
-                                                                                        goal_resample_sigma=0.1,
+                                                                                        goal_resample_sigma=0.05,
                                                                                         beta_resample_sigma=0.0),
                                                             epsilon=0.02,
-                                                            n_particles=4500),
+                                                            n_particles=5000),
         "HumanConstVelBehavior" => PlannerSetup(hbm=HumanConstVelBehavior(vel_max=1, vel_resample_sigma=0.0),
                                                 epsilon=0.1,
-                                                n_particles=1000)
+                                                n_particles=2000)
        )
 end
 
@@ -289,13 +289,13 @@ function solver_setup_map(planner_setup::PlannerSetup, planner_model::HSModel, r
                                     # alternative lower bound: DefaultPolicyLB(default_policy)
                                     bounds = IndependentBounds(DefaultPolicyLB(default_policy), free_space_estimate, check_terminal=true)
 
-                                    solver = DESPOTSolver(K=200, D=60, max_trials=10, T_max=Inf, lambda=0.01,
+                                    solver = DESPOTSolver(K=cld(planner_setup.n_particles, 10), D=70, max_trials=20, T_max=Inf, lambda=0.00001,
                                                           bounds=bounds, rng=deepcopy(rng), tree_in_info=true)
                                 end,
                                 "StraightToGoal" => StraightToGoal(planner_model),
                                 "POMCPOW" => begin
                                     # TODO: use separate setting for tree quries
-                                    solver = POMCPOWSolver(tree_queries=floor(planner_setup.n_particles*2.5), max_depth=70, criterion=MaxUCB(80),
+                                    solver = POMCPOWSolver(tree_queries=floor(planner_setup.n_particles*2.5), max_depth=70, criterion=MaxUCB(500),
                                                            k_observation=5, alpha_observation=1.0/30.0,
                                                            enable_action_pw=false,
                                                            check_repeat_obs=!(planner_setup.hbm isa HumanConstVelBehavior),
@@ -310,7 +310,7 @@ function simulation_hbm_map(problem_instance::ProblemInstance, i_run::Int)
     return Dict{String, SimulationHBMEntry}(
         "HumanMultiGoalBoltzmann_all_goals" => HumanMultiGoalBoltzmann(goals=problem_instance.human_goals(problem_instance.room),
                                                                        beta_min=50, beta_max=50,
-                                                                       goal_resample_sigma=0.1,
+                                                                       goal_resample_sigma=0.05,
                                                                        beta_resample_sigma=0.0)
        )
 end

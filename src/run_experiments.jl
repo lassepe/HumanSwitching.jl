@@ -3,7 +3,7 @@ using Dates
 using DataFrames
 using Distributed
 
-const desired_nworkers = 17
+const desired_nworkers = 35
 
 if nworkers() != desired_nworkers
     wait(rmprocs(workers()))
@@ -17,7 +17,7 @@ include("debug.jl")
 
 function main()
     @info "Running simulations..."
-    data = test_parallel_sim(1:500)
+    data = test_parallel_sim(1:1000)
     @info "Writing data..."
     result_dir = realpath("$(@__DIR__)/../results/")
     file_name = "sim_results-$(gethostname())-$(now()).csv"
