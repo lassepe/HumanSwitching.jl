@@ -194,7 +194,7 @@ export
     validation_hash,
     final_state_type,
     reproduce_scenario,
-    test_parallel_sim,
+    parallel_sim,
     visualize,
     tree,
     debug

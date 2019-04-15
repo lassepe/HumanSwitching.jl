@@ -317,24 +317,46 @@ end
 
 """
 Fuction that runs experiments [runs] times.
+
+Note: If keyset is not specified, all entries of the corresponding maps will be used.
 """
-function test_parallel_sim(runs::UnitRange{Int}, solver_setup_key::String="POMCPOW"; ignore_uncommited_changes::Bool=false)
+function parallel_sim(runs::UnitRange{Int}, solver_setup_key::String;
+                      problem_instance_keys::Union{Array{String}, Nothing} = nothing,
+                      planner_hbm_keys::Union{Array{String}, Nothing} = nothing,
+                      simulation_hbm_keys::Union{Array{String}, Nothing} = nothing,
+                      ignore_uncommited_changes::Bool=false)
+
     if !ignore_uncommited_changes && has_uncommited_changes()
         throw("There are uncommited changes. The stored commit-id might not be meaning full.
-        to ignore uncommited changes, set the corresponding kwarg.")
+              to ignore uncommited changes, set the corresponding kwarg.")
     end
 
-    # Create the problem instance maps:
-    problem_instances = problem_instance_map()
+    # if no keys are specified, we use all of them from the map
+    if isnothing(problem_instance_keys)
+        problem_instance_keys = [k for k in keys(problem_instance_map())]
+    else
+        # check whether all keys are valid
+        @assert all(in.(problem_instance_keys, (keys(problem_instance_map()),)))
+    end
 
     # Queue of simulation instances to be filled with scenarios for different hbms and runs:
     sims::Array{Sim, 1} = []
 
-    for (pi_key, pi_entry) in problem_instances, i_run in runs
-        planner_hbms = planner_hbm_map(pi_entry)
-        simulation_hbms = simulation_hbm_map(pi_entry, i_run)
-        for simulation_hbm_key in keys(simulation_hbms), planner_hbm_key in keys(planner_hbms)
-                push!(sims, setup_test_scenario(pi_key, simulation_hbm_key, planner_hbm_key, solver_setup_key, i_run))
+    for pi_key in problem_instance_keys, i_run in runs
+        pi_entry = problem_instance_map()[pi_key]
+        # check whether all keys are valid
+        if isnothing(planner_hbm_keys)
+            planner_hbm_keys = [k for k in keys(planner_hbm_map(pi_entry))]
+        else
+            @assert all(in.(planner_hbm_keys, (keys(planner_hbm_map(pi_entry)),)))
+        end
+        if isnothing(simulation_hbm_keys)
+            simulation_hbm_keys = [k for k in keys(simulation_hbm_map(pi_entry, i_run))]
+        else
+            @assert all(in.(simulation_hbm_keys, (keys(simulation_hbm_map(pi_entry, i_run)),)))
+        end
+        for simulation_hbm_key in simulation_hbm_keys, planner_hbm_key in planner_hbm_keys
+            push!(sims, setup_test_scenario(pi_key, simulation_hbm_key, planner_hbm_key, solver_setup_key, i_run))
         end
     end
     # Simulation is launched in parallel mode. In order for this to work, julia
