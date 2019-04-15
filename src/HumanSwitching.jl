@@ -34,11 +34,18 @@ using ParticleFilters
 using ARDESPOT
 using POMCPOW
 
+# used for simulation utils
+using CPUTime
+using Distributed
+using POMDPGifs
+using D3Trees
+
 # packages that are extended by this module
 import ParticleFilters # modified in particle_fitler.jl
 import POMDPs # modified in particle_filter.jl and cpu_timing_wrappers.jl
 import POMDPModelTools: render, action_info, update_info # modified in visualization.jl
-using CPUTime
+import MCTS: MCTS, node_tag
+
 
 export
     # util types
@@ -185,7 +192,12 @@ include("cpu_timing_wrappers.jl")
 
 export
     validation_hash,
-    final_state_type
+    final_state_type,
+    reproduce_scenario,
+    test_parallel_sim,
+    visualize,
+    tree,
+    debug
 include("simulation_utils.jl")
 
 end # module

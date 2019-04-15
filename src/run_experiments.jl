@@ -13,7 +13,11 @@ end
 @info "Started $(nworkers())"
 @info "Precompiling simulation code..."
 
-include("debug.jl")
+@everywhere begin
+    using Pkg
+    Pkg.activate(".")
+    using HumanSwitching
+end
 
 function main()
     @info "Running simulations..."
