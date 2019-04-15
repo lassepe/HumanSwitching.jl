@@ -4,15 +4,15 @@ function plot_points(data::DataFrame)
     scatter = plot(data, x=:combined_median_cpu_time, y=:normalized_discounted_reward, color=:planner_hbm_key, Geom.point)
 
     detailed_theme = Gadfly.Theme(minor_label_font_size=8pt, key_position=:none)
-    value = plot(data, x=:planner_hbm_key, y=:normalized_discounted_reward, color=:planner_hbm_key, detailed_theme, Geom.boxplot)
+    value = plot(data, x=:planner_hbm_key, y=:normalized_discounted_reward, color=:planner_hbm_key, detailed_theme, Geom.violin)
     compute = plot(data, x=:planner_hbm_key, y=:combined_median_cpu_time, color=:planner_hbm_key, detailed_theme, Geom.boxplot)
 
     success_rate =  plot(data, xgroup=:planner_hbm_key, x=:final_state_type, color=:planner_hbm_key, Geom.subplot_grid(Geom.histogram),
                          Gadfly.Theme(major_label_font_size=8pt, minor_label_font_size=8pt, key_position=:none))
 
     final_plot = Gadfly.title(vstack(scatter,
-                                hstack(value, compute),
-                                success_rate),
+                              hstack(value, compute),
+                              success_rate),
                          """
                          Problem Instance: $(first(data[:pi_key]))
                          True Human Model: $(first(data[:simulation_hbm_key]))
