@@ -66,6 +66,7 @@ export
     HSAction,
     HSActionSpace,
     HSMDP,
+    gen_hsmdp,
     HSPOMDP,
     HSModel,
 
@@ -156,7 +157,7 @@ export
 include("particle_filter.jl")
 
 export
-    generate_hspomdp,
+    generate_from_template,
     generate_non_trivial_scenario
 include("problem_gen.jl")
 

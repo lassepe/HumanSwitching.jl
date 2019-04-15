@@ -16,6 +16,10 @@ function normalized_angle_diff(angle_diff::Float64)::Float64
     end
 end
 
+# modifying copy constructors for immutable types
+construct_with(x, p; type_hint=typeof(x)) = type_hint(((f == p.first ? p.second : getfield(x, f)) for f in fieldnames(typeof(x)))...)
+construct_with(x, ps...; kwargs...) = reduce((x, p) -> construct_with(x, p; kwargs...), ps, init=x)
+
 @with_kw struct Counter{TK, TV}
     d::Dict{TK, TV} = Dict()
 end

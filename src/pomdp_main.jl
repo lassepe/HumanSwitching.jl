@@ -26,8 +26,7 @@ struct ExactPositionSensor <: HSSensor end
 
 @with_kw struct NoisyPositionSensor <: HSSensor
     # the diagonal of the measurement covariance matrix
-    measurement_cov::Array{Float64, 1} = [0.1,
-                                          0.1]
+    measurement_cov::Array{Float64, 1} = [0.1, 0.1]
 end
 
 """
@@ -133,15 +132,23 @@ apply_robot_action(p::Pos, a::HSAction) = Pos(p.x + cos(a.phi)*a.d, p.y + sin(a.
     reward_model::HSRewardModel = HSRewardModel()
     human_behavior_model::HBM = HumanPIDBehavior(room)
     physical_transition_noise_model::PTNM = HSIdentityPTNM()
-    robot_goal::Pos = rand_pos(room, Random.GLOBAL_RNG)
     agent_min_distance::Float64 = 0.5
     goal_reached_distance::Float64 = 0.35
-    known_external_initstate::Union{HSExternalState, Nothing} = nothing
+    robot_goal::Pos
+    known_external_initstate::HSExternalState
+end
+
+function gen_hsmdp(rng::AbstractRNG; kwargs...)
+    room = get(kwargs, :room, Room())
+    # randomize fields with missing default value (but using given rng)
+    robot_goal::Pos = get(kwargs, :robot_goal, rand_pos(room, rng))
+    known_external_initstate::HSExternalState = get(kwargs, :known_external_initstate, rand_external_state(room, rng))
+    return HSMDP(robot_goal=robot_goal, known_external_initstate=known_external_initstate; kwargs...)
 end
 
 @with_kw struct HSPOMDP{TS, O, M} <: POMDP{HSState, HSAction, O}
-    sensor::TS = ExactPositionSensor()
-    mdp::M = HSMDP()
+    sensor::TS
+    mdp::M
 end
 
 HSPOMDP(sensor::HSSensor, mdp::HSMDP) = HSPOMDP{typeof(sensor), HSExternalState, typeof(mdp)}(sensor, mdp)

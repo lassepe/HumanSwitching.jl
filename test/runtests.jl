@@ -9,6 +9,7 @@ using LinearAlgebra
 using Statistics
 
 using BeliefUpdaters
+using ParticleFilters
 using POMDPs
 using POMDPModelTools
 using POMDPPolicies
@@ -38,8 +39,8 @@ end;
     # checking whether we can actually succesfully construct all those types
     rng = MersenneTwister(42)
     hbm = HumanPIDBehavior(Room())
-    hs_pomdp_exact_o = generate_hspomdp(ExactPositionSensor(), hbm, HSIdentityPTNM(), rng)
-    hs_pomdp_noisy_o = generate_hspomdp(NoisyPositionSensor(), hbm, HSIdentityPTNM(), rng)
+    hs_pomdp_exact_o = HSPOMDP(ExactPositionSensor(), gen_hsmdp(rng, human_behavior_model=hbm, physical_transition_noise_model=HSIdentityPTNM()))
+    hs_pomdp_noisy_o = HSPOMDP(NoisyPositionSensor(), gen_hsmdp(rng, human_behavior_model=hbm, physical_transition_noise_model=HSIdentityPTNM()))
 
     s = initialstate(hs_pomdp_exact_o, rng)
     a = HS.HSAction()
@@ -66,7 +67,7 @@ end;
 # this test set checks whether everything is implemented to be pseudo-random.
 # Meaning that with the same rng we should get the same result!
 @testset "POMDP deterministic checks" begin
-    mdp = HSMDP(physical_transition_noise_model=HSGaussianNoisePTNM())
+    mdp = gen_hsmdp(MersenneTwister(42), physical_transition_noise_model=HSGaussianNoisePTNM())
     pomdp = HSPOMDP(sensor=NoisyPositionSensor(), mdp=mdp)
     a = HS.HSAction()
 
@@ -92,7 +93,7 @@ end;
 end;
 
 @testset "POMDP visualization" begin
-    mdp = HSMDP(physical_transition_noise_model=HSIdentityPTNM())
+    mdp = gen_hsmdp(MersenneTwister(42), physical_transition_noise_model=HSIdentityPTNM())
     pomdp = HSPOMDP(sensor=NoisyPositionSensor([0.1,0.1]), mdp=mdp)
     rng = MersenneTwister(42)
     belief_updater = NothingUpdater()
@@ -121,7 +122,7 @@ end
     # check whether the free space estimate is actually optimistic
     n_samples = 10000
     rng = MersenneTwister(1337)
-    mdp = HSMDP(physical_transition_noise_model=HSIdentityPTNM())
+    mdp = gen_hsmdp(rng, physical_transition_noise_model=HSIdentityPTNM())
 
     for i in 1:n_samples
         # sample some random state
@@ -209,10 +210,10 @@ end
         hbm = HumanBoltzmannModel()
         hbs = HS.rand_hbs(rng, hbm)
         s = HSState(external=e, hbs=hbs)
-        planning_model = generate_hspomdp(NoisyPositionSensor(ptnm_cov*10),
-                                          hbm,
-                                          HSIdentityPTNM(),
-                                          deepcopy(rng))
+        planning_model = HSPOMDP(NoisyPositionSensor(ptnm_cov*10),
+                                 gen_hsmdp(rng,
+                                           human_behavior_model=hbm,
+                                           physical_transition_noise_model=HSIdentityPTNM()))
 
         @inferred HS.rand_state(planning_model, rng, known_external_state=mdp(planning_model).known_external_initstate)
         @inferred HS.rand_state(planning_model, rng)

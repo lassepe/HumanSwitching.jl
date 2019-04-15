@@ -136,26 +136,25 @@ function construct_models(rng::AbstractRNG, problem_instance::ProblemInstance,
             throw("Illegal problem instance!")
         end
     else
-        simulation_model = generate_hspomdp(ExactPositionSensor(),
-                                            simulation_hbm,
-                                            HSGaussianNoisePTNM(pos_cov=ptnm_cov),
-                                            deepcopy(rng),
-                                            known_external_initstate=HSExternalState(problem_instance.human_start_pos, problem_instance.robot_start_pos),
-                                            robot_goal=problem_instance.robot_goal_pos)
+        simulation_model = HSPOMDP(ExactPositionSensor(),
+                                   gen_hsmdp(deepcopy(rng),
+                                             human_behavior_model=simulation_hbm,
+                                             physical_transition_noise_model=HSGaussianNoisePTNM(pos_cov=pos_cov),
+                                             known_external_initstate=HSExternalState(problem_instance.human_start_pos, problem_instance.robot_start_pos),
+                                             robot_goal=problem_instance.robot_goal_pos)
+                                  )
     end
 
 
-    belief_updater_model = generate_hspomdp(NoisyPositionSensor(ptnm_cov*9),
-                                            belief_updater_hbm,
-                                            HSIdentityPTNM(),
-                                            simulation_model,
-                                            deepcopy(rng))
+    belief_updater_model = generate_from_template(simulation_model, deepcopy(rng),
+                                                  sensor=NoisyPositionSensor(ptnm_cov*9),
+                                                  human_behavior_model=belief_updater_hbm,
+                                                  physical_transition_noise_model=HSIdentityPTNM())
 
-    planner_model = generate_hspomdp(ExactPositionSensor(),
-                                     planner_hbm,
-                                     HSIdentityPTNM(),
-                                     simulation_model,
-                                     deepcopy(rng))
+    planner_model = generate_from_template(simulation_model, deepcopy(rng),
+                                           sensor=ExactPositionSensor(),
+                                           human_behavior_model=planner_hbm,
+                                           physical_transition_noise_model=HSIdentityPTNM())
 
     return simulation_model, belief_updater_model, planner_model
 end
