@@ -9,7 +9,7 @@ end
 free_evolution(hbs::HumanConstVelBState, p::Pos) = Pos(p.x + dt*hbs.vx, p.y + dt*hbs.vy)
 
 @with_kw struct HumanConstVelBehavior <: HumanBehaviorModel
-    vel_max::Float64 = 1.0
+    vel_max::Float64 = 1.4
     vel_resample_sigma::Float64 = 0.0
 end
 
