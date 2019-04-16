@@ -21,7 +21,7 @@ end
 
 function main()
     @info "Running simulations..."
-    data = parallel_sim(1:1000)
+    data = parallel_sim(1:1000, "POMCPOW")
     @info "Writing data..."
     result_dir = realpath("$(@__DIR__)/../results/")
     file_name = "sim_results-$(gethostname())-$(now()).csv"
