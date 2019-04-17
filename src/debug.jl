@@ -6,6 +6,7 @@ const HS = HumanSwitching
 using Random
 using ParticleFilters
 using POMDPs
+using POMDPModelTools
 
 using CPUTime
 
@@ -13,7 +14,8 @@ HS.decoupled(s::HSState) = (human_pos(s), hbs(s))::HSHumanState
 
 function test_prob_obstacle()
     rng = MersenneTwister(1)
-    pomdp = HSPOMDP(ExactPositionSensor(), gen_hsmdp(rng))
+    pomdp = HSPOMDP(ExactPositionSensor(), gen_hsmdp(rng;
+                                                     human_behavior_model=HumanMultiGoalBoltzmann(;beta_min=20, beta_max=20)))
 
     #println("=========")
     #s = initialstate(pomdp, rng)
@@ -36,7 +38,7 @@ function test_prob_obstacle()
                                                      return a
                                                  end)
 
-    n_particles = 3
+    n_particles = 100
     pbp = ParticleBeliefPropagator(human_predictor, n_particles, rng)
     solver = ProbObstacleSolver(belief_propagator=pbp)
 
@@ -46,6 +48,23 @@ function test_prob_obstacle()
 
     b0 = initialstate_distribution(pomdp)
     CPUtic();
-    a = action(policy, b0)
+    a, info = action_info(policy, b0)
+
     display(CPUtoq())
+
+    visualize_plan(info[:m], info[:belief_predictions])
+    return info
+end
+
+using Reel
+
+function visualize_plan(m::Union{MDP, POMDP}, belief_predictions::Vector{ParticleCollection}; fps::Int=7, filename::String="$(@__DIR__)/../renderings/debug_prob_obstacle_plan.gif")
+    frames = Frames(MIME("image/png"), fps=fps)
+    for bp in belief_predictions
+        # TODO: maybe rather implement render for another data structure, not
+        # NamedTuple but ProbObstaclePlanViz or something
+        step = (bp=bp,)
+        push!(frames, render(m, step))
+    end
+    @show write(filename, frames)
 end

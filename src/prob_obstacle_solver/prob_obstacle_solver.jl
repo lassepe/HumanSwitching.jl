@@ -30,28 +30,36 @@ end
 """
     ProbObstaclePolicy
 """
-struct ProbObstaclePolicy{SOL<:ProbObstacleSolver} <: Policy
+struct ProbObstaclePolicy{SOL<:ProbObstacleSolver, P<:POMDP} <: Policy
     "The solver instance to share relevant hyper parameters"
     sol::SOL
+    "The pomdop to be solved"
+    pomdp::P
 end
 
 # TODO maybe the belier propagator should be constructed here
-POMDPs.solve(sol::ProbObstacleSolver, ::POMDP) = ProbObstaclePolicy(sol)
+POMDPs.solve(sol::ProbObstacleSolver, m::POMDP) = ProbObstaclePolicy(sol, m)
 
-function POMDPs.action(po::ProbObstaclePolicy, b; debug::Bool=true)
+function POMDPs.action(po::ProbObstaclePolicy, b)
+    return first(action_info(po, b))
+end
+
+function POMDPModelTools.action_info(po::ProbObstaclePolicy, b)
     # 1. Create propagate particles until `sol.max_search_depth` is reached.
     #     - The belief state for each time step is used as open loop belief
     #       predicition for the humans external state.
-    predictions::Vector{ParticleCollection} = []
-    resize!(predictions, po.sol.max_search_depth + 1)
-    predictions[1] = decoupled(initialize_belief(po.sol.belief_propagator, b))
+    belief_predictions::Vector{ParticleCollection} = []
+    resize!(belief_predictions, po.sol.max_search_depth + 1)
+    belief_predictions[1] = decoupled(initialize_belief(po.sol.belief_propagator, b))
     for i in 2:(po.sol.max_search_depth + 1)
-        predictions[i] = ParticleCollection(predict(po.sol.belief_propagator, predictions[i-1]))
+        belief_predictions[i] = ParticleCollection(predict(po.sol.belief_propagator, belief_predictions[i-1]))
     end
 
-    dump(predictions)
+    info = (m=po.pomdp,
+            belief_predictions=belief_predictions)
 
     # 2. Perform time varying A* on this set of predicitons
     #    -  Challenges:
     #       - robot states won't match exactly. (finite precision)
+    return nothing, info
 end

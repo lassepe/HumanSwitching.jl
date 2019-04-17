@@ -125,7 +125,7 @@ function human_particle_node(human_pos::Pos, hbm::HumanMultiGoalBoltzmann, hbs::
                              external_color="light blue", internal_color=map_to_color(hbs),
                              annotation::String="", opacity::Float64=1.0)
 
-    n_prediction_steps=2
+    n_prediction_steps=1
     sampled_future_predictions = zeros(Pos, n_prediction_steps)
     sizehint!(sampled_future_predictions, n_prediction_steps)
     for i = 1:n_prediction_steps
@@ -276,7 +276,7 @@ function bstate_subplot_node(::Type{HumanBoltzmannBState},
                                     Gadfly.Scale.x_log)
 end
 
-function belief_node(b::ParticleCollection, m::HSPOMDP)::Context
+function belief_node(b::ParticleCollection{HSState}, m::HSPOMDP)
     # computing the state belief distribution
     state_belief_counter = Counter{HSState, Float64}()
     hbm = human_behavior_model(m)
@@ -304,20 +304,29 @@ function belief_node(b::ParticleCollection, m::HSPOMDP)::Context
     return belief_viz
 end
 
-function reward_node(step::NamedTuple, sim_hist::T) where T<:POMDPHistory
-    cumulative_reward_history = cumsum([r for (t, r) in eachstep(sim_hist, ":t, :r") if t <= step.t])
-    if !isempty(cumulative_reward_history)
-        return plot_compose(x=(1:length(cumulative_reward_history)),
-                            y=cumulative_reward_history,
-                            Guide.title("Cumulative Reward"),
-                            Guide.xlabel("time"),
-                            Guide.ylabel("cumulative reward"),
-                            Geom.line,
-                            Geom.point,
-                            Coord.Cartesian(xmin=0, xmax=length(sim_hist)))
-    else
-        return context()
+# TODO: maybe just write some other function (nother than render_step_compose) for this.
+function belief_node(b::ParticleCollection{H}, m::HSPOMDP) where H <: HSHumanState
+    # computing the state belief distribution
+    state_belief_counter = Counter{HSHumanState, Float64}()
+    hbm = human_behavior_model(m)
+
+    # compute some statistics on the belief
+    weight_sum::Float64 = 0
+    for (p, w) in weighted_particles(b)
+        add(state_belief_counter, p, w)
+        weight_sum += w
     end
+    @assert(weight_sum > 0)
+
+    max_visualized_particles = 4000
+    human_particles = [human_particle_node(hp, select_submodel(hbm, hbs), hbs;
+                                           annotation=string(round(state_count/weight_sum, digits=3)),
+                                           opacity=map_to_opacity(state_count, weight_sum))
+                       for (idx, ((hp, hbs), state_count)) in enumerate(state_belief_counter) if idx < max_visualized_particles]
+
+    belief_viz = compose(context(), human_particles)
+
+    return belief_viz
 end
 
 """
@@ -335,10 +344,10 @@ Fields:
 - `step` the step to be rendered (containing the state, the belief, etc.)
 
 """
-function render_step_compose(m::HSModel, step::NamedTuple, sim_hist::T,
-                             show_info::Bool, base_aspectratio::Float64)::Context where T<:POMDPHistory
+function render_step_compose(m::HSModel, step::NamedTuple, base_aspectratio::Float64, sim_hist=nothing,
+                             show_info::Bool=false)::Context
     # extract the relevant information from the step
-    sp = step[:sp]
+    sp = get(step, :sp, nothing)
 
     # extract the room prepresentation from the problem
     room_rep::Room = room(m)
@@ -355,12 +364,11 @@ function render_step_compose(m::HSModel, step::NamedTuple, sim_hist::T,
     room_viz = room_node(room_rep)
 
     # the human and it's goal
-    human_ground_truth_viz = agent_pos_viz = pos_node(human_pos(sp),
-                                                        fill_color="tomato", opacity=1.0)
-
+    human_ground_truth_viz = isnothing(sp) ? context() : agent_pos_viz = pos_node(human_pos(sp),
+                                                                                  fill_color="tomato", opacity=1.0)
     # the robot and it's goal
-    robot_with_goal_viz = agent_with_goal_node(robot_pos(sp), robot_goal(m),
-                                                   external_color="pink", curve_color="steelblue")
+    robot_with_goal_viz = isnothing(sp) ? context() : agent_with_goal_node(robot_pos(sp), robot_goal(m),
+                                                                           external_color="pink", curve_color="steelblue")
 
     belief_viz = (haskey(step, :bp) && step[:bp] isa ParticleCollection ?
                   belief_node(step[:bp], m) : context())
@@ -369,7 +377,7 @@ function render_step_compose(m::HSModel, step::NamedTuple, sim_hist::T,
     info_position_context = (base_aspectratio < 1 ?
                              context(0, 0, 1, 1-base_aspectratio) :
                              context(1/base_aspectratio, 0, 1 - 1/base_aspectratio, 1))
-    if show_info
+    if show_info && !isnothing(sim_hist)
         belief_info_viz = (haskey(step, :bp) && step[:bp] isa ParticleCollection ?
                            belief_info_node(step[:bp], m) : context())
         reward_info_viz = reward_node(step, sim_hist)
@@ -416,24 +424,24 @@ function blink!(c::Context, win::Blink.Window = Blink.Window())
     body!(win, s, async=true, fade=false)
 end
 
-# Some interface code to use the POMDPGifs package. This basically needs to im
-struct HSViz{H <: POMDPHistory}
+# Some interface code to use the POMDPGifs package.
+struct HSViz{H<:Union{POMDPHistory, Nothing}, NT<:NamedTuple}
     m::HSModel
-    step::NamedTuple
+    step::NT
     sim_hist::H
     show_info::Bool
 end
 
-render(m::HSModel, step::NamedTuple; sim_hist, show_info=true) = HSViz(m, step, sim_hist, show_info)
+render(m::HSModel, step::NamedTuple; sim_hist=nothing, show_info=false) = HSViz(m, step, sim_hist, show_info)
 
 function Base.show(io::IO, mime::MIME"image/png", v::HSViz)
-    frame_dimensions::Tuple{Float64, Float64} = (1600, 800)
+    frame_dimensions::Tuple{Float64, Float64} = (v.show_info ? 1600 : 800, 800)
     surface = CairoRGBSurface(frame_dimensions...)
     c = render_step_compose(v.m,
                             v.step,
+                            frame_dimensions[1]/frame_dimensions[2],
                             v.sim_hist,
-                            v.show_info,
-                            frame_dimensions[1]/frame_dimensions[2])
+                            v.show_info)
     draw(PNG(surface), c)
     write_to_png(surface, io)
 end
