@@ -189,7 +189,6 @@ include("analyze_results.jl")
 export
     BeliefPropagator,
     ParticleBeliefPropagator,
-    initialize_belief,
     predict!,
     predict
 include("./prob_obstacle_solver/belief_propagator.jl")
@@ -197,7 +196,7 @@ include("./prob_obstacle_solver/belief_propagator.jl")
 export
     ProbObstacleSolver,
     ProbObstaclePolicy
-include("./prob_obstacle_solver/belief_propagator.jl")
+include("./prob_obstacle_solver/prob_obstacle_solver.jl")
 
 export
     TimedPolicy,
