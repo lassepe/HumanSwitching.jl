@@ -376,7 +376,7 @@ end
 
 function visualize(planner_model, hist; filename::String="visualize_debug")
     makegif(planner_model, hist, filename=joinpath(@__DIR__, "../renderings/$filename.gif"),
-            extra_initial=true, show_progress=true, render_kwargs=(sim_hist=hist, show_info=true))
+            extra_initial=true, show_progress=true, render_kwargs=(sim_hist=hist, show_info=true), fps=Base.convert(Int, cld(1, dt)))
 end
 
 function tree(model::POMDP, hist::SimHistory, policy::Policy, step=30)
