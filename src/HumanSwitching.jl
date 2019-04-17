@@ -69,6 +69,7 @@ export
     # Core POMDP types for problem formulation
     HSRewardModel,
     HSExternalState,
+    HSHumanState,
     HSState,
     HSAction,
     HSActionSpace,
@@ -184,6 +185,19 @@ export
     filter_by_planner,
     tail_expectation
 include("analyze_results.jl")
+
+export
+    BeliefPropagator,
+    ParticleBeliefPropagator,
+    initialize_belief,
+    predict!,
+    predict
+include("./prob_obstacle_solver/belief_propagator.jl")
+
+export
+    ProbObstacleSolver,
+    ProbObstaclePolicy
+include("./prob_obstacle_solver/belief_propagator.jl")
 
 export
     TimedPolicy,

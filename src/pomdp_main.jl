@@ -92,6 +92,8 @@ end
     hbs::HBS
 end
 
+const HSHumanState{HBS<:HumanBehaviorState} = Tuple{Pos, HBS}
+
 external(s::HSState) = s.external
 external(s::HSExternalState) = s
 hbs(s::HSState{HBS}) where HBS = s.hbs
