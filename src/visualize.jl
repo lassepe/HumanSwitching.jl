@@ -276,7 +276,7 @@ function bstate_subplot_node(::Type{HumanBoltzmannBState},
                                     Gadfly.Scale.x_log)
 end
 
-function belief_node(b::ParticleCollection{HSState}, m::HSPOMDP)
+function belief_node(b::ParticleCollection{H}, m::HSPOMDP) where H <: HSState
     # computing the state belief distribution
     state_belief_counter = Counter{HSState, Float64}()
     hbm = human_behavior_model(m)
@@ -304,8 +304,7 @@ function belief_node(b::ParticleCollection{HSState}, m::HSPOMDP)
     return belief_viz
 end
 
-# TODO: maybe just write some other function (nother than render_step_compose) for this.
-function belief_node(b::ParticleCollection{H}, m::HSPOMDP) where H <: HSHumanState
+function human_prediction_node(b::ParticleCollection{H}, m::HSPOMDP) where H <: HSHumanState
     # computing the state belief distribution
     state_belief_counter = Counter{HSHumanState, Float64}()
     hbm = human_behavior_model(m)
@@ -329,6 +328,22 @@ function belief_node(b::ParticleCollection{H}, m::HSPOMDP) where H <: HSHumanSta
     return belief_viz
 end
 
+function reward_node(step::NamedTuple, sim_hist::T) where T<:POMDPHistory
+    cumulative_reward_history = cumsum([r for (t, r) in eachstep(sim_hist, ":t, :r") if t <= step.t])
+    if !isempty(cumulative_reward_history)
+        return plot_compose(x=(1:length(cumulative_reward_history)),
+                            y=cumulative_reward_history,
+                            Guide.title("Cumulative Reward"),
+                            Guide.xlabel("time"),
+                            Guide.ylabel("cumulative reward"),
+                            Geom.line,
+                            Geom.point,
+                            Coord.Cartesian(xmin=0, xmax=length(sim_hist)))
+    else
+        return context()
+    end
+end
+
 """
 render_step_compose
 
@@ -344,10 +359,10 @@ Fields:
 - `step` the step to be rendered (containing the state, the belief, etc.)
 
 """
-function render_step_compose(m::HSModel, step::NamedTuple, base_aspectratio::Float64, sim_hist=nothing,
-                             show_info::Bool=false)::Context
+function render_step_compose(m::HSModel, step::NamedTuple, base_aspectratio::Float64, sim_hist,
+                             show_info::Bool)::Context
     # extract the relevant information from the step
-    sp = get(step, :sp, nothing)
+    sp = step[:sp]
 
     # extract the room prepresentation from the problem
     room_rep::Room = room(m)
@@ -364,11 +379,11 @@ function render_step_compose(m::HSModel, step::NamedTuple, base_aspectratio::Flo
     room_viz = room_node(room_rep)
 
     # the human and it's goal
-    human_ground_truth_viz = isnothing(sp) ? context() : agent_pos_viz = pos_node(human_pos(sp),
-                                                                                  fill_color="tomato", opacity=1.0)
+    human_ground_truth_viz = agent_pos_viz = pos_node(human_pos(sp),
+                                                      fill_color="tomato", opacity=1.0)
     # the robot and it's goal
-    robot_with_goal_viz = isnothing(sp) ? context() : agent_with_goal_node(robot_pos(sp), robot_goal(m),
-                                                                           external_color="pink", curve_color="steelblue")
+    robot_with_goal_viz = agent_with_goal_node(robot_pos(sp), robot_goal(m),
+                                               external_color="pink", curve_color="steelblue")
 
     belief_viz = (haskey(step, :bp) && step[:bp] isa ParticleCollection ?
                   belief_node(step[:bp], m) : context())
@@ -377,7 +392,7 @@ function render_step_compose(m::HSModel, step::NamedTuple, base_aspectratio::Flo
     info_position_context = (base_aspectratio < 1 ?
                              context(0, 0, 1, 1-base_aspectratio) :
                              context(1/base_aspectratio, 0, 1 - 1/base_aspectratio, 1))
-    if show_info && !isnothing(sim_hist)
+    if show_info
         belief_info_viz = (haskey(step, :bp) && step[:bp] isa ParticleCollection ?
                            belief_info_node(step[:bp], m) : context())
         reward_info_viz = reward_node(step, sim_hist)
@@ -393,6 +408,45 @@ compose(context(),
                   robot_with_goal_viz,
                   human_ground_truth_viz,
                   belief_viz,
+                  room_viz))
+       )
+end
+
+function render_plan_compose(m::HSModel, planning_step::NamedTuple, base_aspectratio::Float64)
+    # extract the room prepresentation from the problem
+    room_rep::Room = room(m)
+    # place mirror all children along the middle axis of the unit context
+    mirror = context(mirror=Mirror(0, 0.5, 0.5))
+    # scale all children to fit into the mirrored unit context
+    if base_aspectratio < 1
+        base_scale = context(0, 0, 1/room_rep.width, 1/room_rep.height*base_aspectratio)
+    else
+        base_scale = context(0, 0, 1/room_rep.width/base_aspectratio, 1/room_rep.height)
+    end
+    # the room background
+    room_viz = room_node(room_rep)
+
+    # the human and it's goal
+    human_ground_truth_viz = agent_pos_viz = pos_node(planning_step[:human_pos],
+                                                      fill_color="tomato", opacity=1.0)
+    # the robot and it's goal
+    robot_with_goal_viz =  agent_with_goal_node(planning_step[:robot_pos], robot_goal(m),
+                                                external_color="pink", curve_color="steelblue")
+
+    human_prediction_viz = human_prediction_node(planning_step[:bp], m)
+
+    # TODO: add robot path
+    robot_prediction_viz = pos_node(planning_step[:robot_prediction], fill_color="pink", r=0.1, opacity=0.5)
+
+    # the info area
+    background = compose(context(), rectangle(0, 0, 1, 1), fill("white"))
+
+compose(context(),
+        (mirror, (base_scale,
+                  robot_with_goal_viz,
+                  human_ground_truth_viz,
+                  robot_prediction_viz,
+                  human_prediction_viz,
                   room_viz))
        )
 end
@@ -425,8 +479,8 @@ function blink!(c::Context, win::Blink.Window = Blink.Window())
 end
 
 # Some interface code to use the POMDPGifs package.
-struct HSViz{H<:Union{POMDPHistory, Nothing}, NT<:NamedTuple}
-    m::HSModel
+struct HSViz{M<:HSModel, H<:POMDPHistory, NT<:NamedTuple}
+    m::M
     step::NT
     sim_hist::H
     show_info::Bool
@@ -442,6 +496,23 @@ function Base.show(io::IO, mime::MIME"image/png", v::HSViz)
                             frame_dimensions[1]/frame_dimensions[2],
                             v.sim_hist,
                             v.show_info)
+    draw(PNG(surface), c)
+    write_to_png(surface, io)
+end
+
+struct ProbObstaclePlanViz{M<:HSModel, NT<:NamedTuple}
+    m::M
+    planning_step::NT
+end
+
+render_plan(m::HSModel, planning_step::NamedTuple) = ProbObstaclePlanViz(m, planning_step)
+
+function Base.show(io::IO, mime::MIME"image/png", v::ProbObstaclePlanViz)
+    frame_dimensions::Tuple{Float64, Float64} = (800, 800)
+    surface = CairoRGBSurface(frame_dimensions...)
+    c = render_plan_compose(v.m,
+                            v.planning_step,
+                            frame_dimensions[1]/frame_dimensions[2])
     draw(PNG(surface), c)
     write_to_png(surface, io)
 end

@@ -34,6 +34,9 @@ using ParticleFilters
 using ARDESPOT
 using POMCPOW
 
+# used for graph search
+using DataStructures
+
 # used for simulation utils
 using CPUTime
 using Distributed
@@ -144,14 +147,17 @@ export
     goal_index,
     has_collision,
     issuccess,
-    isfailure
+    isfailure,
+    at_robot_goal,
+    isinroom
 include("utils.jl")
 
 export
     render_step_compose,
     render_step_svg,
     render_step_blink,
-    render
+    render,
+    render_plan
 include("visualize.jl")
 
 export
@@ -191,12 +197,24 @@ export
     ParticleBeliefPropagator,
     predict!,
     predict
-include("./prob_obstacle_solver/belief_propagator.jl")
+include("prob_obstacle_solver/belief_propagator.jl")
+
+export
+    SearchProblem,
+    start_state,
+    is_goal_state,
+    successors,
+    SearchNode,
+    cost,
+    end_state,
+    action_sequence,
+    expand
+include("prob_obstacle_solver/search.jl")
 
 export
     ProbObstacleSolver,
     ProbObstaclePolicy
-include("./prob_obstacle_solver/prob_obstacle_solver.jl")
+include("prob_obstacle_solver/prob_obstacle_solver.jl")
 
 export
     TimedPolicy,
