@@ -116,26 +116,55 @@ end
 # TODO maybe the belier propagator should be constructed here
 POMDPs.solve(sol::ProbObstacleSolver, m::POMDP) = ProbObstaclePolicy(sol, m)
 
-function POMDPs.action(po::ProbObstaclePolicy, b)
-    return first(action_info(po, b))
-end
+POMDPs.action(po::ProbObstaclePolicy, b) = first(action_info(po, b))
 
 function POMDPModelTools.action_info(po::ProbObstaclePolicy, b)
     # 1. Create propagate particles until `sol.max_search_depth` is reached.
     #     - The belief state for each time step is used as open loop belief
     #       predicition for the humans external state.
     belief_predictions::Vector{ParticleCollection} = []
-    resize!(belief_predictions, po.sol.max_search_depth + 1)
-    belief_predictions[1] = decoupled(initialize_belief(po.sol.belief_propagator, b))
-    for i in 2:(po.sol.max_search_depth + 1)
+    @assert po.sol.max_search_depth >= 1
+    resize!(belief_predictions, po.sol.max_search_depth)
+    # first propagation from root belief
+    b0 = initialize_belief(po.sol.belief_propagator, b)
+    e0 = external(first(particles(b0)))
+    rp0 = robot_pos(e0)
+    hp0 = human_pos(e0)
+
+    belief_predictions[1] = ParticleCollection(predict(po.sol.belief_propagator, decoupled(b0)))
+    # recursive propagation of open loop predictions
+    for i in 2:po.sol.max_search_depth
         belief_predictions[i] = ParticleCollection(predict(po.sol.belief_propagator, belief_predictions[i-1]))
     end
 
-    info = (m=po.pomdp,
-            belief_predictions=belief_predictions)
+
+    # setup the probabilistic search problem
+    heuristic = (s::ProbObstacleSearchState) -> begin
+        min_remaining_steps = fld(clamp(dist_to_pos(robot_goal(po.pomdp), s.rp, p=2) - goal_reached_distance(po.pomdp), 0, Inf), robot_max_speed(actions(po.pomdp)))
+        h = -min_remaining_steps * reward_model(po.pomdp).living_penalty
+        return h
+    end
+    a_star_priority = (n::SearchNode) -> cost(n) + heuristic(end_state(n))
+
+    prob_search_problem = ProbObstacleSearchProblem(belief_predictions=belief_predictions,
+                                                    start_state=ProbObstacleSearchState(rp0, 0),
+                                                    model=po.pomdp,
+                                                    collision_prob_thresh=po.sol.collision_prob_thresh,
+                                                    max_search_depth=po.sol.max_search_depth)
+
+    # solve the probabilistic obstacle avoidance problem using a-star
+    aseq, sseq = generic_graph_serach(prob_search_problem, a_star_priority)
+
+    # TODO: Add state sequence
+    info = (robot_pos=rp0,
+            human_pos=hp0,
+            m=po.pomdp,
+            belief_predictions=belief_predictions,
+            action_sequence=aseq,
+            state_sequence=sseq)
 
     # 2. Perform time varying A* on this set of predicitons
     #    -  Challenges:
     #       - robot states won't match exactly. (finite precision)
-    return nothing, info
+    return first(aseq), info
 end
