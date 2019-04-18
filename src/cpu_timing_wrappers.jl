@@ -14,10 +14,9 @@ function POMDPModelTools.action_info(tp::TimedPolicy, x; kwargs...)
     action, i = action_info(tp.p, x; kwargs...)
     planner_cpu_time_us = CPUtoq()
     if isnothing(i)
-        info = Dict(:planner_cpu_time_us=>planner_cpu_time_us)
+        info = (planner_cpu_time_us=planner_cpu_time_us,)
     else
-        i[:planner_cpu_time_us] = planner_cpu_time_us
-        info = i
+        info = merge(i, Dict(:planner_cpu_time_us=>planner_cpu_time_us))
     end
     return action, info
 end
@@ -36,10 +35,9 @@ function POMDPModelTools.update_info(tu::TimedUpdater, b, a, o)
     bp, i = update_info(tu.u, b, a, o)
     updater_cpu_time_us = CPUtoq()
     if isnothing(i)
-        info = Dict(:updater_cpu_time_us=>updater_cpu_time_us)
+        info = (updater_cpu_time_us=updater_cpu_time_us,)
     else
-        i[:updater_cpu_time_us] = updater_cpu_time_us
-        info = i
+        info = merge(i, Dict(:updater_cpu_time_us=>updater_cpu_time_us))
     end
     return bp, info
 end
