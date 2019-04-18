@@ -36,6 +36,7 @@ using POMCPOW
 
 # used for graph search
 using DataStructures
+using Reel
 
 # used for simulation utils
 using CPUTime
@@ -213,7 +214,8 @@ include("prob_obstacle_solver/search.jl")
 
 export
     ProbObstacleSolver,
-    ProbObstaclePolicy
+    ProbObstaclePolicy,
+    visualize_plan
 include("prob_obstacle_solver/prob_obstacle_solver.jl")
 
 export

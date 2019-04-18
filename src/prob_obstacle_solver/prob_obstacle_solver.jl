@@ -168,3 +168,22 @@ function POMDPModelTools.action_info(po::ProbObstaclePolicy, b)
     #       - robot states won't match exactly. (finite precision)
     return first(aseq), info
 end
+
+# TODO: maybe this should be moved somewhere else?
+function visualize_plan(po::ProbObstaclePolicy, info::NamedTuple;
+                        fps::Int=Base.convert(Int, cld(1, dt)), filename::String="$(@__DIR__)/../../renderings/debug_prob_obstacle_plan.gif")
+    frames = Frames(MIME("image/png"), fps=fps)
+
+    # TODO: think about a better check?
+    # @assert length(info.belief_predictions) == length(info.action_sequence)
+    # dump(info.action_sequence)
+    # dump(info.belief_predictions)
+    for i in 1:length(info.action_sequence)
+        planning_step = (human_pos=info.human_pos,
+                         robot_pos=info.robot_pos,
+                         bp=info.belief_predictions[i],
+                         robot_prediction=info.state_sequence[i].rp)
+        push!(frames, render_plan(po.pomdp, planning_step))
+    end
+    @show write(filename, frames)
+end

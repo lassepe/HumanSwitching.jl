@@ -1,6 +1,7 @@
 POMDPSimulators.problem(p::Policy) = p.problem
 POMDPSimulators.problem(p::DESPOTPlanner) = p.pomdp
 POMDPSimulators.problem(p::TimedPolicy) = problem(p.p)
+POMDPSimulators.problem(p::ProbObstaclePolicy) = p.pomdp
 
 validation_hash(hist::SimHistory) = string(hash(collect((sp.external.robot_pos,
                                                          sp.external.human_pos)
@@ -290,6 +291,15 @@ function solver_setup_map(planner_setup::PlannerSetup, planner_model::HSModel, r
                                                            check_repeat_obs=!(planner_setup.hbm isa HumanConstVelBehavior),
                                                            check_repeat_act=true,
                                                            estimate_value=free_space_estimate, rng=deepcopy(rng))
+                                end,
+                                "ProbObstacles" => begin
+                                    n_particles = 50
+                                    human_predictor = PredictModel{HSHumanState}((hs::HSHumanState, rng::AbstractRNG) -> begin
+                                                                                     human_pos, hbs = hs
+                                                                                     human_transition(hbs, human_behavior_model(planner_model), planner_model, human_pos, rng)
+                                                                                 end)
+                                    pbp = ParticleBeliefPropagator(human_predictor, n_particles, rng)
+                                    solver = ProbObstacleSolver(belief_propagator=pbp)
                                 end
                                )
 end
