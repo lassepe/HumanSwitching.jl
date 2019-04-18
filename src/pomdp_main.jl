@@ -173,8 +173,8 @@ goal_reached_distance(m::HSModel) = mdp(m).goal_reached_distance
 """
 POMDPs.actions(m::HSModel) = mdp(m).aspace
 
-function POMDPs.actions(m::HSModel, e::HSExternalState)
-    robot_to_goal = vec_from_to(robot_pos(e), robot_goal(m))
+function POMDPs.actions(m::HSModel, robot_pos::Pos)
+    robot_to_goal = vec_from_to(robot_pos, robot_goal(m))
     # replace the first action with the current "straight to goal" action
     actions(m)[1] = HSAction(first(actions(m)).d, atan(robot_to_goal[2], robot_to_goal[1]))
     return actions(m)
@@ -182,7 +182,7 @@ end
 
 function POMDPs.actions(m::HSModel, obs_node::T) where T <: POWTreeObsNode
     e::HSExternalState = isroot(obs_node) ? obs_node |> belief |> particles |> first |> external : current_obs(obs_node)
-    return actions(m, e)
+    return actions(m, robot_pos(e))
 end
 
 POMDPs.n_actions(m::HSModel) = length(mdp(m).aspace)
