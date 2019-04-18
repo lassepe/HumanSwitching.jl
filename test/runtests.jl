@@ -163,25 +163,11 @@ end
 end
 
 # @testset "Adversarial Sampling" begin
-#     for i_run in 1:100
-#         rng = MersenneTwister(i_run)
-# 
-#         ptnm_cov = [0.01, 0.01]
-#         hbm = HumanBoltzmannModel()
-#         model = generate_non_trivial_scenario(NoisyPositionSensor(ptnm_cov*10),
-#                                               hbm,
-#                                               HSIdentityPTNM(),
-#                                               deepcopy(rng))
-# 
-#         n_particles = 5000
-#         belief_updater = BasicParticleFilter(model, SharedExternalStateResampler(n_particles), n_particles, deepcopy(rng))
-#         policy = StraightToGoal(model)
-# 
-#         simulator = HistoryRecorder(max_steps=100, show_progress=false, rng=deepcopy(rng))
-#         sim_hist = simulate(simulator, model, policy, belief_updater, initialstate_distribution(model), initialstate(model, deepcopy(rng)))
-# 
-#         @test has_collision(model, last(collect(s for s in eachstep("s"))))
-#     end
+# TODO, run on parallel_sim
+# end
+#
+# @testset "SearchTest" begin
+# TODO, run some search problems with known optimal solution
 # end
 
 @testset "Type Inference tests" begin
