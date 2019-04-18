@@ -66,9 +66,10 @@ has_collision(m::HSModel, s::HSState)::Bool = dist_to_pos(human_pos(s), robot_po
 # check if the state is a failure terminal state
 isfailure(m::HSModel, s::HSState)::Bool = has_collision(m, s) || !isinroom(robot_pos(s), room(m))
 # check if the state is a success success terminal state
-issuccess(m::HSModel, s::HSState)::Bool = !isfailure(m, s) && robot_reached_goal(m ,s)
+issuccess(m::HSModel, s::HSState)::Bool = !isfailure(m, s) && robot_reached_goal(m, s)
 
 robot_reached_goal(m::HSModel, s::HSState)::Bool = robot_dist_to_goal(m, s) < goal_reached_distance(m)
+at_robot_goal(m::HSModel, p::Pos) = dist_to_pos(robot_goal(m), p) < goal_reached_distance(m)
 
 function rand_pos(r::Room, rng::AbstractRNG)::Pos
     x = rand(rng) * r.width
