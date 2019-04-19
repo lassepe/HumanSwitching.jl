@@ -6,7 +6,7 @@ A minimalistic, simple interface for search problems
 """
 abstract type SearchProblem{S} end
 """
-    start_state(p::SearchProblem, s::S)
+    start_state(p::SearchProblem)
 
 Returns the start state of the problem.
 """
@@ -92,7 +92,7 @@ function generic_graph_serach(p::SearchProblem{S}, fringe_priority::Function) wh
     enqueue!(fringe, n0, fringe_priority(n0))
     while true
         if isempty(fringe)
-            throw("Fringe was empty, but no solution found")
+            throw(ErrorException("Fringe was empty, but no solution found"))
         end
         current_search_node = dequeue!(fringe)
         # We have found a path to the goal state
@@ -109,4 +109,9 @@ function generic_graph_serach(p::SearchProblem{S}, fringe_priority::Function) wh
             continue
         end
     end
+end
+
+function astart_search(p::SearchProblem, heuristic::Function)
+    a_star_priority = (n::SearchNode) -> cost(n) + heuristic(end_state(n))
+    return generic_graph_serach(p, a_star_priority)
 end

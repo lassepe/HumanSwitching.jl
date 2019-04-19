@@ -209,7 +209,9 @@ export
     cost,
     end_state,
     action_sequence,
-    expand
+    expand,
+    generic_graph_serach,
+    astart_search
 include("prob_obstacle_solver/search.jl")
 
 export
