@@ -54,10 +54,10 @@ Fields:
 - `ts` the goal state to be visualized
 """
 function goal_node(p::Pos;
-                     annotation::String="",
-                     size=0.15, fill_color="deepskyblue",
-                     stroke_color="black",
-                     opacity::Float64=1.0)::Context
+                   annotation::String="",
+                   size=0.15, fill_color="deepskyblue",
+                   stroke_color="black",
+                   opacity::Float64=1.0)::Context
     compose(context(),
             (context(), fill(fill_color), fillopacity(opacity), stroke(stroke_color), strokeopacity(opacity),
              circle(p.x, p.y, size/2)),
@@ -289,7 +289,7 @@ function belief_node(b::ParticleCollection{H}, m::HSPOMDP) where H <: HSState
     end
     @assert(weight_sum > 0)
 
-    max_visualized_particles = 4000
+    max_visualized_particles = 100
     human_particles = [human_particle_node(human_pos(p), select_submodel(hbm, hbs(p)), hbs(p);
                                            annotation=string(round(state_count/weight_sum, digits=3)),
                                            opacity=map_to_opacity(state_count, weight_sum))
@@ -317,7 +317,7 @@ function human_prediction_node(b::ParticleCollection{H}, m::HSPOMDP) where H <: 
     end
     @assert(weight_sum > 0)
 
-    max_visualized_particles = 4000
+    max_visualized_particles = 100
     human_particles = [human_particle_node(hp, select_submodel(hbm, hbs), hbs;
                                            annotation=string(round(state_count/weight_sum, digits=3)),
                                            opacity=map_to_opacity(state_count, weight_sum))
@@ -383,7 +383,7 @@ function render_step_compose(m::HSModel, step::NamedTuple, base_aspectratio::Flo
                                                       fill_color="tomato", opacity=1.0)
     # the robot and it's goal
     robot_with_goal_viz = agent_with_goal_node(robot_pos(sp), robot_goal(m),
-                                               external_color="pink", curve_color="steelblue")
+                                               external_color="light green", curve_color="steelblue")
 
     belief_viz = (haskey(step, :bp) && step[:bp] isa ParticleCollection ?
                   belief_node(step[:bp], m) : context())
