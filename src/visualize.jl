@@ -402,7 +402,7 @@ function render_step_compose(m::HSModel, step::NamedTuple, base_aspectratio::Flo
         info_viz = compose(info_position_context, background)
     end
 
-    if haskey(step, :ai) && haskey(step[:ai], :state_sequence)
+    if haskey(step, :ai) && step[:ai] isa NamedTuple && haskey(step[:ai], :state_sequence)
         planner_state_squence = step[:ai][:state_sequence]
         # We are visualizing based on sp, thus we need to drop the first state
         robot_plan_viz = path_node([ps.rp for ps in planner_state_squence[2:end]])
