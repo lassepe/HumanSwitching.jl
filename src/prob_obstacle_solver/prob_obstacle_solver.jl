@@ -155,7 +155,6 @@ function POMDPModelTools.action_info(po::ProbObstaclePolicy, b)
     # solve the probabilistic obstacle avoidance problem using a-star
     aseq, sseq = generic_graph_serach(prob_search_problem, a_star_priority)
 
-    # TODO: Add state sequence
     info = (robot_pos=rp0,
             human_pos=hp0,
             m=po.pomdp,
@@ -176,8 +175,6 @@ function visualize_plan(po::ProbObstaclePolicy, info::NamedTuple;
 
     # TODO: think about a better check?
     # @assert length(info.belief_predictions) == length(info.action_sequence)
-    # dump(info.action_sequence)
-    # dump(info.belief_predictions)
     for i in 1:length(info.action_sequence)
         planning_step = (human_pos=info.human_pos,
                          robot_pos=info.robot_pos,
