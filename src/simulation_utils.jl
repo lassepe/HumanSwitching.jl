@@ -195,7 +195,7 @@ function setup_test_scenario(pi_key::String, simulation_hbm_key::String, planner
                                                                              belief_updater_hbm, planner_setup.hbm)
     # the belief updater is run with a stochastic version of the world
     belief_updater = BasicParticleFilter(belief_updater_model, SharedExternalStateResampler(planner_setup.n_particles), planner_setup.n_particles, deepcopy(rng))
-    solver = solver_setup_map(planner_setup, planner_model, rng)[solver_setup_key]
+    solver = solver_setup_map(planner_setup, planner_model, deepcopy(rng))[solver_setup_key]
     planner = solver isa Policy ? solver : solve(solver, planner_model)
 
     # compose metadata
@@ -298,7 +298,7 @@ function solver_setup_map(planner_setup::PlannerSetup, planner_model::HSModel, r
                                                                                      human_pos, hbs = hs
                                                                                      human_transition(hbs, human_behavior_model(planner_model), planner_model, human_pos, rng)
                                                                                  end)
-                                    pbp = ParticleBeliefPropagator(human_predictor, n_particles, rng)
+                                    pbp = ParticleBeliefPropagator(human_predictor, n_particles, deepcopy(rng))
                                     solver = ProbObstacleSolver(belief_propagator=pbp)
                                 end
                                )

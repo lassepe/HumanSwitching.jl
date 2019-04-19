@@ -7,7 +7,7 @@ function POMDPs.action(p::StraightToGoal, e::HSExternalState)
     best_action = reduce((a1, a2) -> dist_to_pos(apply_robot_action(robot_pos(e), a1), robot_goal(problem(p)))
                          < dist_to_pos(apply_robot_action(robot_pos(e), a2), robot_goal(problem(p))) ?
                          a1 : a2,
-                         actions(problem(p), e))
+                         actions(problem(p), robot_pos(e)))
 end
 
 POMDPs.action(p::StraightToGoal, s::HSState) = action(p, external(s))

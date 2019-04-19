@@ -402,14 +402,30 @@ function render_step_compose(m::HSModel, step::NamedTuple, base_aspectratio::Flo
         info_viz = compose(info_position_context, background)
     end
 
+    if haskey(step, :ai) && haskey(step[:ai], :state_sequence)
+        planner_state_squence = step[:ai][:state_sequence]
+        # We are visualizing based on sp, thus we need to drop the first state
+        robot_plan_viz = path_node([ps.rp for ps in planner_state_squence[2:end]])
+    else
+        robot_plan_viz = context()
+    end
+
 compose(context(),
         (context(), info_viz),
         (mirror, (base_scale,
                   robot_with_goal_viz,
+                  robot_plan_viz,
                   human_ground_truth_viz,
                   belief_viz,
                   room_viz))
        )
+end
+
+function path_node(way_points::AbstractVector{Pos}; fill_color="black", opacity=0.5)
+    return compose(context(),
+                   [goal_node(wp; fill_color=fill_color, opacity=opacity, size=0.1) for wp in way_points],
+                   strokeopacity(opacity),
+                   line([(wp[1], wp[2]) for wp in way_points]))
 end
 
 function render_plan_compose(m::HSModel, planning_step::NamedTuple, base_aspectratio::Float64)
@@ -431,12 +447,11 @@ function render_plan_compose(m::HSModel, planning_step::NamedTuple, base_aspectr
                                                       fill_color="tomato", opacity=1.0)
     # the robot and it's goal
     robot_with_goal_viz =  agent_with_goal_node(planning_step[:robot_pos], robot_goal(m),
-                                                external_color="pink", curve_color="steelblue")
+                                                external_color="light green", curve_color="steelblue")
 
     human_prediction_viz = human_prediction_node(planning_step[:bp], m)
 
-    # TODO: add robot path
-    robot_prediction_viz = pos_node(planning_step[:robot_prediction], fill_color="pink", r=0.1, opacity=0.5)
+    robot_prediction_viz = pos_node(planning_step[:robot_prediction], fill_color="light green", r=0.1, opacity=0.5)
 
     # the info area
     background = compose(context(), rectangle(0, 0, 1, 1), fill("white"))
