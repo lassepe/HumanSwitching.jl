@@ -40,3 +40,18 @@ function test_prob_obstacle()
     visualize_plan(policy, info)
     return info
 end
+
+
+using NearestNeighbors
+
+function test_kdtree_search()
+    rng = MersenneTwister(1)
+    test_data = rand(rng, Pos, Int(1e6))
+    querry_point = Pos(0.5, 0.5)
+    radius = 0.1
+
+    @benchmark begin
+        kdtree = KDTree($test_data; leafsize=$(Int(1e3)))
+        length(inrange($kdtree, $querry_point, $radius))
+    end
+end
