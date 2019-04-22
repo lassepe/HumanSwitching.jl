@@ -70,7 +70,6 @@ end
         else
             @test_throws ErrorException weighted_astar_search(p, h, eps)
         end
-        println("n_expanded: $(p._n_expanded)")
         @test p._n_expanded == n_expanded
     end
 end
