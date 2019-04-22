@@ -31,26 +31,24 @@ function successors(p::ProbObstacleSearchProblem, s::ProbObstacleSearchState)
         # if the max_search_depth is reached
         @assert false
     end
-    resize!(successors, n_actions(p.model))
+    sizehint!(successors, n_actions(p.model))
     for (i, a) in enumerate(actions(p.model, s.rp))
-        # TODO: Apply clipping to discrete values
         # new robot position
-        rp_p = apply_robot_action(s.rp, a)
+        rp_p = clip_to_finite_resolution(apply_robot_action(s.rp, a))
         # the new time index
         t_idx_p = s.t_idx + 1
         s_p = ProbObstacleSearchState(rp_p, t_idx_p)
 
         # step cost
         b = p.belief_predictions[t_idx_p]
-        # TODO: do less naive or at least outosurce integration
+        # TODO: do less naive or at least outsurce integration
         # Monte Carlo integration over particles
         p_share = 1 / n_particles(b)
         # cost estimate over propagated particle blief
         rm = reward_model(p.model)
         if !isinroom(rp_p, room(p.model))
             # if we left the room, we are done
-            # TODO: Maybe rather continue here and skip this successor?
-            c = -rm.left_room_penalty
+            continue
         else
             c = -rm.living_penalty
             collision_prob = 0.0
@@ -62,11 +60,18 @@ function successors(p::ProbObstacleSearchProblem, s::ProbObstacleSearchState)
                     c -= p_share * rm.dist_to_human_penalty
                 end
                 if collision_prob >= p.collision_prob_thresh
+                    # collisoin prob thresh was exceede. No need to look any further
                     break
                 end
             end
+            if collision_prob >= p.collision_prob_thresh
+                # don't allow steps where p.collision_prob_tresh is exceeded
+                # TODO: this causes trouble as we could still try to avoid the human. For now `no fault collision`
+                # c -= rm.collision_penalty
+                continue
+            end
         end
-        successors[i] = (s_p, a, c)
+        push!(successors, (s_p, a, c))
     end
 
     return successors
@@ -111,7 +116,6 @@ struct ProbObstaclePolicy{SOL<:ProbObstacleSolver, P<:POMDP} <: Policy
     pomdp::P
 end
 
-# TODO maybe the belier propagator should be constructed here
 POMDPs.solve(sol::ProbObstacleSolver, m::POMDP) = ProbObstaclePolicy(sol, m)
 
 POMDPs.action(po::ProbObstaclePolicy, b) = first(action_info(po, b))
@@ -150,7 +154,12 @@ function POMDPModelTools.action_info(po::ProbObstaclePolicy, b)
                                                     max_search_depth=po.sol.max_search_depth)
 
     # solve the probabilistic obstacle avoidance problem using a-star
-    aseq, sseq = weighted_astar_search(prob_search_problem, heuristic, 0.2)
+    aseq, sseq = try
+        weighted_astar_search(prob_search_problem, heuristic, 0.2)
+    catch
+        @warn("No Solution found. Using default action.")
+        ([zero(HSAction)], [start_state(prob_search_problem)])
+    end
 
     info = (robot_pos=rp0,
             human_pos=hp0,
@@ -165,13 +174,10 @@ function POMDPModelTools.action_info(po::ProbObstaclePolicy, b)
     return first(aseq), info
 end
 
-# TODO: maybe this should be moved somewhere else?
 function visualize_plan(po::ProbObstaclePolicy, info::NamedTuple;
                         fps::Int=Base.convert(Int, cld(1, dt)), filename::String="$(@__DIR__)/../../renderings/debug_prob_obstacle_plan.gif")
     frames = Frames(MIME("image/png"), fps=fps)
 
-    # TODO: think about a better check?
-    # @assert length(info.belief_predictions) == length(info.action_sequence)
     for i in 1:length(info.action_sequence)
         planning_step = (human_pos=info.human_pos,
                          robot_pos=info.robot_pos,
