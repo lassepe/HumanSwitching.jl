@@ -11,7 +11,6 @@ using POMDPModelTools
 using CPUTime
 using Parameters
 
-HS.decoupled(s::HSState) = (human_pos(s), hbs(s))::HSHumanState
 
 function test_prob_obstacle()
     rng = MersenneTwister(6)
@@ -53,6 +52,6 @@ function test_kdtree_search()
 
     @benchmark begin
         kdtree = KDTree($test_data; leafsize=$(Int(1e3)))
-        length(inrange($kdtree, $querry_point, $radius))
+        length(inrange(kdtree, $querry_point, $radius))
     end
 end

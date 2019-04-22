@@ -36,6 +36,7 @@ using POMCPOW
 
 # used for graph search
 using DataStructures
+using NearestNeighbors
 using Reel
 
 # used for simulation utils
@@ -216,15 +217,15 @@ export
 include("prob_obstacle_solver/search.jl")
 
 export
+    TimedPolicy,
+    TimedUpdater
+include("cpu_timing_wrappers.jl")
+
+export
     ProbObstacleSolver,
     ProbObstaclePolicy,
     visualize_plan
 include("prob_obstacle_solver/prob_obstacle_solver.jl")
-
-export
-    TimedPolicy,
-    TimedUpdater
-include("cpu_timing_wrappers.jl")
 
 export
     validation_hash,

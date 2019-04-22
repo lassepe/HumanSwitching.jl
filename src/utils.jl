@@ -16,7 +16,7 @@ function normalized_angle_diff(angle_diff::Float64)::Float64
     end
 end
 
-clip_to_finite_resolution(p::Pos, digits::Int=5) = Pos(round(p.x, digits=digits), round(p.y, digits=digits))
+snap_to_finite_resolution(p::Pos, digits::Int=5) = Pos(round(p.x, digits=digits), round(p.y, digits=digits))
 
 # modifying copy constructors for immutable types
 construct_with(x, p; type_hint=typeof(x)) = type_hint(((f == p.first ? p.second : getfield(x, f)) for f in fieldnames(typeof(x)))...)

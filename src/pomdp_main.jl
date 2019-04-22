@@ -104,6 +104,8 @@ compose_state(e::HSExternalState, i::HumanBehaviorState) = HSState(external=e, h
 human_pos(s::Union{HSState, HSExternalState}) = external(s).human_pos
 robot_pos(s::Union{HSState, HSExternalState}) = external(s).robot_pos
 
+decoupled(s::HSState) = (human_pos(s), hbs(s))::HSHumanState
+
 """
 # Action (Space) representation
 """

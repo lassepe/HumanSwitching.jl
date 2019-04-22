@@ -6,9 +6,9 @@ struct ProbObstacleSearchState
 end
 
 # implementing the search interface
-@with_kw struct ProbObstacleSearchProblem{BP, M} <: SearchProblem{ProbObstacleSearchState}
+@with_kw struct ProbObstacleSearchProblem{POT, M} <: SearchProblem{ProbObstacleSearchState}
     "The predicted beliefs"
-    belief_predictions::BP
+    prob_obstacle_trees::POT
     "The initial state from which where to plan the path"
     start_state::ProbObstacleSearchState
     "A reference to the world model"
@@ -16,7 +16,7 @@ end
     "The maximum acceptable collision probability when planning"
     collision_prob_thresh::Float64
     "The maximum depth of search"
-    max_search_depth::Int = length(belief_predictions)
+    max_search_depth::Int = length(prob_obstacle_trees)
 end
 
 start_state(p::ProbObstacleSearchProblem) = p.start_state
@@ -25,51 +25,45 @@ is_goal_state(p::ProbObstacleSearchProblem, s::ProbObstacleSearchState) = at_rob
 
 function successors(p::ProbObstacleSearchProblem, s::ProbObstacleSearchState)
     successors::Vector{Tuple{ProbObstacleSearchState, HSAction, Float64}} = []
-    # if we have reached the max depth, there we don't return successors
-    if s.t_idx == p.max_search_depth
-        # this should never happen because a state is said to be a goal state
-        # if the max_search_depth is reached
-        @assert false
-    end
+    # if we have reached the max depth, we don't return successors
+    # this should never happen because a state is said to be a goal state
+    # if the max_search_depth is reached
+    @assert s.t_idx != p.max_search_depth
+
     sizehint!(successors, n_actions(p.model))
-    for (i, a) in enumerate(actions(p.model, s.rp))
+    for a in actions(p.model, s.rp)
         # new robot position
-        rp_p = clip_to_finite_resolution(apply_robot_action(s.rp, a))
+        rp_p = snap_to_finite_resolution(apply_robot_action(s.rp, a))
         # the new time index
         t_idx_p = s.t_idx + 1
         s_p = ProbObstacleSearchState(rp_p, t_idx_p)
 
         # step cost
-        b = p.belief_predictions[t_idx_p]
-        # TODO: do less naive or at least outsurce integration
+        pot = p.prob_obstacle_trees[t_idx_p]
         # Monte Carlo integration over particles
-        p_share = 1 / n_particles(b)
+        n_particles = length(pot.data)
         # cost estimate over propagated particle blief
         rm = reward_model(p.model)
         if !isinroom(rp_p, room(p.model))
             # if we left the room, we are done
             continue
         else
+            # in any case we will have a negative living penalty
             c = -rm.living_penalty
-            collision_prob = 0.0
-            for (human_pos, _) in particles(b)
-                if dist_to_pos(rp_p, human_pos) < agent_min_distance(p.model)
-                    collision_prob += p_share
-                    c -= p_share * (rm.collision_penalty + rm.dist_to_human_penalty)
-                elseif dist_to_pos(rp_p, human_pos) < 2 * agent_min_distance(p.model)
-                    c -= p_share * rm.dist_to_human_penalty
-                end
-                if collision_prob >= p.collision_prob_thresh
-                    # collisoin prob thresh was exceede. No need to look any further
-                    break
-                end
-            end
-            if collision_prob >= p.collision_prob_thresh
+            # count the number of particles we collided with
+            n_particles_collisions = length(inrange(pot, rp_p, agent_min_distance(p.model)))
+            collision_prob = n_particles_collisions / n_particles
+            if collision_prob > p.collision_prob_thresh
                 # don't allow steps where p.collision_prob_tresh is exceeded
-                # TODO: this causes trouble as we could still try to avoid the human. For now `no fault collision`
+                # TODO: this causes trouble as we could still try to avoid the human. For now `no fault collision`?
                 # c -= rm.collision_penalty
                 continue
+            else
+                c -= collision_prob * rm.collision_penalty
             end
+            # counte the number of particles that are close to the robot
+            n_particles_close = length(inrange(pot, rp_p, 2*agent_min_distance(p.model)))
+            c -= n_particles_close / n_particles * rm.dist_to_human_penalty
         end
         push!(successors, (s_p, a, c))
     end
@@ -124,7 +118,7 @@ function POMDPModelTools.action_info(po::ProbObstaclePolicy, b)
     # 1. Create propagate particles until `sol.max_search_depth` is reached.
     #     - The belief state for each time step is used as open loop belief
     #       predicition for the humans external state.
-    belief_predictions::Vector{ParticleCollection} = []
+    belief_predictions = []
     @assert po.sol.max_search_depth >= 1
     resize!(belief_predictions, po.sol.max_search_depth)
     # first propagation from root belief
@@ -138,7 +132,8 @@ function POMDPModelTools.action_info(po::ProbObstaclePolicy, b)
     for i in 2:po.sol.max_search_depth
         belief_predictions[i] = ParticleCollection(predict(po.sol.belief_propagator, belief_predictions[i-1]))
     end
-
+    # TODO: maybe specify leafsize as well
+    prob_obstacle_trees = [KDTree([first(p) for p in particles(bp)]) for bp in belief_predictions]
 
     # setup the probabilistic search problem
     heuristic = (s::ProbObstacleSearchState) -> begin
@@ -147,13 +142,14 @@ function POMDPModelTools.action_info(po::ProbObstaclePolicy, b)
         return h
     end
 
-    prob_search_problem = ProbObstacleSearchProblem(belief_predictions=belief_predictions,
+    prob_search_problem = ProbObstacleSearchProblem(prob_obstacle_trees=prob_obstacle_trees,
                                                     start_state=ProbObstacleSearchState(rp0, 0),
                                                     model=po.pomdp,
                                                     collision_prob_thresh=po.sol.collision_prob_thresh,
                                                     max_search_depth=po.sol.max_search_depth)
 
     # solve the probabilistic obstacle avoidance problem using a-star
+    # TODO: Use a typed exception for this
     aseq, sseq = try
         weighted_astar_search(prob_search_problem, heuristic, 0.2)
     catch
@@ -186,4 +182,10 @@ function visualize_plan(po::ProbObstaclePolicy, info::NamedTuple;
         push!(frames, render_plan(po.pomdp, planning_step))
     end
     @show write(filename, frames)
+end
+
+function visualize_plan(policy::TimedPolicy, hist::SimHistory, step::Int)
+    beliefs = collect(eachstep(hist, "b"))
+    a, info = action_info(policy.p, beliefs[step])
+    visualize_plan(policy.p, info)
 end
