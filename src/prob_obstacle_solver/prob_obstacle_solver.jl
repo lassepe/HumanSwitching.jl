@@ -30,8 +30,6 @@ function successors(p::ProbObstacleSearchProblem, s::ProbObstacleSearchState)
         # this should never happen because a state is said to be a goal state
         # if the max_search_depth is reached
         @assert false
-        # TODO remove
-        # return successors
     end
     resize!(successors, n_actions(p.model))
     for (i, a) in enumerate(actions(p.model, s.rp))
@@ -144,7 +142,6 @@ function POMDPModelTools.action_info(po::ProbObstaclePolicy, b)
         h = -min_remaining_steps * reward_model(po.pomdp).living_penalty
         return h
     end
-    a_star_priority = (n::SearchNode) -> cost(n) + heuristic(end_state(n))
 
     prob_search_problem = ProbObstacleSearchProblem(belief_predictions=belief_predictions,
                                                     start_state=ProbObstacleSearchState(rp0, 0),
@@ -153,7 +150,7 @@ function POMDPModelTools.action_info(po::ProbObstaclePolicy, b)
                                                     max_search_depth=po.sol.max_search_depth)
 
     # solve the probabilistic obstacle avoidance problem using a-star
-    aseq, sseq = generic_graph_serach(prob_search_problem, a_star_priority)
+    aseq, sseq = weighted_astar_search(prob_search_problem, heuristic, 0.0)
 
     info = (robot_pos=rp0,
             human_pos=hp0,

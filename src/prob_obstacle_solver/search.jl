@@ -82,7 +82,7 @@ end
 
 
 
-function generic_graph_serach(p::SearchProblem{S}, fringe_priority::Function) where S
+function generic_graph_search(p::SearchProblem{S}, fringe_priority::Function) where S
     # the closed set, states that we don't need to expand anymore
     closed_set = Set{S}()
     # the fringe is a priority queue of SearchNode that are left to be expanded
@@ -111,7 +111,10 @@ function generic_graph_serach(p::SearchProblem{S}, fringe_priority::Function) wh
     end
 end
 
-function astart_search(p::SearchProblem, heuristic::Function)
-    a_star_priority = (n::SearchNode) -> cost(n) + heuristic(end_state(n))
-    return generic_graph_serach(p, a_star_priority)
+astar_search(p::SearchProblem, heuristic::Function) = weighted_astar_search(p, heuristic, 0.0)
+
+function weighted_astar_search(p::SearchProblem, heuristic::Function, eps::Float64)
+    @assert eps >= 0.0
+    astar_priority = (n::SearchNode) -> cost(n) + (1+eps)*heuristic(end_state(n))
+    return generic_graph_search(p, astar_priority)
 end

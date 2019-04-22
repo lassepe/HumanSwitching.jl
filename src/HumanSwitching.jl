@@ -210,8 +210,9 @@ export
     end_state,
     action_sequence,
     expand,
-    generic_graph_serach,
-    astart_search
+    generic_graph_search,
+    astar_search,
+    weighted_astar_search
 include("prob_obstacle_solver/search.jl")
 
 export
