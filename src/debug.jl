@@ -43,6 +43,7 @@ end
 
 
 using NearestNeighbors
+using BenchmarkTools
 
 function test_kdtree_search()
     rng = MersenneTwister(1)
