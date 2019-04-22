@@ -422,10 +422,10 @@ compose(context(),
 end
 
 function path_node(way_points::AbstractVector{Pos}; fill_color="black", opacity=0.5)
-    return compose(context(),
-                   [goal_node(wp; fill_color=fill_color, opacity=opacity, size=0.1) for wp in way_points],
-                   strokeopacity(opacity),
-                   line([(wp[1], wp[2]) for wp in way_points]))
+    return isempty(way_points) ? context() : compose(context(),
+                                                     [goal_node(wp; fill_color=fill_color, opacity=opacity, size=0.1) for wp in way_points],
+                                                     strokeopacity(opacity),
+                                                     line([(wp[1], wp[2]) for wp in way_points]))
 end
 
 function render_plan_compose(m::HSModel, planning_step::NamedTuple, base_aspectratio::Float64)
