@@ -293,7 +293,7 @@ function solver_setup_map(planner_setup::PlannerSetup, planner_model::HSModel, r
                                                            estimate_value=free_space_estimate, rng=deepcopy(rng))
                                 end,
                                 "ProbObstacles" => begin
-                                    n_particles = 50
+                                    n_particles = 1000
                                     human_predictor = PredictModel{HSHumanState}((hs::HSHumanState, rng::AbstractRNG) -> begin
                                                                                      human_pos, hbs = hs
                                                                                      human_transition(hbs, human_behavior_model(planner_model), planner_model, human_pos, rng)

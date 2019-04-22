@@ -97,7 +97,7 @@ decoupled(pc::ParticleCollection{S}) where S = ParticleCollection([decoupled(p) 
     max_search_depth::Int = 10
     "If the collision probability is higher than this, the the corresponding
     state is considered infasible"
-    collision_prob_thresh::Float64 = 1e-3
+    collision_prob_thresh::Float64 = 1e-2
 end
 
 """
