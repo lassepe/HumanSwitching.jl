@@ -150,7 +150,7 @@ function POMDPModelTools.action_info(po::ProbObstaclePolicy, b)
                                                     max_search_depth=po.sol.max_search_depth)
 
     # solve the probabilistic obstacle avoidance problem using a-star
-    aseq, sseq = weighted_astar_search(prob_search_problem, heuristic, 0.0)
+    aseq, sseq = weighted_astar_search(prob_search_problem, heuristic, 0.2)
 
     info = (robot_pos=rp0,
             human_pos=hp0,
