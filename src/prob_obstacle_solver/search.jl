@@ -2,9 +2,10 @@
     SearchProblem
 
 A minimalistic, simple interface for search problems
-`S` is the state type
+`S` - the state type
+`A` - the action type
 """
-abstract type SearchProblem{S} end
+abstract type SearchProblem{S, A} end
 """
     start_state(p::SearchProblem)
 
@@ -67,14 +68,16 @@ state_sequence(n::SearchNode) = n.state_sequence
 
 Returns the child search nodes (set of next, longer pathes from this node)
 """
-function expand(n::SearchNode, p::SearchProblem)
-    child_search_nodes = []
+# TODO: @zach: why is this always an array any? This depends on compilation order?!?!?! How to stabilize
+#              - fails if also SearchNode is parameterized with {S, A}. A degenerates to type any
+function expand(n::SearchNode, p::SearchProblem{S, A}) where {S, A}
+    child_search_nodes::Vector{SearchNode{S, A}} = []
     # TODO: maybe resize in advance or sizehint!
     for (sp, a, c) in successors(p, end_state(n))
-        push!(child_search_nodes,
-              SearchNode(vcat(state_sequence(n), sp),
-                         vcat(action_sequence(n), [a]), # TODO: vcating this way is a bit risky, maybe add type assert or use copy and push
-                         cost(n) + c))
+        np = SearchNode{S, A}(vcat(state_sequence(n), sp),
+                              vcat(action_sequence(n), [a]), # TODO: vcating this way is a bit risky, maybe add type assert or use copy and push
+                              cost(n) + c)
+        push!(child_search_nodes, np)
     end
 
     return child_search_nodes
@@ -84,7 +87,7 @@ struct InfeasibleSearchProblemError <: Exception
     msg::String
 end
 
-function generic_graph_search(p::SearchProblem{S}, fringe_priority::Function) where S
+function generic_graph_search(p::SearchProblem{S, A}, fringe_priority::Function) where {S, A}
     # the closed set, states that we don't need to expand anymore
     closed_set = Set{S}()
     # the fringe is a priority queue of SearchNode that are left to be expanded
@@ -99,7 +102,7 @@ function generic_graph_search(p::SearchProblem{S}, fringe_priority::Function) wh
         current_search_node = dequeue!(fringe)
         # We have found a path to the goal state
         if is_goal_state(p, end_state(current_search_node))
-            return action_sequence(current_search_node), state_sequence(current_search_node)
+            return action_sequence(current_search_node)::Vector{A}, state_sequence(current_search_node)::Vector{S}
         elseif !(end_state(current_search_node) in closed_set)
             # make sure we don't explore this state again
             push!(closed_set, end_state(current_search_node))

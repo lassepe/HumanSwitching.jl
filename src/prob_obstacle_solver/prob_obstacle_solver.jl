@@ -6,7 +6,7 @@ struct ProbObstacleSearchState
 end
 
 # implementing the search interface
-@with_kw struct ProbObstacleSearchProblem{POT, M} <: SearchProblem{ProbObstacleSearchState}
+@with_kw struct ProbObstacleSearchProblem{POT, M} <: SearchProblem{ProbObstacleSearchState, HSAction}
     "The predicted beliefs"
     prob_obstacle_trees::POT
     "The initial state from which where to plan the path"
@@ -112,9 +112,7 @@ POMDPs.solve(sol::ProbObstacleSolver, m::POMDP) = ProbObstaclePolicy(sol, m)
 POMDPs.action(po::ProbObstaclePolicy, b) = first(action_info(po, b))
 
 function POMDPModelTools.action_info(po::ProbObstaclePolicy, b; debug=false)
-    # 1. Create propagate particles until `sol.max_search_depth` is reached.
-    #     - The belief state for each time step is used as open loop belief
-    #       predicition for the humans external state.
+    # Create propagate particles until `sol.max_search_depth` is reached.
     belief_predictions = []
     @assert po.sol.max_search_depth >= 1
     resize!(belief_predictions, po.sol.max_search_depth)
@@ -146,8 +144,7 @@ function POMDPModelTools.action_info(po::ProbObstaclePolicy, b; debug=false)
                                                     max_search_depth=po.sol.max_search_depth)
 
     # solve the probabilistic obstacle avoidance problem using a-star
-    # TODO: Use a typed exception for this
-    aseq, sseq = try
+    aseq::Vector{HSAction}, sseq::Vector{ProbObstacleSearchState} = try
         weighted_astar_search(prob_search_problem, heuristic, 0.2)
     catch e
         if !(e isa InfeasibleSearchProblemError)
@@ -155,7 +152,6 @@ function POMDPModelTools.action_info(po::ProbObstaclePolicy, b; debug=false)
         elseif debug
             @warn("No Solution found. Using default action.")
         end
-    finally
         # use default action (no fault collision) instead
         ([zero(HSAction)], [start_state(prob_search_problem)])
     end
@@ -167,9 +163,6 @@ function POMDPModelTools.action_info(po::ProbObstaclePolicy, b; debug=false)
             action_sequence=aseq,
             state_sequence=sseq)
 
-    # 2. Perform time varying A* on this set of predicitons
-    #    -  Challenges:
-    #       - robot states won't match exactly. (finite precision)
     return first(aseq), info
 end
 
