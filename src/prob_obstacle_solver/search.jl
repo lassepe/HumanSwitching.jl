@@ -80,7 +80,9 @@ function expand(n::SearchNode, p::SearchProblem)
     return child_search_nodes
 end
 
-
+struct InfeasibleSearchProblemError <: Exception
+    msg::String
+end
 
 function generic_graph_search(p::SearchProblem{S}, fringe_priority::Function) where S
     # the closed set, states that we don't need to expand anymore
@@ -92,7 +94,7 @@ function generic_graph_search(p::SearchProblem{S}, fringe_priority::Function) wh
     enqueue!(fringe, n0, fringe_priority(n0))
     while true
         if isempty(fringe)
-            throw(ErrorException("Fringe was empty, but no solution found"))
+            throw(InfeasibleSearchProblemError("Fringe was empty, but no solution found"))
         end
         current_search_node = dequeue!(fringe)
         # We have found a path to the goal state

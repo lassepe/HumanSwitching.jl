@@ -207,6 +207,7 @@ export
     is_goal_state,
     successors,
     SearchNode,
+    InfeasibleSearchProblemError,
     cost,
     end_state,
     action_sequence,

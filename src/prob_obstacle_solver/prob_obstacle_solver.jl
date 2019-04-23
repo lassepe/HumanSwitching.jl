@@ -55,8 +55,6 @@ function successors(p::ProbObstacleSearchProblem, s::ProbObstacleSearchState)
             collision_prob = n_particles_collisions / n_particles
             if collision_prob > p.collision_prob_thresh
                 # don't allow steps where p.collision_prob_tresh is exceeded
-                # TODO: this causes trouble as we could still try to avoid the human. For now `no fault collision`?
-                # c -= rm.collision_penalty
                 continue
             else
                 c -= collision_prob * rm.collision_penalty
@@ -86,7 +84,6 @@ decoupled(b) = b
 decoupled(pc::ParticleCollection{S}) where S = ParticleCollection([decoupled(p) for p in particles(pc)])
 
 
-# TODO: choose a more generic name. This should rather be a "DecoupledStateSolver"
 """
     ProbObstacleSolver
 """
@@ -114,7 +111,7 @@ POMDPs.solve(sol::ProbObstacleSolver, m::POMDP) = ProbObstaclePolicy(sol, m)
 
 POMDPs.action(po::ProbObstaclePolicy, b) = first(action_info(po, b))
 
-function POMDPModelTools.action_info(po::ProbObstaclePolicy, b)
+function POMDPModelTools.action_info(po::ProbObstaclePolicy, b; debug=false)
     # 1. Create propagate particles until `sol.max_search_depth` is reached.
     #     - The belief state for each time step is used as open loop belief
     #       predicition for the humans external state.
@@ -152,8 +149,14 @@ function POMDPModelTools.action_info(po::ProbObstaclePolicy, b)
     # TODO: Use a typed exception for this
     aseq, sseq = try
         weighted_astar_search(prob_search_problem, heuristic, 0.2)
-    catch
-        @warn("No Solution found. Using default action.")
+    catch e
+        if !(e isa InfeasibleSearchProblemError)
+            rethrow(e)
+        elseif debug
+            @warn("No Solution found. Using default action.")
+        end
+    finally
+        # use default action (no fault collision) instead
         ([zero(HSAction)], [start_state(prob_search_problem)])
     end
 

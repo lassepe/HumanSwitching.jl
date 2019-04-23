@@ -68,7 +68,7 @@ end
             aseq, sseq = weighted_astar_search(p, h, eps)
             @test length(aseq) == optimal_nsteps
         else
-            @test_throws ErrorException weighted_astar_search(p, h, eps)
+            @test_throws InfeasibleSearchProblemError weighted_astar_search(p, h, eps)
         end
         @test p._n_expanded == n_expanded
     end
