@@ -124,7 +124,6 @@ include("human_behaviors/human_pid.jl")
 export
     # boltzmann
     HumanBoltzmannBState,
-    HumanBoltzmannModel,
     HumanRewardModel,
     HumanSingleGoalRewardModel,
     gen_human_aspace,

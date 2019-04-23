@@ -13,6 +13,8 @@ free_evolution(hbs::HumanConstVelBState, p::Pos) = Pos(p.x + dt*hbs.vx, p.y + dt
     vel_resample_sigma::Float64 = 0.0
 end
 
+vel_max(hbm::HumanConstVelBehavior) = hbm.vel_max
+
 bstate_type(::HumanConstVelBehavior)::Type = HumanConstVelBState
 
 # this model randomely generates HumanConstVelBState from the min_max_vel range

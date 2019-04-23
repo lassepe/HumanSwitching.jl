@@ -167,7 +167,7 @@ reward_model(m::HSModel) = mdp(m).reward_model
 physical_transition_noise_model(m::HSModel) = mdp(m).physical_transition_noise_model
 room(m::HSModel) = mdp(m).room
 agent_min_distance(m::HSModel) = mdp(m).agent_min_distance
-robot_max_speed(as::A) where A <: AbstractVector{HSAction} = first(as).d
+robot_max_step(as::A) where A <: AbstractVector{HSAction} = first(as).d
 goal_reached_distance(m::HSModel) = mdp(m).goal_reached_distance
 
 """

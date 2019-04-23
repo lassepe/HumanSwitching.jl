@@ -150,16 +150,6 @@ function construct_models(rng::AbstractRNG, problem_instance::ProblemInstance,
     return simulation_model, belief_updater_model, planner_model
 end
 
-function belief_updater_from_planner_model(planner_setup::PlannerSetup{<:HumanBoltzmannModel})
-    # clone the model but set the new epsilon
-    return HumanBoltzmannModel(beta_min=planner_setup.hbm.beta_min,
-                               beta_max=planner_setup.hbm.beta_max,
-                               betas=planner_setup.hbm.betas,
-                               epsilon=planner_setup.epsilon,
-                               reward_model=planner_setup.hbm.reward_model,
-                               aspace=planner_setup.hbm.aspace)
-end
-
 function belief_updater_from_planner_model(planner_setup::PlannerSetup{<:HumanConstVelBehavior})
     # clone the model but set the new epsilon
     return HumanConstVelBehavior(vel_max=planner_setup.hbm.vel_max,

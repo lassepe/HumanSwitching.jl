@@ -6,6 +6,8 @@ HumanPIDBehavior
     vel_max::Float64 = 1.4
 end
 
+vel_max(hbm::HumanPIDBState) = hbm.vel_max
+
 goal_index(hbs::HumanPIDBState) = hbs.goal_index
 
 @with_kw struct HumanPIDBehavior <: HumanBehaviorModel
