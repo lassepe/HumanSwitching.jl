@@ -229,6 +229,8 @@ export
     TimedUpdater
 include("cpu_timing_wrappers.jl")
 
+include("switching_policies.jl")
+
 export
     ProbObstacleSolver,
     ProbObstaclePolicy,
