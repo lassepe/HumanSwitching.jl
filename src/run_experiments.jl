@@ -3,7 +3,7 @@ using Dates
 using DataFrames
 using Distributed
 
-const desired_nworkers = 17
+const desired_nworkers = 35
 
 if nworkers() != desired_nworkers
     wait(rmprocs(workers()))
@@ -21,7 +21,7 @@ end
 
 function main()
     @info "Running simulations..."
-    data = parallel_sim(1:1000, "POMCPOW"; problem_instance_keys=["CornerGoalsNonTrivial"])
+    data = parallel_sim(1:500, "ProbObstacles"; problem_instance_keys=["CornerGoalsNonTrivial"])
     @info "Writing data..."
     result_dir = realpath("$(@__DIR__)/../results/")
     file_name = "sim_results-$(gethostname())-$(now()).csv"
