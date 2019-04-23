@@ -1,22 +1,27 @@
 function plot_points(data::DataFrame)
 	Gadfly.set_default_plot_size(30cm,30cm)
 
-    scatter = plot(data, x=:combined_median_cpu_time, y=:normalized_discounted_reward, color=:planner_hbm_key, Geom.point)
+	scatter = plot(data, x=:combined_median_cpu_time, y=:normalized_discounted_reward, color=:planner_hbm_key, Geom.point)
 
-    detailed_theme = Gadfly.Theme(minor_label_font_size=8pt, key_position=:none)
-    value = plot(data, x=:planner_hbm_key, y=:normalized_discounted_reward, color=:planner_hbm_key, detailed_theme, Geom.violin)
-    compute = plot(data, x=:planner_hbm_key, y=:combined_median_cpu_time, color=:planner_hbm_key, detailed_theme, Geom.boxplot)
+	detailed_theme = Gadfly.Theme(minor_label_font_size=8pt, key_position=:none)
+	df = DataFrame(Model=String[], Mean=Float64[], SEM=Float64[])
+	for planner_type in unique(data.planner_hbm_key)
+		value = data[data[:planner_hbm_key] .== planner_type, :][:normalized_discounted_reward]
+		push!(df, (planner_type, mean(value), std(value)/sqrt(size(data,1))))
+	end
+	value = plot(x=df.Model, y=df.Mean, ymin=(df.Mean - df.SEM), ymax=(df.Mean + df.SEM), color=df.Model, Geom.point, Geom.errorbar, Guide.xlabel("Planner Model"), Guide.ylabel("Value"))
+	compute = plot(data, x=:planner_hbm_key, y=:combined_median_cpu_time, color=:planner_hbm_key, detailed_theme, Geom.boxplot, Coord.Cartesian(ymax=1.0))
 
-    success_rate =  plot(data, xgroup=:planner_hbm_key, x=:final_state_type, color=:planner_hbm_key, Geom.subplot_grid(Geom.histogram),
+	success_rate =  plot(data, xgroup=:planner_hbm_key, x=:final_state_type, color=:planner_hbm_key, Geom.subplot_grid(Geom.histogram),
                          Gadfly.Theme(major_label_font_size=8pt, minor_label_font_size=8pt, key_position=:none))
 
-    final_plot = Gadfly.title(vstack(scatter,
-                              hstack(value, compute),
-                              success_rate),
-                         """
-                         Problem Instance: $(first(data[:pi_key]))
-                         True Human Model: $(first(data[:simulation_hbm_key]))
-                         """)
+	final_plot = Gadfly.title(vstack(scatter,
+                                  hstack(value, compute),
+                                  success_rate),
+                         	  """
+                         	  Problem Instance: $(first(data[:pi_key]))
+                         	  True Human Model: $(first(data[:simulation_hbm_key]))
+                         	  """)
 
 	display(final_plot)
 end
