@@ -2,15 +2,16 @@ struct StraightToGoal{P<:HSModel} <: Policy
     problem::P
 end
 
-function POMDPs.action(p::StraightToGoal, e::HSExternalState)
+function POMDPs.action(p::StraightToGoal, rp::Pos)
     # take the action that moves me closest to goal as a rollout
-    best_action = reduce((a1, a2) -> dist_to_pos(apply_robot_action(robot_pos(e), a1), robot_goal(problem(p)))
-                         < dist_to_pos(apply_robot_action(robot_pos(e), a2), robot_goal(problem(p))) ?
+    best_action = reduce((a1, a2) -> dist_to_pos(apply_robot_action(rp, a1), robot_goal(problem(p)))
+                         < dist_to_pos(apply_robot_action(rp, a2), robot_goal(problem(p))) ?
                          a1 : a2,
-                         actions(problem(p), robot_pos(e)))
+                         actions(problem(p), rp))
 end
 
-POMDPs.action(p::StraightToGoal, s::HSState) = action(p, external(s))
+POMDPs.action(p::StraightToGoal, e::HSExternalState) = action(p, robot_pos(e))
+POMDPs.action(p::StraightToGoal, s::HSState) = action(p, robot_pos(s))
 POMDPs.action(p::StraightToGoal, b::AbstractParticleBelief) = action(p, first(particles(b)))
 
 # depth is the solver `depth` parameter less the number of timesteps that have already passed (it can be ignored in many cases)
