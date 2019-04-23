@@ -155,6 +155,14 @@ export
 include("utils.jl")
 
 export
+    Circle,
+    InfiniteCone,
+    ConicalFrustum,
+    LineSegment,
+    contains
+include("geometry.jl")
+
+export
     render_step_compose,
     render_step_svg,
     render_step_blink,
