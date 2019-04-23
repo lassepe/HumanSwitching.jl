@@ -45,9 +45,8 @@ end
     # tuples of (dimensions, obstacles, optimal_nsteps, solvable, n_expanded)
     test_setups::Vector{Tuple{Tuple{Int, Int}, Vector, Union{Int, Nothing}, Bool, Union{Int, Nothing}}} =
     [
-     # TODO: under which circumstances can the type of an empty array be forced?
-#     # 1x1 grid, no action needed to reach the goal
-#     ((1, 1), [], 0, true, 0),
+     # 1x1 grid, no action needed to reach the goal
+     ((1, 1), [], 0, true, 0),
      # empty 10x10 grid, solvable in 18 steps
      ((10, 10), [], 18, true, 18),
      # 10x10 grid with wall in the middle that has a gap, solvable in 18 steps
@@ -60,9 +59,9 @@ end
     ]
 
     for (test_dims, test_obstacles, optimal_nsteps, solvable, n_expanded) in test_setups
+
         p = GridNavigationProblem(grid_dimensions=test_dims,
                                   obstacles=test_obstacles)
-
         # using the manhattan distance as a heuristic
         h = (s::GridPosition) -> abs(s.x_idx - p.grid_dimensions[1]) + abs(s.y_idx - p.grid_dimensions[2])
         eps = 0.0001
