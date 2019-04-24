@@ -9,7 +9,9 @@ Policy wrapper for gap based switching
     prediction_horizon::Int = 10
 end
 
-function POMDPs.action(gap_policy::GapCheckingPolicy, b::AbstractParticleBelief)
+POMDPs.action(gap_policy::GapCheckingPolicy, b::AbstractParticleBelief) = first(action_info(gap_policy, b))
+
+function POMDPModelTools.action_info(gap_policy::GapCheckingPolicy, b::AbstractParticleBelief)
     # 1. check whether there is a gap
 
     e0 = external(first(particles(b)))
@@ -48,8 +50,9 @@ function POMDPs.action(gap_policy::GapCheckingPolicy, b::AbstractParticleBelief)
 
     # there is no gap, we can skip the tedious computation
     if !has_gap()
-        return action(upper_bound_policy, rp0)
+        return action_info(upper_bound_policy, rp0)
     end
 
-    return action(gap_policy.smarter_policy, b)
+    return action_info(gap_policy.smarter_policy, b)
 end
+
