@@ -7,5 +7,5 @@ select_submodel(hbm::HumanBehaviorModel, hbs::HumanBehaviorState)::HumanBehavior
 
 function free_evolution end
 function rand_hbs end
-function vel_max end
+function speed_max end
 function human_transition end

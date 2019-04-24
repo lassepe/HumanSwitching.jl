@@ -21,7 +21,7 @@ function POMDPModelTools.action_info(gap_policy::GapCheckingPolicy, b::AbstractP
 
     is_human_reachable(p::Pos, t::Int) = begin
         teb = agent_min_distance(gap_policy.problem)
-        human_max_step = dt * vel_max(human_behavior_model(gap_policy.problem))
+        human_max_step = dt * speed_max(human_behavior_model(gap_policy.problem))
         human_frs = Circle(hp0, teb + t * human_max_step)
         return contains(human_frs, p)
     end

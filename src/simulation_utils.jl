@@ -152,7 +152,7 @@ end
 
 function belief_updater_from_planner_model(planner_setup::PlannerSetup{<:HumanConstVelBehavior})
     # clone the model but set the new epsilon
-    return HumanConstVelBehavior(vel_max=planner_setup.hbm.vel_max,
+    return HumanConstVelBehavior(speed_max=planner_setup.hbm.speed_max,
                                  vel_resample_sigma=planner_setup.epsilon)
 end
 
@@ -163,7 +163,7 @@ function belief_updater_from_planner_model(planner_setup::PlannerSetup{<:HumanMu
                                    goals=planner_setup.hbm.goals,
                                    next_goal_generator=planner_setup.hbm.next_goal_generator,
                                    initial_goal_generator=planner_setup.hbm.initial_goal_generator,
-                                   vel_max=planner_setup.hbm.vel_max,
+                                   speed_max=planner_setup.hbm.speed_max,
                                    goal_resample_sigma=planner_setup.hbm.goal_resample_sigma,
                                    beta_resample_sigma=planner_setup.epsilon,
                                    aspace=planner_setup.hbm.aspace)
@@ -255,7 +255,7 @@ function planner_hbm_map(problem_instance::ProblemInstance)
                                                                                         beta_resample_sigma=0.0),
                                                             epsilon=0.02,
                                                             n_particles=5000),
-        "HumanConstVelBehavior" => PlannerSetup(hbm=HumanConstVelBehavior(vel_max=1, vel_resample_sigma=0.0),
+        "HumanConstVelBehavior" => PlannerSetup(hbm=HumanConstVelBehavior(speed_max=1, vel_resample_sigma=0.0),
                                                 epsilon=0.1,
                                                 n_particles=2000)
        )

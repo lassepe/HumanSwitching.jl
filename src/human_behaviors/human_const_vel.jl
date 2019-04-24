@@ -9,17 +9,17 @@ end
 free_evolution(hbs::HumanConstVelBState, p::Pos) = Pos(p.x + dt*hbs.vx, p.y + dt*hbs.vy)
 
 @with_kw struct HumanConstVelBehavior <: HumanBehaviorModel
-    vel_max::Float64 = 1.4
+    speed_max::Float64 = 1.4
     vel_resample_sigma::Float64 = 0.0
 end
 
-vel_max(hbm::HumanConstVelBehavior) = hbm.vel_max
+speed_max(hbm::HumanConstVelBehavior) = hbm.speed_max
 
 bstate_type(::HumanConstVelBehavior)::Type = HumanConstVelBState
 
 # this model randomely generates HumanConstVelBState from the min_max_vel range
-rand_hbs(rng::AbstractRNG, hbm::HumanConstVelBehavior) = HumanConstVelBState(rand(rng, Uniform(-hbm.vel_max, hbm.vel_max)),
-                                                                             rand(rng, Uniform(-hbm.vel_max, hbm.vel_max)))
+rand_hbs(rng::AbstractRNG, hbm::HumanConstVelBehavior) = HumanConstVelBState(rand(rng, Uniform(-hbm.speed_max, hbm.speed_max)),
+                                                                             rand(rng, Uniform(-hbm.speed_max, hbm.speed_max)))
 
 function human_transition(hbs::HumanConstVelBState, hbm::HumanConstVelBehavior, m::HSModel,
                           p::Pos, rng::AbstractRNG)
