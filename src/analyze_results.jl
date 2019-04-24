@@ -1,23 +1,28 @@
 function plot_points(data::DataFrame)
 	Gadfly.set_default_plot_size(30cm,30cm)
-
-	scatter = plot(data, x=:combined_median_cpu_time, y=:normalized_discounted_reward, color=:planner_hbm_key, Geom.point)
-
 	detailed_theme = Gadfly.Theme(minor_label_font_size=8pt, key_position=:none)
-	df = DataFrame(Model=String[], Mean=Float64[], SEM=Float64[])
+	
+	df = DataFrame(Model=String[], MeanValue=Float64[], SEMValue=Float64[], MeanCompute=Float64[], SEMCompute=Float64[])
 	for planner_type in unique(data.planner_hbm_key)
-		value = data[data[:planner_hbm_key] .== planner_type, :][:normalized_discounted_reward]
-		push!(df, (planner_type, mean(value), std(value)/sqrt(size(data,1))))
+		for solver_type in unique(data.solver_setup_key)
+			common_rows = data[(data[:planner_hbm_key] .== planner_type).&(data[:solver_setup_key] .== solver_type), :]
+			value = common_rows[:normalized_discounted_reward]
+			compute = common_rows[:combined_median_cpu_time]
+			push!(df, (planner_type.*solver_type, mean(value), std(value)/sqrt(size(common_rows,1)), mean(compute), std(compute)/sqrt(size(common_rows,1))))
+		end
 	end
-	value = plot(x=df.Model, y=df.Mean, ymin=(df.Mean - df.SEM), ymax=(df.Mean + df.SEM), color=df.Model, Geom.point, Geom.errorbar, Guide.xlabel("Planner Model"), Guide.ylabel("Value"))
-	compute = plot(data, x=:planner_hbm_key, y=:combined_median_cpu_time, color=:planner_hbm_key, detailed_theme, Geom.boxplot, Coord.Cartesian(ymax=1.0))
+	
+	value_v_compute = plot(x=df.MeanCompute, y=df.MeanValue, 
+		     	       xmin=(df.MeanCompute - df.SEMCompute), xmax=(df.MeanCompute + df.SEMCompute),
+		     	       ymin=(df.MeanValue - df.SEMValue), ymax=(df.MeanValue + df.SEMValue), 
+		     	       color=df.Model, Geom.point, Geom.errorbar, Guide.xlabel("Compute"), Guide.ylabel("Value"))
+	
+	scatter = plot(data, x=:combined_median_cpu_time, y=:normalized_discounted_reward, color=(data.planner_hbm_key.*data.solver_setup_key), Geom.point)
 
 	success_rate =  plot(data, xgroup=:planner_hbm_key, x=:final_state_type, color=:planner_hbm_key, Geom.subplot_grid(Geom.histogram),
                          Gadfly.Theme(major_label_font_size=8pt, minor_label_font_size=8pt, key_position=:none))
 
-	final_plot = Gadfly.title(vstack(scatter,
-                                  hstack(value, compute),
-                                  success_rate),
+	final_plot = Gadfly.title(vstack(value_v_compute, scatter),
                          	  """
                          	  Problem Instance: $(first(data[:pi_key]))
                          	  True Human Model: $(first(data[:simulation_hbm_key]))
@@ -64,12 +69,12 @@ function load_data(files...; shorten_names::Bool=true)
     for file in files
         type_hints = Dict(:hist_validation_hash=>String)
         df = CSV.read(file, types=type_hints)
-        push!(data_frames, df)
+        push!(data_frames, transform_data(df; shorten_names=shorten_names))
     end
     # stack them to one long table
     all_data = vcat(data_frames...)
 
-    return transform_data(all_data; shorten_names=shorten_names)
+    return all_data
 end
 
 function transform_data(data::DataFrame; shorten_names::Bool=true)
