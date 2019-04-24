@@ -3,8 +3,10 @@ HumanPIDBehavior
 """
 @with_kw struct HumanPIDBState <: HumanBehaviorState
     goal_index::Int = 1
-    vel_max::Float64 = 1.4
+    speed_max::Float64 = 1.4
 end
+
+speed_max(hbm::HumanPIDBState) = hbm.speed_max
 
 goal_index(hbs::HumanPIDBState) = hbs.goal_index
 
@@ -22,7 +24,7 @@ human_goal(hbm::HumanPIDBehavior, hbs::HumanPIDBState) = hbm.goal_sequence[goal_
 next_goal_index(hbm::HumanPIDBehavior, hbs::HumanPIDBState) = min(length(hbm.goal_sequence), goal_index(hbs)+1)
 
 function free_evolution(hbm::HumanPIDBehavior, hbs::HumanPIDBState, p::Pos)
-    human_step_dist = min(dt*hbs.vel_max, dist_to_pos(p, human_goal(hbm, hbs))) #m/s
+    human_step_dist = min(dt*hbs.speed_max, dist_to_pos(p, human_goal(hbm, hbs))) #m/s
     vec2goal = vec_from_to(p, human_goal(hbm, hbs))
     walk_direction = normalize(vec2goal)
     # new position:

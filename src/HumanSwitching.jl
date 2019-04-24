@@ -124,7 +124,6 @@ include("human_behaviors/human_pid.jl")
 export
     # boltzmann
     HumanBoltzmannBState,
-    HumanBoltzmannModel,
     HumanRewardModel,
     HumanSingleGoalRewardModel,
     gen_human_aspace,
@@ -153,6 +152,14 @@ export
     at_robot_goal,
     isinroom
 include("utils.jl")
+
+export
+    Circle,
+    InfiniteCone,
+    ConicalFrustum,
+    LineSegment,
+    contains
+include("geometry.jl")
 
 export
     render_step_compose,
@@ -221,6 +228,8 @@ export
     TimedPolicy,
     TimedUpdater
 include("cpu_timing_wrappers.jl")
+
+include("switching_policies.jl")
 
 export
     ProbObstacleSolver,

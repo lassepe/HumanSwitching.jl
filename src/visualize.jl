@@ -163,25 +163,6 @@ function human_particle_node(human_pos::Pos, hbm::HumanConstVelBehavior, hbs::Hu
                                   opacity=opacity)
 end
 
-function human_particle_node(human_pos::Pos, hbm::HumanBoltzmannModel, hbs::HumanBoltzmannBState;
-                             external_color="light green", internal_color=map_to_color(hbs),
-                             annotation::String="", opacity::Float64=1.0
-                            )
-    predicted_future_pos::Pos = human_pos
-    # predict future position
-    n_samples::Int = 1
-    sampled_future_predictions = [free_evolution(hbm, hbs, predicted_future_pos, Random.GLOBAL_RNG) for i in 1:n_samples]
-
-    return compose(context(), [agent_with_goal_node(human_pos,
-                                                      p,
-                                                      external_color=external_color,
-                                                      curve_color=internal_color,
-                                                      goal_color=internal_color,
-                                                      goal_size=0.4,
-                                                      opacity=opacity*map_to_opacity(1.0, Float64(n_samples)))
-                               for p in sampled_future_predictions]...)
-end
-
 plot_compose(args...; kwargs...) = Gadfly.render(plot(args...; kwargs...))
 
 function parameter_histogram_node(values::Array, default_color, bincount::Int, args...)
@@ -255,11 +236,11 @@ function bstate_subplot_node(::Type{HumanConstVelBState},
     vy = [(hbs.vy) for hbs in unfiltered_hbs_data if hbs isa HumanConstVelBState]
     # compose histogram
     return hstack(parameter_histogram_node(vx, hbsColors[HumanConstVelBState], 30,
-                                    Coord.Cartesian(xmin=-hbm.vel_max, xmax=hbm.vel_max),
+                                    Coord.Cartesian(xmin=-hbm.speed_max, xmax=hbm.speed_max),
                                     Guide.title("Constant Velocity Belief"),
                                     Guide.xlabel("Vel X")),
                  parameter_histogram_node(vy, hbsColors[HumanConstVelBState], 30,
-                                    Coord.Cartesian(xmin=-hbm.vel_max, xmax=hbm.vel_max),
+                                    Coord.Cartesian(xmin=-hbm.speed_max, xmax=hbm.speed_max),
                                     Guide.title("Constant Velocity Belief"),
                                     Guide.xlabel("Vel Y")))
 end

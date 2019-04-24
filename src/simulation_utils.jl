@@ -150,19 +150,9 @@ function construct_models(rng::AbstractRNG, problem_instance::ProblemInstance,
     return simulation_model, belief_updater_model, planner_model
 end
 
-function belief_updater_from_planner_model(planner_setup::PlannerSetup{<:HumanBoltzmannModel})
-    # clone the model but set the new epsilon
-    return HumanBoltzmannModel(beta_min=planner_setup.hbm.beta_min,
-                               beta_max=planner_setup.hbm.beta_max,
-                               betas=planner_setup.hbm.betas,
-                               epsilon=planner_setup.epsilon,
-                               reward_model=planner_setup.hbm.reward_model,
-                               aspace=planner_setup.hbm.aspace)
-end
-
 function belief_updater_from_planner_model(planner_setup::PlannerSetup{<:HumanConstVelBehavior})
     # clone the model but set the new epsilon
-    return HumanConstVelBehavior(vel_max=planner_setup.hbm.vel_max,
+    return HumanConstVelBehavior(speed_max=planner_setup.hbm.speed_max,
                                  vel_resample_sigma=planner_setup.epsilon)
 end
 
@@ -173,7 +163,7 @@ function belief_updater_from_planner_model(planner_setup::PlannerSetup{<:HumanMu
                                    goals=planner_setup.hbm.goals,
                                    next_goal_generator=planner_setup.hbm.next_goal_generator,
                                    initial_goal_generator=planner_setup.hbm.initial_goal_generator,
-                                   vel_max=planner_setup.hbm.vel_max,
+                                   speed_max=planner_setup.hbm.speed_max,
                                    goal_resample_sigma=planner_setup.hbm.goal_resample_sigma,
                                    beta_resample_sigma=planner_setup.epsilon,
                                    aspace=planner_setup.hbm.aspace)
@@ -265,7 +255,7 @@ function planner_hbm_map(problem_instance::ProblemInstance)
                                                                                         beta_resample_sigma=0.0),
                                                             epsilon=0.02,
                                                             n_particles=5000),
-        "HumanConstVelBehavior" => PlannerSetup(hbm=HumanConstVelBehavior(vel_max=1, vel_resample_sigma=0.0),
+        "HumanConstVelBehavior" => PlannerSetup(hbm=HumanConstVelBehavior(speed_max=1, vel_resample_sigma=0.0),
                                                 epsilon=0.1,
                                                 n_particles=2000)
        )
@@ -273,35 +263,45 @@ end
 
 function solver_setup_map(planner_setup::PlannerSetup, planner_model::HSModel, rng::MersenneTwister)
     return Dict{String, Union{Solver, Policy}}(
-                                # TODO: DESPOT needs value estimate at end to reduce rollout length!
-                                "DESPOT" => begin
-                                    default_policy = StraightToGoal(planner_model)
-                                    # alternative lower bound: DefaultPolicyLB(default_policy)
-                                    bounds = IndependentBounds(DefaultPolicyLB(default_policy), free_space_estimate, check_terminal=true)
+                                               # TODO: DESPOT needs value estimate at end to reduce rollout length!
+                                               "DESPOT" => begin
+                                                   default_policy = StraightToGoal(planner_model)
+                                                   # alternative lower bound: DefaultPolicyLB(default_policy)
+                                                   bounds = IndependentBounds(DefaultPolicyLB(default_policy), free_space_estimate, check_terminal=true)
 
-                                    solver = DESPOTSolver(K=cld(planner_setup.n_particles, 10), D=70, max_trials=20, T_max=Inf, lambda=0.00001,
-                                                          bounds=bounds, rng=deepcopy(rng), tree_in_info=true)
-                                end,
-                                "StraightToGoal" => StraightToGoal(planner_model),
-                                "POMCPOW" => begin
-                                    # TODO: use separate setting for tree quries
-                                    solver = POMCPOWSolver(tree_queries=floor(planner_setup.n_particles*2.5), max_depth=70, criterion=MaxUCB(500),
-                                                           k_observation=5, alpha_observation=1.0/30.0,
-                                                           enable_action_pw=false,
-                                                           check_repeat_obs=!(planner_setup.hbm isa HumanConstVelBehavior),
-                                                           check_repeat_act=true,
-                                                           estimate_value=free_space_estimate, rng=deepcopy(rng))
-                                end,
-                                "ProbObstacles" => begin
-                                    n_particles = 1000
-                                    human_predictor = PredictModel{HSHumanState}((hs::HSHumanState, rng::AbstractRNG) -> begin
-                                                                                     human_pos, hbs = hs
-                                                                                     human_transition(hbs, human_behavior_model(planner_model), planner_model, human_pos, rng)
-                                                                                 end)
-                                    pbp = ParticleBeliefPropagator(human_predictor, n_particles, deepcopy(rng))
-                                    solver = ProbObstacleSolver(belief_propagator=pbp)
-                                end
-                               )
+                                                   DESPOTSolver(K=cld(planner_setup.n_particles, 10), D=70, max_trials=20, T_max=Inf, lambda=0.00001,
+                                                                bounds=bounds, rng=deepcopy(rng), tree_in_info=true)
+                                               end,
+                                               "StraightToGoal" => StraightToGoal(planner_model),
+                                               "POMCPOW" => begin
+                                                   # TODO: use separate setting for tree quries
+                                                   POMCPOWSolver(tree_queries=floor(planner_setup.n_particles*2.5), max_depth=70, criterion=MaxUCB(500),
+                                                                 k_observation=5, alpha_observation=1.0/30.0,
+                                                                 enable_action_pw=false,
+                                                                 check_repeat_obs=!(planner_setup.hbm isa HumanConstVelBehavior),
+                                                                 check_repeat_act=true,
+                                                                 estimate_value=free_space_estimate, rng=deepcopy(rng))
+                                               end,
+                                               "ProbObstacles" => begin
+                                                   n_particles = 1000
+                                                   human_predictor = PredictModel{HSHumanState}((hs::HSHumanState, rng::AbstractRNG) -> begin
+                                                                                                    human_pos, hbs = hs
+                                                                                                    human_transition(hbs, human_behavior_model(planner_model), planner_model, human_pos, rng)
+                                                                                                end)
+                                                   pbp = ParticleBeliefPropagator(human_predictor, n_particles, deepcopy(rng))
+                                                   ProbObstacleSolver(belief_propagator=pbp)
+                                               end,
+                                               "GapChecking" => begin
+                                                   n_particles = 1000
+                                                   human_predictor = PredictModel{HSHumanState}((hs::HSHumanState, rng::AbstractRNG) -> begin
+                                                                                                    human_pos, hbs = hs
+                                                                                                    human_transition(hbs, human_behavior_model(planner_model), planner_model, human_pos, rng)
+                                                                                                end)
+                                                   pbp = ParticleBeliefPropagator(human_predictor, n_particles, deepcopy(rng))
+                                                   prob_obstacle_policy = solve(ProbObstacleSolver(belief_propagator=pbp), planner_model)
+                                                   GapCheckingPolicy(smarter_policy=prob_obstacle_policy, problem=planner_model)
+                                               end
+                                              )
 end
 
 function simulation_hbm_map(problem_instance::ProblemInstance, i_run::Int)

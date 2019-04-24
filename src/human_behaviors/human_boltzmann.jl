@@ -1,9 +1,3 @@
-"""
-HumanBoltzmannModel
-"""
-
-abstract type HumanRewardModel end
-
 struct HumanBoltzmannBState <: HumanBehaviorState
     beta::Float64
 end
@@ -11,43 +5,6 @@ end
 struct HumanBoltzmannToGoalBState <: HumanBehaviorState
     beta::Float64
     goal::Pos
-end
-
-struct HumanBoltzmannModel{RMT, NA, TA} <: HumanBehaviorModel
-    beta_min::Float64
-    beta_max::Float64
-    betas::Array{Float64}
-    epsilon::Float64
-    reward_model::RMT
-
-    aspace::SVector{NA, TA}
-    _aprob_mem::MVector{NA, Float64}
-end
-
-# constructing the boltzmann model in it's most general form
-function HumanBoltzmannModel(;beta_min=0.0, beta_max=15.0, betas=[0.0, 15.0],
-                              epsilon=0.0, reward_model=HumanSingleGoalRewardModel(),
-                              aspace=gen_human_aspace())
-    if beta_min == beta_max
-        @assert iszero(epsilon)
-    end
-    return HumanBoltzmannModel(beta_min, beta_max, betas, epsilon, reward_model, aspace,
-                              @MVector(zeros(length(aspace))))
-end
-
-bstate_type(::HumanBoltzmannModel)::Type = HumanBoltzmannBState
-
-function rand_hbs(rng::AbstractRNG, hbm::HumanBoltzmannModel)
-    if length(hbm.betas) > 2
-        return HumanBoltzmannBState(rand(rng, hbm.betas))
-    end
-
-    return HumanBoltzmannBState(hbm.beta_min == hbm.beta_max ?
-                                hbm.beta_max : rand(rng, Truncated(Exponential(5),hbm.beta_min, hbm.beta_max)))
-end
-
-@with_kw struct HumanSingleGoalRewardModel
-    human_goal::Pos = Pos(5, 5)
 end
 
 @with_kw struct HumanBoltzmannAction <: FieldVector{2, Float64}
@@ -62,34 +19,6 @@ end
 
 apply_human_action(p::Pos, a::HumanBoltzmannAction)::Pos = Pos(p.x + cos(a.phi)*a.d, p.y + sin(a.phi)*a.d)
 
-function free_evolution(hbm::HumanBoltzmannModel, hbs::HumanBoltzmannBState, p::Pos, rng::AbstractRNG)
-    d = get_action_distribution(hbm, hbs, p)
-    sampled_action = hbm.aspace[rand(rng, d)]
-    p_p = apply_human_action(p, sampled_action)
-end
-
-function compute_qval(p::Pos, a::HumanBoltzmannAction, reward_model::HumanSingleGoalRewardModel)
-    return -dist_to_pos(apply_human_action(p, a), reward_model.human_goal; p=2)
-end
-
-function get_action_distribution(hbm::HumanBoltzmannModel, hbs::HumanBoltzmannBState, p::Pos)
-    for (i, a) in enumerate(hbm.aspace)
-        hbm._aprob_mem[i] = exp(hbs.beta * compute_qval(p, a, hbm.reward_model))
-    end
-    return Categorical(Array(normalize!(hbm._aprob_mem, 1)))
-end
-
-function human_transition(hbs::HumanBoltzmannBState, hbm::HumanBoltzmannModel, m::HSModel,
-                          p::Pos, rng::AbstractRNG)
-    hbs_p = hbs
-    if rand(rng) < hbm.epsilon
-        hbs_p = rand_hbs(rng, hbm)
-    end
-
-    # compute the new external state of the human
-    return free_evolution(hbm, hbs, p, rng), hbs_p
-end
-
 """
 HumanMultiGoalBoltzmann
 """
@@ -99,13 +28,15 @@ HumanMultiGoalBoltzmann
     goals::Array{Pos, 1} = corner_positions(Room())
     next_goal_generator::Function = uniform_goal_generator
     initial_goal_generator::Function = uniform_goal_generator
-    vel_max::Float64 = 1.4
+    speed_max::Float64 = 1.4
     goal_resample_sigma::Float64 = 0.01
     beta_resample_sigma::Float64 = 0.01
 
-    aspace::SVector{NA, TA} = gen_human_aspace(dist=dt*vel_max)
+    aspace::SVector{NA, TA} = gen_human_aspace(dist=dt*speed_max)
     _aprob_mem::MVector{NA, Float64} = @MVector(zeros(length(aspace)))
 end
+
+speed_max(hbm::HumanMultiGoalBoltzmann) = hbm.speed_max
 
 bstate_type(hbm::HumanMultiGoalBoltzmann) = HumanBoltzmannToGoalBState
 
