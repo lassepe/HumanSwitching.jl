@@ -255,7 +255,7 @@ function planner_hbm_map(problem_instance::ProblemInstance)
                                                                                         beta_resample_sigma=0.0),
                                                             epsilon=0.02,
                                                             n_particles=5000),
-        "HumanConstVelBehavior" => PlannerSetup(hbm=HumanConstVelBehavior(speed_max=1, vel_resample_sigma=0.0),
+        "HumanConstVelBehavior" => PlannerSetup(hbm=HumanConstVelBehavior(vel_resample_sigma=0.0),
                                                 epsilon=0.1,
                                                 n_particles=2000)
        )

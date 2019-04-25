@@ -9,8 +9,8 @@ abstract type BeliefPropagator end
 """
     ParticleBeliefPropagator
 
-A BeliefPropagator that uses Monte Carlo integration to approximate the prediction
-of future belief states.
+A BeliefPropagator that uses Monte Carlo integration to approximate the future
+belief state.
 """
 @with_kw struct ParticleBeliefPropagator{PM, RNG<:AbstractRNG} <: BeliefPropagator
     predict_model::PM
