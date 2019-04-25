@@ -414,3 +414,11 @@ function debug(data; kwargs...)
         debug(data, idx; kwargs...)
     end
 end
+
+function debug_with_plan(data, idx; kwargs...)
+    model, hist, policy = reproduce_scenario(data[idx, :]; kwargs...)
+    visualize(model, hist, filename="$idx")
+    for step in 1:length(hist)
+        visualize_plan(policy, hist, step)
+    end
+end

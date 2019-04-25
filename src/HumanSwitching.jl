@@ -244,7 +244,8 @@ export
     parallel_sim,
     visualize,
     tree,
-    debug
+    debug,
+    debug_with_plan
 include("simulation_utils.jl")
 
 end # module

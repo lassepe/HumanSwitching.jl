@@ -185,5 +185,5 @@ end
 function visualize_plan(policy::TimedPolicy, hist::SimHistory, step::Int)
     beliefs = collect(eachstep(hist, "b"))
     a, info = action_info(policy.p, beliefs[step])
-    visualize_plan(policy.p, info)
+    visualize_plan(policy.p, info, filename="$(@__DIR__)/../../renderings/debug_prob_obstacle_plan-$step.gif")
 end
