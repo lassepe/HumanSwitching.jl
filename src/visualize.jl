@@ -34,15 +34,12 @@ Fields:
 - `as` the state of the agent to be rendered
 - `r` the visual radius of the agent
 """
-function pos_node(p::Pos; r::Float64=0.15,
-                   fill_color="tomato", stroke_color="black", opacity::Float64=1.0)::Context
+function pos_node(p::Pos; r::Float64=0.15, fill_color="tomato", stroke_color="black", opacity::Float64=1.0, show_marker=true)::Context
 
     center_line(angle::Float64) = line([(p.x-cos(angle)*r*2, p.y-sin(angle)*r*2),
                                         (p.x+cos(angle)*r*2, p.y+sin(angle)*r*2)])
-    marker = compose(context(), center_line(pi/4), center_line(-pi/4),linewidth(1))
-
-    compose(context(), fill(fill_color), fillopacity(opacity), stroke(stroke_color), strokeopacity(opacity),
-            circle(p.x, p.y, r), marker)
+    marker = show_marker ? compose(context(), center_line(pi/4), center_line(-pi/4),linewidth(1)) : context()
+    compose(context(), fill(fill_color), fillopacity(opacity), stroke(stroke_color), strokeopacity(opacity), circle(p.x, p.y, r), marker)
 end
 
 """
@@ -383,13 +380,19 @@ function render_step_compose(m::HSModel, step::NamedTuple, base_aspectratio::Flo
         info_viz = compose(info_position_context, background)
     end
 
-    if haskey(step, :ai) && step[:ai] isa NamedTuple && haskey(step[:ai], :state_sequence)
+    if haskey(step, :ai) && step[:ai] isa Union{NamedTuple, Dict} && haskey(step[:ai], :state_sequence)
         planner_state_squence = step[:ai][:state_sequence]
         # We are visualizing based on sp, thus we need to drop the first state
         robot_plan_viz = path_node([ps.rp for ps in planner_state_squence[2:end]])
     else
         robot_plan_viz = context()
     end
+
+    if haskey(step, :ai) && step[:ai] isa Union{NamedTuple, Dict} && haskey(step[:ai], :FRS_radii)
+	FRS_circles_viz = compose(context(), [pos_node(human_pos(sp); r=radius, stroke_color="red", opacity=0.0, show_marker=false) for radius in step[:ai][:FRS_radii]])
+    else
+	FRS_circles_viz = context()
+end
 
 compose(context(),
         (context(), info_viz),
@@ -398,7 +401,8 @@ compose(context(),
                   robot_plan_viz,
                   human_ground_truth_viz,
                   belief_viz,
-                  room_viz))
+		  FRS_circles_viz,
+		  room_viz))
        )
 end
 

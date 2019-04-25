@@ -18,11 +18,16 @@ function POMDPModelTools.action_info(gap_policy::GapCheckingPolicy, b::AbstractP
     rp0 = robot_pos(e0)
     hp0 = human_pos(e0)
     upper_bound_policy = StraightToGoal(gap_policy.problem)
+	
+    FRS_radii = []
+    for t in 0:gap_policy.prediction_horizon
+	human_max_step = dt * speed_max(human_behavior_model(gap_policy.problem))
+	teb = 2*agent_min_distance(gap_policy.problem)
+	push!(FRS_radii, teb + t * human_max_step)
+    end
 
     is_human_reachable(p::Pos, t::Int) = begin
-        teb = agent_min_distance(gap_policy.problem)
-        human_max_step = dt * speed_max(human_behavior_model(gap_policy.problem))
-        human_frs = Circle(hp0, teb + t * human_max_step)
+	human_frs = Circle(hp0, FRS_radii[t+1])
         return contains(human_frs, p)
     end
 
@@ -50,9 +55,10 @@ function POMDPModelTools.action_info(gap_policy::GapCheckingPolicy, b::AbstractP
 
     # there is no gap, we can skip the tedious computation
     if !has_gap()
-        return action_info(upper_bound_policy, rp0)
+        a, info = action_info(upper_bound_policy, rp0)
+    else
+    	a, info = action_info(gap_policy.smarter_policy, b)
     end
-
-    return action_info(gap_policy.smarter_policy, b)
+    return a, isnothing(info) ? Dict(:FRS_radii => FRS_radii) : merge(info, Dict(:FRS_radii => FRS_radii))
 end
 
