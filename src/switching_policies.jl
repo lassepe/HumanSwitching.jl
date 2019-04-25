@@ -58,4 +58,3 @@ function POMDPModelTools.action_info(gap_policy::GapCheckingPolicy, b::AbstractP
     end
     return a, isnothing(info) ? Dict(:FRS_radii => FRS_radii) : merge(info, Dict(:FRS_radii => FRS_radii))
 end
-

@@ -377,6 +377,7 @@ function parallel_sim(runs::UnitRange{Int}, solver_setup_key::String;
                 :discounted_reward => discounted_reward(hist),
                 :hist_validation_hash => validation_hash(hist),
                 :median_planner_time => median(ai[:planner_cpu_time_us] for ai in eachstep(hist, "ai")),
+                :median_prediction_time => median(ai[:prediction_cpu_time] for ai in eachstep(hist, "ai")),
                 :median_updater_time => median(ui[:updater_cpu_time_us] for ui in eachstep(hist, "ui")),
                 :final_state_type => final_state_type(problem(sim), hist),
                 :free_space_estimate => free_space_estimate(mdp(problem(sim)), first(collect(s for s in eachstep(hist, "s"))))]

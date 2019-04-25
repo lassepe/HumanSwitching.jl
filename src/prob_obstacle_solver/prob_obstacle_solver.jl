@@ -129,9 +129,8 @@ function POMDPModelTools.action_info(po::ProbObstaclePolicy, b; debug=false)
         belief_predictions[i] = ParticleCollection(predict(po.sol.belief_propagator, belief_predictions[i-1]))
     end
     prob_obstacle_trees = [KDTree([first(p) for p in particles(bp)]) for bp in belief_predictions]
-    belief_prediction_cpu_time = CPUtoq()
+    prediction_cpu_time = CPUtoq()
 
-    CPUtic()
     # setup the probabilistic search problem
     heuristic = (s::ProbObstacleSearchState) -> begin
         min_remaining_steps = remaining_step_estimate(po.pomdp, s.rp)
@@ -157,7 +156,6 @@ function POMDPModelTools.action_info(po::ProbObstaclePolicy, b; debug=false)
         # use default action (no fault collision) instead
         ([zero(HSAction)], [start_state(prob_search_problem)])
     end
-    search_cpu_time = CPUtoq()
 
     info = (robot_pos=rp0,
             human_pos=hp0,
@@ -165,8 +163,7 @@ function POMDPModelTools.action_info(po::ProbObstaclePolicy, b; debug=false)
             belief_predictions=belief_predictions,
             action_sequence=aseq,
             state_sequence=sseq,
-            belief_prediction_cpu_time=belief_prediction_cpu_time,
-            search_cpu_time=search_cpu_time)
+            prediction_cpu_time=prediction_cpu_time)
 
     return first(aseq), info
 end
