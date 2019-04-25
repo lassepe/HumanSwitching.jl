@@ -20,7 +20,7 @@ function free_space_estimate(mdp::HSMDP, s::HSState, steps::Int=0)::Float64
         return 0
     end
     rm = reward_model(mdp)
-    min_remaining_steps = remaining_step_estimate(mdp, robot_pos(s))
+    min_remaining_steps = Int(floor(remaining_step_estimate(mdp, robot_pos(s))))
 
     reward_estimate::Float64 = 0
     # stage cost
