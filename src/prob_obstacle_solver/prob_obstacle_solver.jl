@@ -132,7 +132,7 @@ function POMDPModelTools.action_info(po::ProbObstaclePolicy, b; debug=false)
 
     # setup the probabilistic search problem
     heuristic = (s::ProbObstacleSearchState) -> begin
-        min_remaining_steps = fld(clamp(dist_to_pos(robot_goal(po.pomdp), s.rp, p=2) - goal_reached_distance(po.pomdp), 0, Inf), robot_max_step(actions(po.pomdp)))
+        min_remaining_steps = remaining_step_estimate(po.pomdp, s.rp)
         h = -min_remaining_steps * reward_model(po.pomdp).living_penalty
         return h
     end
