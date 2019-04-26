@@ -43,5 +43,22 @@
             @test r_est >= r - eps(Float32)
         end
     end
-end
 
+    # run a bunch of scenarios and make sure the free_space_estimate is always an upper bound on the value
+    rng = MersenneTwister(1337)
+    n_checks_desired = 1000
+    n_checked = 0
+    while n_checked < n_checks_desired
+        mdp = gen_hsmdp(rng, physical_transition_noise_model=HSIdentityPTNM())
+        trivial_policy = StraightToGoal(mdp)
+        simulator = HistoryRecorder(max_steps=100, show_progress=false, rng=rng)
+        sim_hist = simulate(simulator, mdp, trivial_policy)
+        if length(sim_hist) < 1 || final_state_type(mdp, sim_hist) != "success"
+            continue
+        end
+        heuristic_value = free_space_estimate(mdp, first(collect(s for s in eachstep(sim_hist, "s"))))
+        # make sure that heuristic value is a true upper bound on the cost
+        @test heuristic_value >= discounted_reward(sim_hist)
+        n_checked += 1
+    end
+end
