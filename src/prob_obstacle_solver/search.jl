@@ -50,13 +50,41 @@ action_type(::SearchProblem{S, A}) where {S, A} = A
 Describes a path along the graph. Containting states, action and cost.
 """
 struct SearchNode{S, A}
-    "The sequence of states on the path this node represents."
-    state_sequence::Vector{S}
-    "The sequence of actions on neccesary to traverse the state trajectory represented by this node."
-    action_sequence::Vector{A}
+    "The  state at the end of the path represented by this node"
+    leaf_state::S
+    "The  action at the end of the path represented by this node"
+    leaf_action::Union{A, Nothing}
     "The cumulative cost for traversing the state trajectory represented by this node."
     cost::Float64
+    "The parent node, if not a root node"
+    parent::Union{SearchNode{S, A}, Nothing}
+    "The depth of this node in the tree."
+    depth::Int
 end
+"""
+    state_type
+
+Returns the type of the state the search is run over.
+"""
+state_type(::SearchNode{S, A}) where {S, A} = S
+"""
+    action_type
+
+Returns the type of the action the search is run over.
+"""
+action_type(::SearchNode{S, A}) where {S, A} = A
+"""
+    depth(n::SearchNode)
+
+The depth of the search node in the tree.
+"""
+depth(n::SearchNode) = n.depth
+"""
+    parent(n::SearchNode)
+
+The parent node of the given search node. `nothing` if n is a root node.
+"""
+parent(n::SearchNode) = n.parent
 """
     cost(n::SearchNode)
 
@@ -64,35 +92,69 @@ Returns the cost for traversing the path described by the node.
 """
 cost(n::SearchNode) = n.cost
 """
-    end_state(n::SearchNode)
+    leaf_state(n::SearchNode)
 
-Return the last state of the path described by the node.
+Returns the last state of the path described by the node.
 """
-end_state(n::SearchNode) = last(n.state_sequence)
+leaf_state(n::SearchNode) = n.leaf_state
+"""
+    leaf_action(n::SearchNode)
+
+Returns the last action on the path described by this node.
+"""
+leaf_action(n::SearchNode) = n.leaf_action
 """
     action_sequence(n::SearchNode)
 
-Returns the action sequence neccessary to traverse the path to the `end_state`
+Returns the action sequence neccessary to traverse the path to the `leaf_state`
 """
-action_sequence(n::SearchNode) = n.action_sequence
+function action_sequence(n::SearchNode)
+    action_sequence = action_type(n)[]
+    resize!(action_sequence, depth(n))
+
+    current_node = n
+    # traversing the path of the node in reverse order
+    for i in reverse(1:depth(n))
+        action_sequence[i] = leaf_action(current_node)
+        current_node = parent(current_node)
+    end
+    # at the end of this path there must be a root node.
+    # The parent of a root node is nothing!
+    @assert isnothing(parent(current_node))
+
+    return action_sequence::Vector{action_type(n)}
+end
 """
     state_sequence(n::SearchNode)
 
 Returns the sequence of states along the path represented by this node
 """
-state_sequence(n::SearchNode) = n.state_sequence
+function state_sequence(n::SearchNode)
+    state_sequence = state_type(n)[]
+    resize!(state_sequence, depth(n))
+
+    current_node = n
+    # traversing the path of the node in reverse order
+    for i in reverse(1:depth(n))
+        state_sequence[i] = leaf_state(current_node)
+        current_node = parent(current_node)
+    end
+    # at the end of this path there must be a root node.
+    # The parent of a root node is nothing!
+    @assert isnothing(parent(current_node))
+
+    return state_sequence::Vector{state_type(n)}
+end
 """
     expand(n::SearchNode)
 
 Returns the child search nodes (set of next, longer pathes from this node)
 """
 function expand(n::SearchNode, p::SearchProblem)
-    child_search_nodes = search_node_type(p)[]
     # TODO: maybe resize in advance or sizehint!
-    for (sp, a, c) in successors(p, end_state(n))
-        np = SearchNode(vcat(state_sequence(n), sp),
-                              vcat(action_sequence(n), [a]), # TODO: vcating this way is a bit risky, maybe add type assert or use copy and push
-                              cost(n) + c)
+    child_search_nodes = search_node_type(p)[]
+    for (sp, a, c) in successors(p, leaf_state(n))
+        np = SearchNode(sp, a, cost(n) + c, n, depth(n)+1)
         push!(child_search_nodes, np)
     end
 
@@ -103,7 +165,11 @@ end
 
 Returns a SearchNode over the start_state of this problem
 """
-root_node(p::SearchProblem, root_cost::Float64=0.0) = search_node_type(p)([start_state(p)], [], root_cost)
+root_node(p::SearchProblem, root_cost::Float64=0.0) = search_node_type(p)(start_state(p),
+                                                                          nothing,
+                                                                          root_cost,
+                                                                          nothing,
+                                                                          0)
 
 struct InfeasibleSearchProblemError <: Exception
     msg::String
@@ -123,11 +189,11 @@ function generic_graph_search(p::SearchProblem, fringe_priority::Function)
         end
         current_search_node = dequeue!(fringe)
         # We have found a path to the goal state
-        if is_goal_state(p, end_state(current_search_node))
+        if is_goal_state(p, leaf_state(current_search_node))
             return action_sequence(current_search_node), state_sequence(current_search_node)
-        elseif !(end_state(current_search_node) in closed_set)
+        elseif !(leaf_state(current_search_node) in closed_set)
             # make sure we don't explore this state again
-            push!(closed_set, end_state(current_search_node))
+            push!(closed_set, leaf_state(current_search_node))
             # expand the node
             for child_search_node in expand(current_search_node, p)
                 enqueue!(fringe, child_search_node, fringe_priority(child_search_node))
@@ -142,6 +208,6 @@ astar_search(p::SearchProblem, heuristic::Function) = weighted_astar_search(p, h
 
 function weighted_astar_search(p::SearchProblem, heuristic::Function, eps::Float64)
     @assert eps >= 0.0
-    astar_priority = (n::SearchNode) -> cost(n) + (1+eps)*heuristic(end_state(n))
+    astar_priority = (n::SearchNode) -> cost(n) + (1+eps)*heuristic(leaf_state(n))
     return generic_graph_search(p, astar_priority)
 end

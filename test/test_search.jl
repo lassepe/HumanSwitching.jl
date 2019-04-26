@@ -78,8 +78,8 @@ end
         if solvable
             @test @testblock quote
                 pp = deepcopy(p)
-                a = rand(p.aspace)
-                n = SearchNode([start_state(p)], [a], 0.0)
+                a = rand(pp.aspace)
+                n = HS.root_node(pp)
                 @inferred expand(n, pp)
             end
         end

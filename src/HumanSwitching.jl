@@ -216,7 +216,7 @@ export
     SearchNode,
     InfeasibleSearchProblemError,
     cost,
-    end_state,
+    leaf_state,
     action_sequence,
     expand,
     generic_graph_search,
