@@ -180,7 +180,8 @@ function visualize_plan(po::ProbObstaclePolicy, info::NamedTuple;
     @show write(filename, frames)
 end
 
-function visualize_plan(policy::TimedPolicy, hist::SimHistory, step::Int)
+function visualize_plan(policy::Policy, hist::SimHistory, step::Int)
+    unwrap(policy)
     beliefs = collect(eachstep(hist, "b"))
     a, info = action_info(policy.p, beliefs[step])
     visualize_plan(policy.p, info)

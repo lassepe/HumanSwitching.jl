@@ -7,6 +7,9 @@ struct TimedPolicy{P<:Policy} <: Policy
     p::P
 end
 
+unwrap(policy::TimedPolicy) = policy.p
+unwrap(policy::Policy) = policy
+
 POMDPs.action(tp::TimedPolicy, x) = action(tp.p, x)
 
 function POMDPModelTools.action_info(tp::TimedPolicy, x; kwargs...)
