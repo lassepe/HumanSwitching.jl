@@ -18,6 +18,8 @@ end
 
 snap_to_finite_resolution(p::Pos, digits::Int=5) = Pos(round(p.x, digits=digits), round(p.y, digits=digits))
 
+remaining_step_estimate(model::HSModel, rp::Pos) = (clamp(dist_to_pos(rp, robot_goal(model)) - goal_reached_distance(model), 0, Inf) / robot_max_step(actions(model)))
+
 # modifying copy constructors for immutable types
 construct_with(x, p; type_hint=typeof(x)) = type_hint(((f == p.first ? p.second : getfield(x, f)) for f in fieldnames(typeof(x)))...)
 construct_with(x, ps...; kwargs...) = reduce((x, p) -> construct_with(x, p; kwargs...), ps, init=x)
@@ -73,6 +75,10 @@ issuccess(m::HSModel, s::HSState)::Bool = !isfailure(m, s) && robot_reached_goal
 robot_reached_goal(m::HSModel, s::HSState)::Bool = robot_dist_to_goal(m, s) < goal_reached_distance(m)
 at_robot_goal(m::HSModel, p::Pos) = dist_to_pos(robot_goal(m), p) < goal_reached_distance(m)
 
+function isinroom(p::Pos, r::Room)
+    return  0 <= p.x <= r.width && 0 <= p.y <= r.height
+end
+
 function rand_pos(r::Room, rng::AbstractRNG)::Pos
     x = rand(rng) * r.width
     y = rand(rng) * r.height
@@ -96,6 +102,9 @@ function rand_state(m::HSModel, rng::AbstractRNG; known_external_state::Union{HS
     return HSState(external=external_state, hbs=hbs)
 end
 
-function isinroom(p::Pos, r::Room)
-    return  0 <= p.x <= r.width && 0 <= p.y <= r.height
+function rand_from_circle(rng::AbstractRNG, r::Float64)
+    t = 2*pi*rand(rng)
+    u = sqrt(rand(rng))
+    rn = (u > 1 ? 2-u : u) * r
+    return (rn*cos(t), rn*sin(t))
 end

@@ -295,7 +295,7 @@ function human_prediction_node(b::ParticleCollection{H}, m::HSPOMDP) where H <: 
     end
     @assert(weight_sum > 0)
 
-    max_visualized_particles = 100
+    max_visualized_particles = Inf
     human_particles = [human_particle_node(hp, select_submodel(hbm, hbs), hbs;
                                            annotation=string(round(state_count/weight_sum, digits=3)),
                                            opacity=map_to_opacity(state_count, weight_sum))

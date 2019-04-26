@@ -20,15 +20,15 @@ function free_space_estimate(mdp::HSMDP, s::HSState, steps::Int=0)::Float64
         return 0
     end
     rm = reward_model(mdp)
-    remaining_step_estimate = fld(clamp(robot_dist_to_goal(mdp, s, p=2) - goal_reached_distance(mdp), 0, Inf), robot_max_step(actions(mdp)))
+    min_remaining_steps = Int(floor(remaining_step_estimate(mdp, robot_pos(s))))
 
     reward_estimate::Float64 = 0
     # stage cost
-    @assert(remaining_step_estimate >= 0)
-    if remaining_step_estimate > 0
-        reward_estimate += sum(rm.living_penalty*(rm.discount_factor^(i-1)) for i in 1:remaining_step_estimate)
+    @assert(min_remaining_steps >= 0)
+    if min_remaining_steps > 0
+        reward_estimate += sum(rm.living_penalty*(rm.discount_factor^(i-1)) for i in 1:min_remaining_steps)
         # terminal cost for reaching the goal
-        reward_estimate += rm.goal_reached_reward*(rm.discount_factor^(remaining_step_estimate-1))
+        reward_estimate += rm.goal_reached_reward*(rm.discount_factor^(min_remaining_steps-1))
     else
         # in this very edge case the goal reached reward must not be
         # discounted since the optimistic remaining step estimate is already 0 but the state is non terminal!

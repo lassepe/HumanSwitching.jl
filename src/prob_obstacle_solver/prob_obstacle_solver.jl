@@ -122,17 +122,18 @@ function POMDPModelTools.action_info(po::ProbObstaclePolicy, b; debug=false)
     rp0 = robot_pos(e0)
     hp0 = human_pos(e0)
 
+    CPUtic()
     belief_predictions[1] = ParticleCollection(predict(po.sol.belief_propagator, decoupled(b0)))
     # recursive propagation of open loop predictions
     for i in 2:po.sol.max_search_depth
         belief_predictions[i] = ParticleCollection(predict(po.sol.belief_propagator, belief_predictions[i-1]))
     end
-    # TODO: maybe specify leafsize as well
     prob_obstacle_trees = [KDTree([first(p) for p in particles(bp)]) for bp in belief_predictions]
+    prediction_cpu_time = CPUtoq()
 
     # setup the probabilistic search problem
     heuristic = (s::ProbObstacleSearchState) -> begin
-        min_remaining_steps = fld(clamp(dist_to_pos(robot_goal(po.pomdp), s.rp, p=2) - goal_reached_distance(po.pomdp), 0, Inf), robot_max_step(actions(po.pomdp)))
+        min_remaining_steps = remaining_step_estimate(po.pomdp, s.rp)
         h = -min_remaining_steps * reward_model(po.pomdp).living_penalty
         return h
     end
@@ -161,13 +162,14 @@ function POMDPModelTools.action_info(po::ProbObstaclePolicy, b; debug=false)
             m=po.pomdp,
             belief_predictions=belief_predictions,
             action_sequence=aseq,
-            state_sequence=sseq)
+            state_sequence=sseq,
+            prediction_cpu_time=prediction_cpu_time)
 
     return first(aseq), info
 end
 
 function visualize_plan(po::ProbObstaclePolicy, info::NamedTuple;
-                        fps::Int=Base.convert(Int, cld(1, dt)), filename::String="$(@__DIR__)/../../renderings/debug_prob_obstacle_plan.gif")
+                        fps::Int=Base.convert(Int, cld(1, dt)), filename::String="debug_prob_obstacle_plan")
     frames = Frames(MIME("image/png"), fps=fps)
 
     for i in 1:length(info.action_sequence)
@@ -177,12 +179,13 @@ function visualize_plan(po::ProbObstaclePolicy, info::NamedTuple;
                          robot_prediction=info.state_sequence[i].rp)
         push!(frames, render_plan(po.pomdp, planning_step))
     end
-    @show write(filename, frames)
+    savedir = joinpath(@__DIR__, "../../renderings/$filename.gif")
+    @show write(savedir, frames)
 end
 
 function visualize_plan(policy::Policy, hist::SimHistory, step::Int)
     unwrap(policy)
     beliefs = collect(eachstep(hist, "b"))
     a, info = action_info(policy.p, beliefs[step])
-    visualize_plan(policy.p, info)
+    visualize_plan(policy.p, info, filename="debug_prob_obstacle_plan-$(lpad(step, 3, "0"))")
 end

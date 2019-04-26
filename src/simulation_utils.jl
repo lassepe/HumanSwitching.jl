@@ -255,7 +255,7 @@ function planner_hbm_map(problem_instance::ProblemInstance)
                                                                                         beta_resample_sigma=0.0),
                                                             epsilon=0.02,
                                                             n_particles=5000),
-        "HumanConstVelBehavior" => PlannerSetup(hbm=HumanConstVelBehavior(speed_max=1, vel_resample_sigma=0.0),
+        "HumanConstVelBehavior" => PlannerSetup(hbm=HumanConstVelBehavior(vel_resample_sigma=0.0),
                                                 epsilon=0.1,
                                                 n_particles=2000)
        )
@@ -377,6 +377,7 @@ function parallel_sim(runs::UnitRange{Int}, solver_setup_key::String;
                 :discounted_reward => discounted_reward(hist),
                 :hist_validation_hash => validation_hash(hist),
                 :median_planner_time => median(ai[:planner_cpu_time_us] for ai in eachstep(hist, "ai")),
+                :median_prediction_time => median(ai[:prediction_cpu_time] for ai in eachstep(hist, "ai")),
                 :median_updater_time => median(ui[:updater_cpu_time_us] for ui in eachstep(hist, "ui")),
                 :final_state_type => final_state_type(problem(sim), hist),
                 :free_space_estimate => free_space_estimate(mdp(problem(sim)), first(collect(s for s in eachstep(hist, "s"))))]
@@ -405,11 +406,19 @@ end
 
 function debug(data, idx; kwargs...)
     viz = reproduce_scenario(data[idx, :]; kwargs...)
-    visualize(viz[1:2]..., filename="$idx")
+    visualize(viz[1:2]..., filename="$(lpad(idx, 3, "0"))")
 end
 
 function debug(data; kwargs...)
     for idx in 1:nrow(data)
         debug(data, idx; kwargs...)
+    end
+end
+
+function debug_with_plan(data, idx; kwargs...)
+    model, hist, policy = reproduce_scenario(data[idx, :]; kwargs...)
+    visualize(model, hist, filename="$(lpad(idx, 3, "0"))")
+    for step in 1:length(hist)
+        visualize_plan(policy, hist, step)
     end
 end
