@@ -406,7 +406,7 @@ end
 
 function debug(data, idx; kwargs...)
     viz = reproduce_scenario(data[idx, :]; kwargs...)
-    visualize(viz[1:2]..., filename="$idx")
+    visualize(viz[1:2]..., filename="$(lpad(idx, 3, "0"))")
 end
 
 function debug(data; kwargs...)
@@ -417,7 +417,7 @@ end
 
 function debug_with_plan(data, idx; kwargs...)
     model, hist, policy = reproduce_scenario(data[idx, :]; kwargs...)
-    visualize(model, hist, filename="$idx")
+    visualize(model, hist, filename="$(lpad(idx, 3, "0"))")
     for step in 1:length(hist)
         visualize_plan(policy, hist, step)
     end

@@ -169,7 +169,7 @@ function POMDPModelTools.action_info(po::ProbObstaclePolicy, b; debug=false)
 end
 
 function visualize_plan(po::ProbObstaclePolicy, info::NamedTuple;
-                        fps::Int=Base.convert(Int, cld(1, dt)), filename::String="$(@__DIR__)/../../renderings/debug_prob_obstacle_plan.gif")
+                        fps::Int=Base.convert(Int, cld(1, dt)), filename::String="debug_prob_obstacle_plan")
     frames = Frames(MIME("image/png"), fps=fps)
 
     for i in 1:length(info.action_sequence)
@@ -179,11 +179,12 @@ function visualize_plan(po::ProbObstaclePolicy, info::NamedTuple;
                          robot_prediction=info.state_sequence[i].rp)
         push!(frames, render_plan(po.pomdp, planning_step))
     end
-    @show write(filename, frames)
+    savedir = joinpath(@__DIR__, "../../renderings/$filename.gif")
+    @show write(savedir, frames)
 end
 
 function visualize_plan(policy::TimedPolicy, hist::SimHistory, step::Int)
     beliefs = collect(eachstep(hist, "b"))
     a, info = action_info(policy.p, beliefs[step])
-    visualize_plan(policy.p, info, filename="$(@__DIR__)/../../renderings/debug_prob_obstacle_plan-$step.gif")
+    visualize_plan(policy.p, info, filename="debug_prob_obstacle_plan-$(lpad(step, 3, "0"))")
 end
