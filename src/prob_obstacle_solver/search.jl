@@ -49,7 +49,7 @@ action_type(::SearchProblem{S, A}) where {S, A} = A
 
 Describes a path along the graph. Containting states, action and cost.
 """
-struct SearchNode{S, A}
+mutable struct SearchNode{S, A}
     "The  state at the end of the path represented by this node"
     leaf_state::S
     "The  action at the end of the path represented by this node"
