@@ -43,13 +43,31 @@ state_type(::SearchProblem{S, A}) where {S, A} = S
 Returns the type of the action the search is run over.
 """
 action_type(::SearchProblem{S, A}) where {S, A} = A
+"""
+    NodeRegistry
+
+A registry to keep track of the node indeces already assigned. Used to speed up
+hashing.
+"""
+mutable struct NodeRegistry
+    latest_id::Int
+end
+"""
+generate_next_id!
+
+Generates the next, unassigned id and updates the internal state.
+"""
+function generate_next_id!(nr::NodeRegistry)
+    nr.latest_id += 1
+    return nr.latest_id
+end
 
 """
     SearchNode
 
 Describes a path along the graph. Containting states, action and cost.
 """
-mutable struct SearchNode{S, A}
+struct SearchNode{S, A}
     "The  state at the end of the path represented by this node"
     leaf_state::S
     "The  action at the end of the path represented by this node"
@@ -60,6 +78,10 @@ mutable struct SearchNode{S, A}
     parent::Union{SearchNode{S, A}, Nothing}
     "The depth of this node in the tree."
     depth::Int
+    "A node registry that can generate unique identifiers"
+    node_registry::NodeRegistry
+    "The identifier of this node"
+    id::Int
 end
 """
     state_type
@@ -79,6 +101,18 @@ action_type(::SearchNode{S, A}) where {S, A} = A
 The depth of the search node in the tree.
 """
 depth(n::SearchNode) = n.depth
+"""
+    Base.hash
+
+Computes a fast hash for a search node.
+"""
+Base.hash(n::SearchNode) = n.id
+"""
+    Base.:==
+
+Fast comparison for SearchNode based on id.
+"""
+==(n1::SearchNode, n2::SearchNode) = n1.id == n2.id
 """
     parent(n::SearchNode)
 
@@ -154,7 +188,7 @@ function expand(n::SearchNode, p::SearchProblem)
     # TODO: maybe resize in advance or sizehint!
     child_search_nodes = search_node_type(p)[]
     for (sp, a, c) in successors(p, leaf_state(n))
-        np = SearchNode(sp, a, cost(n) + c, n, depth(n)+1)
+        np = SearchNode(sp, a, cost(n) + c, n, depth(n)+1, n.node_registry, generate_next_id!(n.node_registry))
         push!(child_search_nodes, np)
     end
 
@@ -165,11 +199,16 @@ end
 
 Returns a SearchNode over the start_state of this problem
 """
-root_node(p::SearchProblem, root_cost::Float64=0.0) = search_node_type(p)(start_state(p),
-                                                                          nothing,
-                                                                          root_cost,
-                                                                          nothing,
-                                                                          0)
+function root_node(p::SearchProblem, root_cost::Float64=0.0)
+    s = start_state(p)
+    a = nothing
+    c = root_cost
+    parent = nothing
+    depth = 0
+    node_registry = NodeRegistry(0)
+    id = generate_next_id!(node_registry)
+    return search_node_type(p)(s, a, c, parent, depth, node_registry, id)
+end
 
 struct InfeasibleSearchProblemError <: Exception
     msg::String

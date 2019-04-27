@@ -38,6 +38,7 @@ using POMCPOW
 using DataStructures
 using NearestNeighbors
 using Reel
+import Base: ==
 
 # used for simulation utils
 using CPUTime
