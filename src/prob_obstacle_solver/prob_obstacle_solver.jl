@@ -183,7 +183,7 @@ function visualize_plan(policy::Policy, hist::SimHistory, step::Int)
     unwrap(policy)
     beliefs = collect(eachstep(hist, "b"))
     a, info = action_info(policy.p, beliefs[step])
-    e = beliefs |> first |> particles |> first |> external
+    e = beliefs[step] |> particles |> first |> external
     hp = human_pos(e)
     rp = robot_pos(e)
     visualize_plan(policy.p, info, hp, rp, filename="debug_prob_obstacle_plan-$(lpad(step, 3, "0"))")
