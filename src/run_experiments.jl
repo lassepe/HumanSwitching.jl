@@ -20,9 +20,9 @@ end
 end
 
 function main()
-    for solver_key in ["ProbObstacles"]
+    for solver_key in ["ProbObstacles", "GapChecking"]
         @info "Running simulations..."
-        data = parallel_sim(1:200, solver_key; problem_instance_keys=["CornerGoalsNonTrivial"])
+        data = parallel_sim(1:1000, solver_key; problem_instance_keys=["CornerGoalsNonTrivial"])
         @info "Writing data..."
         result_dir = realpath("$(@__DIR__)/../results/")
         file_name = "sim_results-$(gethostname())-$(now())-$(solver_key).csv"
