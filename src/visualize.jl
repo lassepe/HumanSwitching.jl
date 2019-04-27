@@ -413,25 +413,29 @@ function path_node(way_points::AbstractVector{Pos}; fill_color="black", opacity=
                                                      line([(wp[1], wp[2]) for wp in way_points]))
 end
 
-function render_plan_compose(m::HSModel, planning_step::NamedTuple, base_aspectratio::Float64)
-    # extract the room prepresentation from the problem
+function render_plan_compose(po::Policy, planning_step::NamedTuple, 
+			     human_pos::Pos, robot_pos::Pos, base_aspectratio::Float64)
+    # extract the room representation from the problem
+    m = po.pomdp
     room_rep::Room = room(m)
+
     # place mirror all children along the middle axis of the unit context
     mirror = context(mirror=Mirror(0, 0.5, 0.5))
+
     # scale all children to fit into the mirrored unit context
     if base_aspectratio < 1
         base_scale = context(0, 0, 1/room_rep.width, 1/room_rep.height*base_aspectratio)
     else
         base_scale = context(0, 0, 1/room_rep.width/base_aspectratio, 1/room_rep.height)
     end
+
     # the room background
     room_viz = room_node(room_rep)
 
     # the human and it's goal
-    human_ground_truth_viz = agent_pos_viz = pos_node(planning_step[:human_pos],
-                                                      fill_color="tomato", opacity=1.0)
+    human_ground_truth_viz = agent_pos_viz = pos_node(human_pos, fill_color="tomato", opacity=1.0)
     # the robot and it's goal
-    robot_with_goal_viz =  agent_with_goal_node(planning_step[:robot_pos], robot_goal(m),
+    robot_with_goal_viz =  agent_with_goal_node(robot_pos, robot_goal(m),
                                                 external_color="light green", curve_color="steelblue")
 
     human_prediction_viz = human_prediction_node(planning_step[:bp], m)
@@ -441,7 +445,7 @@ function render_plan_compose(m::HSModel, planning_step::NamedTuple, base_aspectr
     # the info area
     background = compose(context(), rectangle(0, 0, 1, 1), fill("white"))
 
-compose(context(),
+    compose(context(),
         (mirror, (base_scale,
                   robot_with_goal_viz,
                   human_ground_truth_viz,
@@ -479,6 +483,8 @@ function blink!(c::Context, win::Blink.Window = Blink.Window())
 end
 
 # Some interface code to use the POMDPGifs package.
+
+### Whole-history visualization. ###
 struct HSViz{M<:HSModel, H<:POMDPHistory, NT<:NamedTuple}
     m::M
     step::NT
@@ -500,18 +506,24 @@ function Base.show(io::IO, mime::MIME"image/png", v::HSViz)
     write_to_png(surface, io)
 end
 
-struct ProbObstaclePlanViz{M<:HSModel, NT<:NamedTuple}
-    m::M
+### One time-step plan visualization. ###
+
+struct PlanViz{P<:Policy, NT<:NamedTuple, HP<:Pos, RP<:Pos}
+    po::P
     planning_step::NT
+    human_pos::HP
+    robot_pos::RP
 end
 
-render_plan(m::HSModel, planning_step::NamedTuple) = ProbObstaclePlanViz(m, planning_step)
+render_plan(po::Policy, planning_step::NamedTuple, hp::Pos, rp::Pos) = PlanViz(po, planning_step, hp, rp)
 
-function Base.show(io::IO, mime::MIME"image/png", v::ProbObstaclePlanViz)
+function Base.show(io::IO, mime::MIME"image/png", v::PlanViz)
     frame_dimensions::Tuple{Float64, Float64} = (800, 800)
     surface = CairoRGBSurface(frame_dimensions...)
-    c = render_plan_compose(v.m,
+    c = render_plan_compose(v.po,
                             v.planning_step,
+			    v.human_pos,
+			    v.robot_pos,
                             frame_dimensions[1]/frame_dimensions[2])
     draw(PNG(surface), c)
     write_to_png(surface, io)
