@@ -1,7 +1,7 @@
 function plot_points(data::DataFrame)
 	Gadfly.set_default_plot_size(30cm,30cm)
 	detailed_theme = Gadfly.Theme(minor_label_font_size=8pt, key_position=:none)
-	
+
 	df = DataFrame(Model=String[], MeanValue=Float64[], SEMValue=Float64[], MeanCompute=Float64[], SEMCompute=Float64[])
 	for planner_type in unique(data.planner_hbm_key)
 		for solver_type in unique(data.solver_setup_key)
@@ -11,12 +11,12 @@ function plot_points(data::DataFrame)
 			push!(df, (planner_type.*solver_type, mean(value), std(value)/sqrt(size(common_rows,1)), mean(compute), std(compute)/sqrt(size(common_rows,1))))
 		end
 	end
-	
-	value_v_compute = plot(x=df.MeanCompute, y=df.MeanValue, 
+
+	value_v_compute = plot(x=df.MeanCompute, y=df.MeanValue,
 		     	       xmin=(df.MeanCompute - df.SEMCompute), xmax=(df.MeanCompute + df.SEMCompute),
-		     	       ymin=(df.MeanValue - df.SEMValue), ymax=(df.MeanValue + df.SEMValue), 
+		     	       ymin=(df.MeanValue - df.SEMValue), ymax=(df.MeanValue + df.SEMValue),
 		     	       color=df.Model, Geom.point, Geom.errorbar, Guide.xlabel("Compute"), Guide.ylabel("Value"))
-	
+
 	scatter = plot(data, x=:combined_median_cpu_time, y=:normalized_discounted_reward, color=(data.planner_hbm_key.*data.solver_setup_key), Geom.point)
 
 	success_rate =  plot(data, xgroup=:planner_hbm_key, x=:final_state_type, color=:planner_hbm_key, Geom.subplot_grid(Geom.histogram),
