@@ -1,0 +1,6 @@
+#!/usr/bin/env bash
+echo $0
+script_dir="$( cd "$(dirname "$0")" ; pwd -P )"
+source "$script_dir/header"
+
+rsync -r -a -v -e ssh $brc_username@SavioTransfer:$savio_deploy_dir/results/ "$source_dir/results/"

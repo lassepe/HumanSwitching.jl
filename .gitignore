@@ -11,3 +11,6 @@ results/*
 
 test/test_renderings/*
 !test/test_renderings/.gitkeep
+
+bash_scripts/savio_config/*
+!bash_scripts/savio_config/.gitkeep

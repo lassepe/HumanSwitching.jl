@@ -5,4 +5,6 @@ realpath() {
 
 script_dir="$( cd "$(dirname "$0")" ; pwd -P )"
 source_dir=$(realpath "$script_dir/../")/
-deploy_dir="~/worktree/HumanSwitching.jl"
+brc_username=`cat "$script_dir/savio_config/savio_username"`
+dgx_deploy_dir="~/worktree/HumanSwitching.jl"
+savio_deploy_dir="~/worktree/HumanSwitching"

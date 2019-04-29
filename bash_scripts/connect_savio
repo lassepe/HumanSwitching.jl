@@ -1,0 +1,1 @@
+ssh SavioLogin -t tmux attach-session

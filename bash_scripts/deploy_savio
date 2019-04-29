@@ -1,0 +1,6 @@
+#!/usr/bin/env bash
+
+script_dir="$( cd "$(dirname "$0")" ; pwd -P )"
+source "$script_dir/header"
+
+rsync -r -a -v -e ssh --delete "$source_dir" $brc_username@SavioTransfer:$savio_deploy_dir
