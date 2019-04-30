@@ -1,5 +1,6 @@
 module HumanSwitching
 
+using LibGit2
 using Parameters
 using StaticArrays
 using LinearAlgebra

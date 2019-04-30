@@ -48,7 +48,7 @@ current_commit_id
 Determines the git commit id of the `HEAD` of this repo.
 """
 current_commit_id() = chomp(read(`git rev-parse --verify HEAD`, String))
-has_uncommited_changes() = !isempty(read(`git diff-index HEAD --`, String))
+has_uncommited_changes() = LibGit2.isdirty(LibGit2.GitRepo("/home/lassepe/worktree/pomdp_research/HumanSwitching.jl"))
 
 """
 reproduce_scenario
