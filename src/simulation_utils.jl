@@ -48,7 +48,7 @@ current_commit_id
 Determines the git commit id of the `HEAD` of this repo.
 """
 current_commit_id() = chomp(read(`git rev-parse --verify HEAD`, String))
-has_uncommited_changes() = LibGit2.isdirty(LibGit2.GitRepo("/home/lassepe/worktree/pomdp_research/HumanSwitching.jl"))
+has_uncommited_changes() = LibGit2.isdirty(LibGit2.GitRepo(base_dir()))
 
 """
 reproduce_scenario
@@ -386,7 +386,7 @@ function parallel_sim(runs::UnitRange{Int}, solver_setup_key::String;
 end
 
 function visualize(planner_model, hist; filename::String="visualize_debug")
-    makegif(planner_model, hist, filename=joinpath(@__DIR__, "../renderings/$filename.gif"),
+    makegif(planner_model, hist, filename=joinpath(from_base_dir("renderings"), "$filename.gif"),
             extra_initial=true, show_progress=true, render_kwargs=(sim_hist=hist, show_info=true), fps=Base.convert(Int, cld(1, dt)))
 end
 

@@ -16,8 +16,10 @@ function normalized_angle_diff(angle_diff::Float64)::Float64
     end
 end
 
-snap_to_finite_resolution(p::Pos, digits::Int=5) = Pos(round(p.x, digits=digits), round(p.y, digits=digits))
+base_dir() = joinpath("$(joinpath(@__DIR__, ".."))")
+from_base_dir(rel_path::String) = joinpath(base_dir(), rel_path)
 
+snap_to_finite_resolution(p::Pos, digits::Int=5) = Pos(round(p.x, digits=digits), round(p.y, digits=digits))
 remaining_step_estimate(model::HSModel, rp::Pos) = (clamp(dist_to_pos(rp, robot_goal(model)) - goal_reached_distance(model), 0, Inf) / robot_max_step(actions(model)))
 
 # modifying copy constructors for immutable types

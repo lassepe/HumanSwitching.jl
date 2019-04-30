@@ -175,7 +175,7 @@ function visualize_plan(po::ProbObstaclePolicy, info::NamedTuple, human_pos::Pos
                          robot_prediction=info.state_sequence[i].rp)
         push!(frames, render_plan(po, planning_step, human_pos, robot_pos))
     end
-    savedir = joinpath(@__DIR__, "../../renderings/$filename.gif")
+    savedir = joinpath(from_base_dir("renderings"), "$filename.gif")
     @show write(savedir, frames)
 end
 
