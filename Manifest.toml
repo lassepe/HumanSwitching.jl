@@ -312,6 +312,14 @@ git-tree-sha1 = "c72f1fcb7d17426de1e8af2e948dfb3de1116eed"
 uuid = "c27321d9-0574-5035-807b-f59d2c89b15c"
 version = "1.2.0"
 
+[[GraphSearchLight]]
+deps = ["DataStructures"]
+git-tree-sha1 = "7a9a87d5dacc515152354d1a67325bfcafcf0385"
+repo-rev = "master"
+repo-url = "https://github.com/lassepe/GraphSearchLight.jl"
+uuid = "fb53e0a2-6b86-11e9-00f0-4309d342e282"
+version = "0.1.0"
+
 [[Graphics]]
 deps = ["Colors", "Compat", "NaNMath"]
 git-tree-sha1 = "e3ead4211073d4117a0d2ef7d1efc5c8092c8412"

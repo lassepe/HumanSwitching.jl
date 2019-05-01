@@ -372,7 +372,7 @@ function parallel_sim(runs::UnitRange{Int}, solver_setup_key::String;
     # Simulation is launched in parallel mode. In order for this to work, julia
     # musst be started as: `julia -p n`, where n is the number of
     # workers/processes
-    data = run_parallel(sims) do sim::Sim, hist::SimHistory
+    data = run(sims) do sim::Sim, hist::SimHistory
         return [:n_steps => n_steps(hist),
                 :discounted_reward => discounted_reward(hist),
                 :hist_validation_hash => validation_hash(hist),

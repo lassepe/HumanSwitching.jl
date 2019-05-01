@@ -36,7 +36,7 @@ using ARDESPOT
 using POMCPOW
 
 # used for graph search
-using DataStructures
+using GraphSearchLight
 using NearestNeighbors
 using Reel
 import Base: ==
@@ -209,22 +209,6 @@ export
     predict!,
     predict
 include("prob_obstacle_solver/belief_propagator.jl")
-
-export
-    SearchProblem,
-    start_state,
-    is_goal_state,
-    successors,
-    SearchNode,
-    InfeasibleSearchProblemError,
-    cost,
-    leaf_state,
-    action_sequence,
-    expand,
-    generic_graph_search,
-    astar_search,
-    weighted_astar_search
-include("prob_obstacle_solver/search.jl")
 
 export
     TimedPolicy,
