@@ -7,18 +7,6 @@ struct HumanBoltzmannToGoalBState <: HumanBehaviorState
     goal::Pos
 end
 
-@with_kw struct HumanBoltzmannAction <: FieldVector{2, Float64}
-    d::Float64 = 0 # distance
-    phi::Float64 = 0 # direction
-end
-
-function gen_human_aspace(;dist::Float64=0.2, phi_step::Float64=pi/8)
-    direction_actions = [i for i in -pi:phi_step:(pi-phi_step)]
-    SVector{length(direction_actions)+1, HumanBoltzmannAction}([zero(HumanBoltzmannAction),(HumanBoltzmannAction(dist, direction) for direction in direction_actions)...])
-end
-
-apply_human_action(p::Pos, a::HumanBoltzmannAction)::Pos = Pos(p.x + cos(a.phi)*a.d, p.y + sin(a.phi)*a.d)
-
 """
 HumanMultiGoalBoltzmann
 """
@@ -36,8 +24,6 @@ HumanMultiGoalBoltzmann
     _aprob_mem::MVector{NA, Float64} = @MVector(zeros(length(aspace)))
 end
 
-speed_max(hbm::HumanMultiGoalBoltzmann) = hbm.speed_max
-
 bstate_type(hbm::HumanMultiGoalBoltzmann) = HumanBoltzmannToGoalBState
 
 function rand_beta(rng::AbstractRNG, hbm::HumanMultiGoalBoltzmann)
@@ -50,15 +36,7 @@ function rand_hbs(rng::AbstractRNG, hbm::HumanMultiGoalBoltzmann)
                                       hbm.initial_goal_generator(hbm.goals, rng))
 end
 
-function uniform_goal_generator(goals::Array{Pos, 1}, rng::AbstractRNG)
-    return rand(rng, goals)::Pos
-end
-function uniform_goal_generator(current_goal::Pos, goals::Array{Pos, 1}, rng::AbstractRNG)
-    return rand(rng) < 0.0 ? current_goal : uniform_goal_generator(goals, rng)::Pos
-end
-
-
-function compute_qval(p::Pos, hbs::HumanBoltzmannToGoalBState, a::HumanBoltzmannAction)
+function compute_qval(p::Pos, hbs::HumanBoltzmannToGoalBState, a::HumanAction)
     return -dist_to_pos(apply_human_action(p, a), hbs.goal; p=2)
 end
 

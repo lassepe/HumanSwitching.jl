@@ -13,8 +13,6 @@ free_evolution(hbs::HumanConstVelBState, p::Pos) = Pos(p.x + dt*hbs.vx, p.y + dt
     vel_resample_sigma::Float64 = 0.0
 end
 
-speed_max(hbm::HumanConstVelBehavior) = hbm.speed_max
-
 bstate_type(::HumanConstVelBehavior)::Type = HumanConstVelBState
 
 # this model randomely generates HumanConstVelBState with random velocities of

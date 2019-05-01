@@ -6,8 +6,6 @@ HumanPIDBehavior
     speed_max::Float64 = 1.4
 end
 
-speed_max(hbm::HumanPIDBState) = hbm.speed_max
-
 goal_index(hbs::HumanPIDBState) = hbs.goal_index
 
 @with_kw struct HumanPIDBehavior <: HumanBehaviorModel
