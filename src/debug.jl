@@ -17,7 +17,6 @@ end
 
 using POMDPs, POMDPSimulators, POMDPModelTools
 using Profile
-using ProfileView
 using BenchmarkTools
 
 function profile_prob_obstacles()
@@ -41,5 +40,4 @@ function profile_prob_obstacles()
     @profile begin
         a, info = action_info(policy, b)
     end
-    ProfileView.view()
 end
