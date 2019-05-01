@@ -1,5 +1,6 @@
 module HumanSwitching
 
+using ProgressMeter
 using LibGit2
 using Parameters
 using StaticArrays
