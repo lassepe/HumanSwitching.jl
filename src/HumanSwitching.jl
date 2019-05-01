@@ -107,6 +107,14 @@ export
 include("pomdp_main.jl")
 
 export
+    Circle,
+    InfiniteCone,
+    ConicalFrustum,
+    LineSegment,
+    contains
+include("geometry.jl")
+
+export
     # const vel
     HumanConstVelBState,
     HumanConstVelBehavior
@@ -133,6 +141,7 @@ export
     HumanBoltzmannToGoalBState,
     HumanMultiGoalBoltzmann
 include("human_behaviors/human_boltzmann.jl")
+include("human_behaviors/human_deterministic_planner.jl")
 
 export
     # model mix
@@ -154,14 +163,6 @@ export
     at_robot_goal,
     isinroom
 include("utils.jl")
-
-export
-    Circle,
-    InfiniteCone,
-    ConicalFrustum,
-    LineSegment,
-    contains
-include("geometry.jl")
 
 export
     render_step_compose,

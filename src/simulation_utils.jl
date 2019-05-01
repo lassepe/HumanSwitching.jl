@@ -310,7 +310,10 @@ function simulation_hbm_map(problem_instance::ProblemInstance, i_run::Int)
         "HumanMultiGoalBoltzmann_all_goals" => HumanMultiGoalBoltzmann(goals=problem_instance.human_goals(problem_instance.room),
                                                                        beta_min=50, beta_max=50,
                                                                        goal_resample_sigma=0.05,
-                                                                       beta_resample_sigma=0.0)
+                                                                       beta_resample_sigma=0.0),
+        "HumanDeterministicPlanner" => HumanDeterministicPlanner(goals=problem_instance.human_goals(problem_instance.room),
+                                                                 obstacles=[Circle(Pos(2.0, 4.0), 1.0),
+                                                                            Circle(Pos(6.0, 4.0), 1.0)])
        )
 end
 
