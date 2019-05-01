@@ -34,6 +34,7 @@ const SimulationHBMEntry = HumanBehaviorModel
     room::Room = Room()
     force_nontrivial::Bool = false
     human_goals::Union{Function, Nothing} = nothing
+    human_obstacles::Function = no_obstacles
 end
 
 @with_kw struct PlannerSetup{HBM<:HumanBehaviorModel}
@@ -226,8 +227,9 @@ function problem_instance_map()
     #                                           room=room,
     #                                           human_goals=dining_hall_goals),
     "CornerGoalsNonTrivial" => ProblemInstance(force_nontrivial=true,
-                                             room=room,
-                                             human_goals=corner_positions)
+                                               room=room,
+                                               human_goals=corner_positions,
+                                               human_obstacles=outer_obstacles)
    )
 end
 
@@ -240,6 +242,10 @@ symmetric_goals(room::Room) = vcat(corner_positions(room),
 
 dining_hall_goals(room::Room) = vcat([abs_pos(p, room) for p in [Pos(0.2, 0.7), Pos(0.5, 0.7), Pos(0.8, 0.7),
                                                                  Pos(0.2, 0.3), Pos(0.5, 0.3), Pos(0.8, 0.3)]])
+
+no_obstacles(room::Room) = Circle[]
+outer_obstacles(room::Room) = vcat([Circle(abs_pos(p, room), 1.2) for p in [Pos(0.2, 0.5), Pos(0.8, 0.5),
+                                                                            Pos(0.5, 0.2), Pos(0.5, 0.8)]])
 
 function planner_hbm_map(problem_instance::ProblemInstance)
     return Dict{String, PlannerSetup}(
@@ -307,13 +313,12 @@ end
 function simulation_hbm_map(problem_instance::ProblemInstance, i_run::Int)
     simulation_rng = MersenneTwister(i_run + 1)
     return Dict{String, SimulationHBMEntry}(
-        "HumanMultiGoalBoltzmann_all_goals" => HumanMultiGoalBoltzmann(goals=problem_instance.human_goals(problem_instance.room),
-                                                                       beta_min=50, beta_max=50,
-                                                                       goal_resample_sigma=0.05,
-                                                                       beta_resample_sigma=0.0),
+        # "HumanMultiGoalBoltzmann_all_goals" => HumanMultiGoalBoltzmann(goals=problem_instance.human_goals(problem_instance.room),
+        #                                                                beta_min=50, beta_max=50,
+        #                                                                goal_resample_sigma=0.05,
+        #                                                                beta_resample_sigma=0.0),
         "HumanDeterministicPlanner" => HumanDeterministicPlanner(goals=problem_instance.human_goals(problem_instance.room),
-                                                                 obstacles=[Circle(Pos(2.0, 4.0), 1.0),
-                                                                            Circle(Pos(6.0, 4.0), 1.0)])
+                                                                 obstacles=problem_instance.human_obstacles(problem_instance.room))
        )
 end
 
@@ -375,7 +380,7 @@ function parallel_sim(runs::UnitRange{Int}, solver_setup_key::String;
     # Simulation is launched in parallel mode. In order for this to work, julia
     # musst be started as: `julia -p n`, where n is the number of
     # workers/processes
-    data = run(sims) do sim::Sim, hist::SimHistory
+    data = run_parallel(sims) do sim::Sim, hist::SimHistory
         return [:n_steps => n_steps(hist),
                 :discounted_reward => discounted_reward(hist),
                 :hist_validation_hash => validation_hash(hist),
