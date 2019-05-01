@@ -20,7 +20,11 @@ base_dir() = joinpath("$(joinpath(@__DIR__, ".."))")
 from_base_dir(rel_path::String) = joinpath(base_dir(), rel_path)
 
 snap_to_finite_resolution(p::Pos, digits::Int=5) = Pos(round(p.x, digits=digits), round(p.y, digits=digits))
-remaining_step_estimate(model::HSModel, rp::Pos) = (clamp(dist_to_pos(rp, robot_goal(model)) - goal_reached_distance(model), 0, Inf) / robot_max_step(actions(model)))
+
+function remaining_step_estimate(pos::Pos, goal::Pos, max_step_size::Float64, goal_reached_distance::Float64)
+    return clamp(dist_to_pos(pos, goal) - goal_reached_distance, 0, Inf) / max_step_size
+end
+remaining_step_estimate(model::HSModel, rp::Pos) = remaining_step_estimate(rp, robot_goal(model), robot_max_step(actions(model)), goal_reached_distance(model))
 
 # modifying copy constructors for immutable types
 construct_with(x, p; type_hint=typeof(x)) = type_hint(((f == p.first ? p.second : getfield(x, f)) for f in fieldnames(typeof(x)))...)

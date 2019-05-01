@@ -41,10 +41,9 @@ function GraphSearchLight.successors(p::HumanPathSearchProblem, s::Pos)
 
         # check if this is a legal action
         # TODO: maybe also check whether this action would end outside the room?
-        if any([contains(o, sp) for o in p.hbm.obstacles])
-            continue
-        end
-        push!(successors, (sp, a, 1))
+        # collision avoidance is a soft constraint!
+        step_cost = any([contains(o, sp) for o in p.hbm.obstacles]) ? 10 : 1
+        push!(successors, (sp, a, step_cost))
     end
     return successors
 end
@@ -53,7 +52,12 @@ function free_evolution(hbm::HumanDeterministicPlanner, hbs::HumanDeterministicB
     # The free evolution is as simple
     planning_problem = HumanPathSearchProblem(p, hbs.goal, hbm)
     # setup the heuristic
-    h = (s::Pos) -> dist_to_pos(s, hbs.goal)/(hbm.speed_max * dt)
+    h = (s::Pos) ->  remaining_step_estimate(s, hbs.goal, hbm.speed_max*dt, hbm.goal_reached_distance)
+
+    # check if we are already at the goal. If so, stay put!
+    if GraphSearchLight.is_goal_state(planning_problem, p)
+        return p
+    end
 
     # TODO: maybe it would be nice to also seed this with the last plan. This
     # could be as easy as checking whether the (truncated) action sequence
@@ -64,7 +68,7 @@ function free_evolution(hbm::HumanDeterministicPlanner, hbs::HumanDeterministicB
         if !(e isa InfeasibleSearchProblemError)
             rethrow(e)
         else
-            @warn("Planner human could not find a path to the goal. Stays put!")
+            @warn("Human planner could not find a path to the goal. Stays put!")
         end
         ([zero(HumanAction)], [p])
     end
