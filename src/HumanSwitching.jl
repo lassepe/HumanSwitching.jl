@@ -164,14 +164,6 @@ export
 include("geometry.jl")
 
 export
-    render_step_compose,
-    render_step_svg,
-    render_step_blink,
-    render,
-    render_plan
-include("visualize.jl")
-
-export
     AgentPerformance
 include("agent_performance_metrics.jl")
 
@@ -249,5 +241,13 @@ export
     debug,
     debug_with_plan
 include("simulation_utils.jl")
+
+export
+    render_step_compose,
+    render_step_svg,
+    render_step_blink,
+    render,
+    render_plan
+include("visualize.jl")
 
 end # module

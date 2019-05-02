@@ -47,3 +47,21 @@ function free_space_estimate(pomdp::HSPOMDP, b::ScenarioBelief)
     s = first(particles(b))
     return free_space_estimate(mdp(pomdp), s)
 end
+
+function get_plan(po::StraightToGoal, belief)
+    a, info = action_info(policy, belief)
+    robot_pos = belief |> particles |> first |> external |> robot_pos
+    plan_horizon::Int = 10
+    planning_steps = []
+
+    for i in 1:plan_horizon
+        robot_action = POMDPs.action(po, robot_pos)
+	robot_pos = apply_robot_actions(robot_pos, robot_action)
+	planning_step = (robot_prediction=robot_pos)
+    	push!(planning_steps, planning_step)
+    end
+    return planning_steps
+end
+
+
+

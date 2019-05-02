@@ -79,8 +79,8 @@ function start_goal_line_node(start_pos::Pos, goal::Pos;
     p_start = [Tuple(start_pos[1:2])]
     p_end = [Tuple(goal[1:2])]
 
-    compose(context(), stroke(stroke_color), strokeopacity(opacity),
-            line([p_start..., p_end...]))
+    compose(context(), (context(), line([p_start..., p_end...]), 
+			stroke(stroke_color), strokeopacity(opacity)))
 end
 
 function agent_with_goal_node(agent_pos::Pos, goal::Pos;
@@ -381,9 +381,9 @@ function render_step_compose(m::HSModel, step::NamedTuple, base_aspectratio::Flo
     end
 
     if haskey(step, :ai) && step[:ai] isa Union{NamedTuple, Dict} && haskey(step[:ai], :state_sequence)
-        planner_state_squence = step[:ai][:state_sequence]
+        planner_state_sequence = step[:ai][:state_sequence]
         # We are visualizing based on sp, thus we need to drop the first state
-        robot_plan_viz = path_node([ps.rp for ps in planner_state_squence[1:end]])
+        robot_plan_viz = path_node([ps.rp for ps in planner_state_sequence[1:end]])
     else
         robot_plan_viz = context()
     end
@@ -413,7 +413,45 @@ function path_node(way_points::AbstractVector{Pos}; fill_color="black", opacity=
                                                      line([(wp[1], wp[2]) for wp in way_points]))
 end
 
-function render_plan_compose(po::Policy, planning_step::NamedTuple, 
+function render_plan_compose(po::StraightToGoal, planning_step::NamedTuple, 
+			     human_pos::Pos, robot_pos::Pos, base_aspectratio::Float64)
+    # extract the room representation from the problem
+    m = problem(po)
+    room_rep::Room = room(m)
+
+    # place mirror all children along the middle axis of the unit context
+    mirror = context(mirror=Mirror(0, 0.5, 0.5))
+
+    # scale all children to fit into the mirrored unit context
+    if base_aspectratio < 1
+        base_scale = context(0, 0, 1/room_rep.width, 1/room_rep.height*base_aspectratio)
+    else
+        base_scale = context(0, 0, 1/room_rep.width/base_aspectratio, 1/room_rep.height)
+    end
+
+    # the room background
+    room_viz = room_node(room_rep)
+
+    # the human and it's goal
+    human_ground_truth_viz = agent_pos_viz = pos_node(human_pos, fill_color="tomato", opacity=1.0)
+    # the robot and it's goal
+    robot_with_goal_viz =  agent_with_goal_node(robot_pos, robot_goal(m),
+                                                external_color="light green", curve_color="steelblue")
+
+    robot_prediction_viz = pos_node(planning_step[:robot_prediction], fill_color="light green", r=0.1, opacity=0.5)
+
+    # the info area
+    background = compose(context(), rectangle(0, 0, 1, 1), fill("white"))
+
+    compose(context(),
+        (mirror, (base_scale,
+                  robot_with_goal_viz,
+                  robot_prediction_viz,
+                  room_viz))
+       )
+end
+
+function render_plan_compose(po::ProbObstaclePolicy, planning_step::NamedTuple, 
 			     human_pos::Pos, robot_pos::Pos, base_aspectratio::Float64)
     # extract the room representation from the problem
     m = po.pomdp
@@ -454,6 +492,10 @@ function render_plan_compose(po::Policy, planning_step::NamedTuple,
                   room_viz))
        )
 end
+
+function render_plan_compose(po::GapCheckingPolicy, planning_step::NamedTuple,
+			     human_pos::Pos, robot_pos::Pos, base_aspectratio::Float64)
+
 
 """
 Same as above but rendering directly to an svg

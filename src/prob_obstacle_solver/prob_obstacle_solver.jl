@@ -166,25 +166,31 @@ function POMDPModelTools.action_info(po::ProbObstaclePolicy, b; debug=false)
     return first(aseq), info
 end
 
-function visualize_plan(po::ProbObstaclePolicy, info::NamedTuple, human_pos::Pos, robot_pos::Pos;
-                        fps::Int=Base.convert(Int, cld(1, dt)), filename::String="debug_prob_obstacle_plan")
-    frames = Frames(MIME("image/png"), fps=fps)
-
+function get_plan(po::ProbObstaclePolicy, belief)
+    a, info = action_info(policy, belief)
+    planning_steps = []
     for i in 1:length(info.action_sequence)
         planning_step = (bp=info.belief_predictions[i],
                          robot_prediction=info.state_sequence[i].rp)
-        push!(frames, render_plan(po, planning_step, human_pos, robot_pos))
+        push!(planning_steps, planning_step)
     end
-    savedir = joinpath(from_base_dir("renderings"), "$filename.gif")
-    @show write(savedir, frames)
+    return planning_steps
 end
 
 function visualize_plan(policy::Policy, hist::SimHistory, step::Int)
-    unwrap(policy)
+    policy = unwrap(policy)
     beliefs = collect(eachstep(hist, "b"))
-    a, info = action_info(policy.p, beliefs[step])
+    a, info = action_info(policy, beliefs[step])
     e = beliefs[step] |> particles |> first |> external
     hp = human_pos(e)
     rp = robot_pos(e)
-    visualize_plan(policy.p, info, hp, rp, filename="debug_prob_obstacle_plan-$(lpad(step, 3, "0"))")
+
+    plan = get_plan(policy, beliefs[step])
+
+    frames = Frames(MIME("image/png"), fps=fps)
+    for step in plan
+	push!(frames, render_plan(policy, step, human_pos, robot_pos))
+    end
+    savedir = joinpath(from_base_dir("renderings"), "$filename.gif")
+    @show write(savedir, frames)
 end
