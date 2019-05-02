@@ -131,7 +131,7 @@ function construct_models(rng::AbstractRNG, problem_instance::ProblemInstance,
         simulation_model = HSPOMDP(ExactPositionSensor(),
                                    gen_hsmdp(deepcopy(rng),
                                              human_behavior_model=simulation_hbm,
-                                             physical_transition_noise_model=HSGaussianNoisePTNM(pos_cov=pos_cov),
+                                             physical_transition_noise_model=HSGaussianNoisePTNM(pos_cov=ptnm_cov),
                                              known_external_initstate=HSExternalState(problem_instance.human_start_pos, problem_instance.robot_start_pos),
                                              robot_goal=problem_instance.robot_goal_pos)
                                   )
