@@ -358,10 +358,11 @@ function parallel_sim(runs::UnitRange{Int}, solver_setup_key::String;
     end
 
     # Queue of simulation instances to be filled with scenarios for different hbms and runs:
-    sims::Array{Sim, 1} = []
+    # TODO: precompute size!
+    sims = []
 
     @info "Generating scenarios..."
-    @showprogress for i_run in runs, pi_key in problem_instance_keys
+    @sync @showprogress for i_run in runs, pi_key in problem_instance_keys
         pi_entry = problem_instance_map()[pi_key]
         # check whether all keys are valid
         if isnothing(planner_hbm_keys)
@@ -375,7 +376,8 @@ function parallel_sim(runs::UnitRange{Int}, solver_setup_key::String;
             @assert all(in.(simulation_hbm_keys, (keys(simulation_hbm_map(pi_entry, i_run)),)))
         end
         for simulation_hbm_key in simulation_hbm_keys, planner_hbm_key in planner_hbm_keys
-            push!(sims, setup_test_scenario(pi_key, simulation_hbm_key, planner_hbm_key, solver_setup_key, i_run))
+            # TODO: The scenario sampling should only be done once, not per human model!
+            @async push!(sims, @fetch setup_test_scenario(pi_key, simulation_hbm_key, planner_hbm_key, solver_setup_key, i_run))
         end
     end
     # Simulation is launched in parallel mode. In order for this to work, julia
