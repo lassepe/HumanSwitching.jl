@@ -337,10 +337,9 @@ Fields:
 - `step` the step to be rendered (containing the state, the belief, etc.)
 
 """
-function render_step_compose(po::Policy, step::NamedTuple, base_aspectratio::Float64, sim_hist, show_info::Bool)::Context
+function render_step_compose(po::Policy, m::HSModel, step::NamedTuple, base_aspectratio::Float64, sim_hist, show_info::Bool)::Context
     # extract the relevant information from the step
     sp = step[:sp]
-    m = problem(po)
 
     # extract the room prepresentation from the problem
     room_rep::Room = room(m)
@@ -413,10 +412,9 @@ function path_node(way_points::AbstractVector{Pos}; fill_color="black", opacity=
                                                      line([(wp[1], wp[2]) for wp in way_points]))
 end
 
-function render_plan_compose(po::Policy, planning_step::NamedTuple, 
+function render_plan_compose(po::Policy, m::HSModel, planning_step::NamedTuple, 
 			     human_pos::Pos, robot_pos::Pos, base_aspectratio::Float64)
     # extract the room representation from the problem
-    m = problem(po)
     room_rep::Room = room(m)
 
     # place mirror all children along the middle axis of the unit context
@@ -476,19 +474,21 @@ end
 # Some interface code to use the POMDPGifs package.
 
 ### Whole-history visualization. ###
-struct HSViz{P<:Policy, H<:POMDPHistory, NT<:NamedTuple}
+struct HSViz{P<:Policy, M<:HSModel, H<:POMDPHistory, NT<:NamedTuple}
     po::P
+    m::M
     step::NT
     sim_hist::H
     show_info::Bool
 end
 
-render(m::HSModel, step::NamedTuple; po::Policy, sim_hist=nothing, show_info=false) = HSViz(unwrap(po), step, sim_hist, show_info)
+render(m::HSModel, step::NamedTuple; po::Policy, sim_hist=nothing, show_info=false) = HSViz(unwrap(po), m, step, sim_hist, show_info)
 
 function Base.show(io::IO, mime::MIME"image/png", v::HSViz)
     frame_dimensions::Tuple{Float64, Float64} = (v.show_info ? 1600 : 800, 800)
     surface = CairoRGBSurface(frame_dimensions...)
     c = render_step_compose(v.po,
+			    v.m,
                             v.step,
                             frame_dimensions[1]/frame_dimensions[2],
                             v.sim_hist,
@@ -499,19 +499,21 @@ end
 
 ### One time-step plan visualization. ###
 
-struct PlanViz{P<:Policy, NT<:NamedTuple, HP<:Pos, RP<:Pos}
+struct PlanViz{P<:Policy, M<:HSModel, NT<:NamedTuple, HP<:Pos, RP<:Pos}
     po::P
+    m::M
     planning_step::NT
     human_pos::HP
     robot_pos::RP
 end
 
-render_plan(po::Policy, planning_step::NamedTuple, hp::Pos, rp::Pos) = PlanViz(po, planning_step, hp, rp)
+render_plan(po::Policy, m::HSModel, planning_step::NamedTuple, hp::Pos, rp::Pos) = PlanViz(po, m, planning_step, hp, rp)
 
 function Base.show(io::IO, mime::MIME"image/png", v::PlanViz)
     frame_dimensions::Tuple{Float64, Float64} = (800, 800)
     surface = CairoRGBSurface(frame_dimensions...)
     c = render_plan_compose(v.po,
+			    v.m,
                             v.planning_step,
 			    v.human_pos,
 			    v.robot_pos,

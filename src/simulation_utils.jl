@@ -392,7 +392,7 @@ function visualize(planner_model, hist, policy; filename::String="visualize_debu
 	    fps=Base.convert(Int, cld(1, dt)))
 end
 
-function visualize_plan(policy::Policy, hist::SimHistory, step::Int;
+function visualize_plan(planner_model, hist::SimHistory, policy::Policy, step::Int;
 		        fps::Int=Base.convert(Int, cld(1, dt)),
 			filename::String="plan")
     policy = unwrap(policy)
@@ -406,7 +406,7 @@ function visualize_plan(policy::Policy, hist::SimHistory, step::Int;
 
     frames = Frames(MIME("image/png"), fps=fps)
     for planning_step in plan
-	push!(frames, render_plan(policy, planning_step, hp, rp))
+	push!(frames, render_plan(policy, planner_model, planning_step, hp, rp))
     end
     simplified_policy_name = first(split(string(typeof(policy)), "{")) 
     filename = "$simplified_policy_name-$filename-$(lpad(step, 3, "0"))"
@@ -443,6 +443,6 @@ function debug_with_plan(data, idx; kwargs...)
     model, hist, policy = reproduce_scenario(data[idx, :]; kwargs...)
     visualize(model, hist, policy, filename="$(lpad(idx, 3, "0"))")
     for step in 1:length(hist)
-        visualize_plan(policy, hist, step)
+        visualize_plan(model, hist, policy, step)
     end
 end
