@@ -388,7 +388,7 @@ end
 function visualize(planner_model, hist, policy; filename::String="visualize_debug")
     makegif(planner_model, hist, filename=joinpath(from_base_dir("renderings"), "$filename.gif"),
             extra_initial=true, show_progress=true,
-	    render_kwargs=(po=policy, sim_hist=hist, show_info=true), 
+	    render_kwargs=(po=policy, sim_hist=hist, show_info=true),
 	    fps=Base.convert(Int, cld(1, dt)))
 end
 
@@ -408,7 +408,7 @@ function visualize_plan(planner_model, hist::SimHistory, policy::Policy, step::I
     for planning_step in plan
 	push!(frames, render_plan(policy, planner_model, planning_step, hp, rp))
     end
-    simplified_policy_name = first(split(string(typeof(policy)), "{")) 
+    simplified_policy_name = first(split(string(typeof(policy)), "{"))
     filename = "$simplified_policy_name-$filename-$(lpad(step, 3, "0"))"
     savedir = joinpath(from_base_dir("renderings"), "$filename.gif")
     @show write(savedir, frames)

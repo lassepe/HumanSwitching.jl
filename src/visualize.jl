@@ -79,7 +79,7 @@ function start_goal_line_node(start_pos::Pos, goal::Pos;
     p_start = [Tuple(start_pos[1:2])]
     p_end = [Tuple(goal[1:2])]
 
-    compose(context(), (context(), line([p_start..., p_end...]), 
+    compose(context(), (context(), line([p_start..., p_end...]),
 			stroke(stroke_color), strokeopacity(opacity)))
 end
 
@@ -412,7 +412,7 @@ function path_node(way_points::AbstractVector{Pos}; fill_color="black", opacity=
                                                      line([(wp[1], wp[2]) for wp in way_points]))
 end
 
-function render_plan_compose(po::Policy, m::HSModel, planning_step::NamedTuple, 
+function render_plan_compose(po::Policy, m::HSModel, planning_step::NamedTuple,
 			     human_pos::Pos, robot_pos::Pos, base_aspectratio::Float64)
     # extract the room representation from the problem
     room_rep::Room = room(m)
@@ -426,7 +426,7 @@ function render_plan_compose(po::Policy, m::HSModel, planning_step::NamedTuple,
     else
         base_scale = context(0, 0, 1/room_rep.width/base_aspectratio, 1/room_rep.height)
     end
-    
+
     # the room background
     room_viz = room_node(room_rep)
 
@@ -437,7 +437,7 @@ function render_plan_compose(po::Policy, m::HSModel, planning_step::NamedTuple,
                                                external_color="light green", curve_color="steelblue")
 
     context_components = make_plan_components(po, planning_step, human_pos)
-    
+
     # the info area
     background = compose(context(), rectangle(0, 0, 1, 1), fill("white"))
 
@@ -465,7 +465,7 @@ function make_plan_components(po::ProbObstaclePolicy, planning_step::NamedTuple,
 end
 
 function make_plan_components(po::GapCheckingPolicy, planning_step::NamedTuple, human_pos::Pos)
-    policy_components = make_plan_components(planning_step.policy_used, 
+    policy_components = make_plan_components(planning_step.policy_used,
 					     planning_step.used_plan_step, human_pos)
     FRS_circle_viz = pos_node(human_pos; r=planning_step.FRS_radius, stroke_color="red", opacity=0.2, show_marker=false)
     return vcat(policy_components, FRS_circle_viz)
