@@ -81,7 +81,7 @@ function transform_data(data::DataFrame; shorten_names::Bool=true)
     modified_data = !shorten_names ? data : @linq data |> transform(planner_hbm_key=simplify_hbm_name.(:planner_hbm_key),
                                                                             simulation_hbm_key=simplify_hbm_name.(:simulation_hbm_key))
 
-    modified_data[:combined_median_cpu_time] = modified_data[:median_updater_time] .+ modified_data[:median_planner_time]
+    modified_data[:combined_median_cpu_time] = modified_data[:median_updater_time] .+ modified_data[:median_prediction_time] .+ modified_data[:median_planning_time]
     modified_data[:normalized_discounted_reward] = modified_data[:discounted_reward] .- modified_data[:free_space_estimate]
 
     # sanity check the data

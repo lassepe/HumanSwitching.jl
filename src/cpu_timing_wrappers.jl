@@ -15,16 +15,15 @@ POMDPs.action(tp::TimedPolicy, x) = action(tp.p, x)
 function POMDPModelTools.action_info(tp::TimedPolicy, x; kwargs...)
     CPUtic()
     action, i = action_info(tp.p, x; kwargs...)
-    planner_cpu_time_us = CPUtoq()
+    planning_cpu_time_wrapped = CPUtoq()
     if isnothing(i)
-        info = (planner_cpu_time_us=planner_cpu_time_us,
+        info = (planning_cpu_time=planning_cpu_time_wrapped,
                 prediction_cpu_time=0.0)
     else
         # some policies don't distinguish between prediciton and planning
         # Thus, we fall back to 0.0
-        prediction_cpu_time = get(i, :prediction_cpu_time, 0.0)
-        info = merge(i, Dict(:planner_cpu_time_us=>planner_cpu_time_us,
-                             :prediction_cpu_time=>prediction_cpu_time))
+        info = merge(i, Dict(:prediction_cpu_time=>get(i, :prediction_cpu_time, 0.0),
+                             :planning_cpu_time=>get(i, :planning_cpu_time, planning_cpu_time_wrapped)))
     end
     return action, info
 end
@@ -41,11 +40,11 @@ POMDPs.update(tu::TimedUpdater, b, a, o) = update(tu.u, b, a, o)
 function POMDPModelTools.update_info(tu::TimedUpdater, b, a, o)
     CPUtic()
     bp, i = update_info(tu.u, b, a, o)
-    updater_cpu_time_us = CPUtoq()
+    updater_cpu_time = CPUtoq()
     if isnothing(i)
-        info = (updater_cpu_time_us=updater_cpu_time_us,)
+        info = (updater_cpu_time=updater_cpu_time,)
     else
-        info = merge(i, Dict(:updater_cpu_time_us=>updater_cpu_time_us))
+        info = merge(i, Dict(:updater_cpu_time=>updater_cpu_time))
     end
     return bp, info
 end
