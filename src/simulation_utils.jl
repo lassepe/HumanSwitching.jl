@@ -385,9 +385,33 @@ function parallel_sim(runs::UnitRange{Int}, solver_setup_key::String;
     return data
 end
 
-function visualize(planner_model, hist; filename::String="visualize_debug")
+function visualize(planner_model, hist, policy; filename::String="visualize_debug")
     makegif(planner_model, hist, filename=joinpath(from_base_dir("renderings"), "$filename.gif"),
-            extra_initial=true, show_progress=true, render_kwargs=(sim_hist=hist, show_info=true), fps=Base.convert(Int, cld(1, dt)))
+            extra_initial=true, show_progress=true,
+	    render_kwargs=(po=policy, sim_hist=hist, show_info=true), 
+	    fps=Base.convert(Int, cld(1, dt)))
+end
+
+function visualize_plan(planner_model, hist::SimHistory, policy::Policy, step::Int;
+		        fps::Int=Base.convert(Int, cld(1, dt)),
+			filename::String="plan")
+    policy = unwrap(policy)
+    beliefs = collect(eachstep(hist, "b"))
+    a, info = action_info(policy, beliefs[step])
+    e = beliefs[step] |> particles |> first |> external
+    hp = human_pos(e)
+    rp = robot_pos(e)
+
+    plan = get_plan(policy, beliefs[step])
+
+    frames = Frames(MIME("image/png"), fps=fps)
+    for planning_step in plan
+	push!(frames, render_plan(policy, planner_model, planning_step, hp, rp))
+    end
+    simplified_policy_name = first(split(string(typeof(policy)), "{")) 
+    filename = "$simplified_policy_name-$filename-$(lpad(step, 3, "0"))"
+    savedir = joinpath(from_base_dir("renderings"), "$filename.gif")
+    @show write(savedir, frames)
 end
 
 function tree(model::POMDP, hist::SimHistory, policy::Policy, step=30)
@@ -406,7 +430,7 @@ end
 
 function debug(data, idx; kwargs...)
     viz = reproduce_scenario(data[idx, :]; kwargs...)
-    visualize(viz[1:2]..., filename="$(lpad(idx, 3, "0"))")
+    visualize(viz..., filename="$(lpad(idx, 3, "0"))")
 end
 
 function debug(data; kwargs...)
@@ -417,8 +441,8 @@ end
 
 function debug_with_plan(data, idx; kwargs...)
     model, hist, policy = reproduce_scenario(data[idx, :]; kwargs...)
-    visualize(model, hist, filename="$(lpad(idx, 3, "0"))")
+    visualize(model, hist, policy, filename="$(lpad(idx, 3, "0"))")
     for step in 1:length(hist)
-        visualize_plan(policy, hist, step)
+        visualize_plan(model, hist, policy, step)
     end
 end

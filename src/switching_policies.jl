@@ -53,8 +53,22 @@ function POMDPModelTools.action_info(gap_policy::GapCheckingPolicy, b::AbstractP
     # there is no gap, we can skip the tedious computation
     if !has_gap()
         a, info = action_info(upper_bound_policy, rp0)
+	policy_used = upper_bound_policy
     else
     	a, info = action_info(gap_policy.smarter_policy, b)
+	policy_used = gap_policy.smarter_policy
     end
-    return a, isnothing(info) ? Dict(:FRS_radii => FRS_radii) : merge(info, Dict(:FRS_radii => FRS_radii))
+    info = (policy_used=policy_used, policy_info=info, FRS_radii=FRS_radii)
+    return a, info
+end
+
+function get_plan(po::GapCheckingPolicy, belief)
+    a, info = action_info(po, belief)
+    steps = get_plan(info.policy_used, belief)
+    planning_steps = []
+    for (i, step) in enumerate(steps)
+	planning_step = (policy_used=info.policy_used, used_plan_step=step, FRS_radius=info.FRS_radii[i])
+	push!(planning_steps, planning_step)
+    end
+    return planning_steps
 end

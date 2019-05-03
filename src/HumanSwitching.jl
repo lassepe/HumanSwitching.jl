@@ -166,12 +166,12 @@ export
 include("utils.jl")
 
 export
-    render_step_compose,
-    render_step_svg,
-    render_step_blink,
-    render,
-    render_plan
-include("visualize.jl")
+    Circle,
+    InfiniteCone,
+    ConicalFrustum,
+    LineSegment,
+    contains
+include("geometry.jl")
 
 export
     AgentPerformance
@@ -235,5 +235,13 @@ export
     debug,
     debug_with_plan
 include("simulation_utils.jl")
+
+export
+    render_step_compose,
+    render_step_svg,
+    render_step_blink,
+    render,
+    render_plan
+include("visualize.jl")
 
 end # module
