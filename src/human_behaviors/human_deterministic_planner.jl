@@ -21,7 +21,7 @@ rand_hbs(rng::AbstractRNG, hbm::HumanDeterministicPlanner) = HumanDeterministicB
 """
     HumanPathSearchProblem
 
-Implementing the GraphSearchLight search problem interface.
+Implementing the GraphSearchZero search problem interface.
 """
 struct HumanPathSearchProblem <: SearchProblem{Pos, HumanAction}
     start_state::Pos
@@ -29,10 +29,10 @@ struct HumanPathSearchProblem <: SearchProblem{Pos, HumanAction}
     hbm::HumanDeterministicPlanner
 end
 
-GraphSearchLight.start_state(p::HumanPathSearchProblem) = p.start_state
-GraphSearchLight.is_goal_state(p::HumanPathSearchProblem, s::Pos) = dist_to_pos(s, p.goal_state) < p.hbm.goal_reached_distance
+GraphSearchZero.start_state(p::HumanPathSearchProblem) = p.start_state
+GraphSearchZero.is_goal_state(p::HumanPathSearchProblem, s::Pos) = dist_to_pos(s, p.goal_state) < p.hbm.goal_reached_distance
 
-function GraphSearchLight.successors(p::HumanPathSearchProblem, s::Pos)
+function GraphSearchZero.successors(p::HumanPathSearchProblem, s::Pos)
     successors::Vector{Tuple{Pos, HumanAction, Int}} = []
     sizehint!(successors, length(p.hbm.aspace))
 
@@ -55,7 +55,7 @@ function free_evolution(hbm::HumanDeterministicPlanner, hbs::HumanDeterministicB
     h = (s::Pos) ->  remaining_step_estimate(s, hbs.goal, hbm.speed_max*dt, hbm.goal_reached_distance)
 
     # check if we are already at the goal. If so, stay put!
-    if GraphSearchLight.is_goal_state(planning_problem, p)
+    if GraphSearchZero.is_goal_state(planning_problem, p)
         return p
     end
 
