@@ -177,20 +177,3 @@ function get_plan(po::ProbObstaclePolicy, belief)
     return planning_steps
 end
 
-function visualize_plan(policy::Policy, hist::SimHistory, step::Int)
-    policy = unwrap(policy)
-    beliefs = collect(eachstep(hist, "b"))
-    a, info = action_info(policy, beliefs[step])
-    e = beliefs[step] |> particles |> first |> external
-    hp = human_pos(e)
-    rp = robot_pos(e)
-
-    plan = get_plan(policy, beliefs[step])
-
-    frames = Frames(MIME("image/png"), fps=fps)
-    for step in plan
-	push!(frames, render_plan(policy, step, human_pos, robot_pos))
-    end
-    savedir = joinpath(from_base_dir("renderings"), "$filename.gif")
-    @show write(savedir, frames)
-end

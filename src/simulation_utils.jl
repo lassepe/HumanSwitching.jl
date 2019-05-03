@@ -387,7 +387,7 @@ end
 
 function visualize(planner_model, hist, policy; filename::String="visualize_debug")
     makegif(planner_model, hist, filename=joinpath(from_base_dir("renderings"), "$filename.gif"),
-            extra_initial=true, show_progress=true, 
+            extra_initial=true, show_progress=true,
 	    render_kwargs=(po=policy, sim_hist=hist, show_info=true), 
 	    fps=Base.convert(Int, cld(1, dt)))
 end

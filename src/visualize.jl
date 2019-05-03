@@ -337,8 +337,7 @@ Fields:
 - `step` the step to be rendered (containing the state, the belief, etc.)
 
 """
-function render_step_compose(po::Policy, step::NamedTuple, base_aspectratio::Float64, sim_hist,
-                             show_info::Bool)::Context
+function render_step_compose(po::Policy, step::NamedTuple, base_aspectratio::Float64, sim_hist, show_info::Bool)::Context
     # extract the relevant information from the step
     sp = step[:sp]
     m = problem(po)
@@ -358,12 +357,10 @@ function render_step_compose(po::Policy, step::NamedTuple, base_aspectratio::Flo
     room_viz = room_node(room_rep)
 
     # the human and it's goal
-    human_ground_truth_viz = agent_pos_viz = pos_node(human_pos(sp),
-                                                      fill_color="tomato", opacity=1.0)
+    human_ground_truth_viz = agent_pos_viz = pos_node(human_pos(sp), fill_color="tomato", opacity=1.0)
     # the robot and it's goal
     robot_with_goal_viz = agent_with_goal_node(robot_pos(sp), robot_goal(m),
                                                external_color="light green", curve_color="steelblue")
-
     belief_viz = (haskey(step, :bp) && step[:bp] isa ParticleCollection ?
                   belief_node(step[:bp], m) : context())
     # the info area
@@ -381,30 +378,32 @@ function render_step_compose(po::Policy, step::NamedTuple, base_aspectratio::Flo
         info_viz = compose(info_position_context, background)
     end
 
-    if haskey(step, :ai) && step[:ai] isa Union{NamedTuple, Dict} && haskey(step[:ai], :state_sequence)
-        planner_state_sequence = step[:ai][:state_sequence]
-        # We are visualizing based on sp, thus we need to drop the first state
-        robot_plan_viz = path_node([ps.rp for ps in planner_state_sequence[1:end]])
-    else
-        robot_plan_viz = context()
-    end
+    context_components = haskey(step,:ai) ? make_step_components(po, step[:ai], human_pos(sp)) : context()
 
-    if haskey(step, :ai) && step[:ai] isa Union{NamedTuple, Dict} && haskey(step[:ai], :FRS_radii)
-	FRS_circles_viz = compose(context(), [pos_node(human_pos(sp); r=radius, stroke_color="red", opacity=0.0, show_marker=false) for radius in step[:ai][:FRS_radii]])
-    else
-	FRS_circles_viz = context()
+    compose(context(),
+           (context(), info_viz),
+           (mirror, (base_scale,
+                     robot_with_goal_viz,
+                     human_ground_truth_viz,
+                     belief_viz,
+		     context_components,
+	   	     room_viz))
+           )
 end
 
-compose(context(),
-        (context(), info_viz),
-        (mirror, (base_scale,
-                  robot_with_goal_viz,
-                  robot_plan_viz,
-                  human_ground_truth_viz,
-                  belief_viz,
-		  FRS_circles_viz,
-		  room_viz))
-       )
+make_step_components(po::Policy, step::Union{NamedTuple,Nothing}, human_pos::Pos) = context()
+
+function make_step_components(po::ProbObstaclePolicy, step::NamedTuple, human_pos::Pos)
+    planner_state_sequence = step[:state_sequence]
+    # We are visualizing based on sp, thus we need to drop the first state
+    robot_plan_viz = path_node([ps.rp for ps in planner_state_sequence[1:end]])
+    return robot_plan_viz
+end
+
+function make_step_components(po::GapCheckingPolicy, step::NamedTuple, human_pos::Pos)
+    policy_components = make_step_components(step.policy_used, step.policy_info, human_pos)
+    FRS_circles_viz = compose(context(), [pos_node(human_pos; r=radius, stroke_color="red", opacity=0.1, show_marker=false) for radius in step[:FRS_radii]])
+    return [policy_components, FRS_circles_viz]
 end
 
 function path_node(way_points::AbstractVector{Pos}; fill_color="black", opacity=0.5)
@@ -453,9 +452,11 @@ function render_plan_compose(po::Policy, planning_step::NamedTuple,
        )
 end
 
+make_plan_components(po::Policy, planning_step::NamedTuple, human_pos::Pos) = context()
+
 function make_plan_components(po::StraightToGoal, planning_step::NamedTuple, human_pos::Pos)
     robot_prediction_viz = pos_node(planning_step[:robot_prediction], fill_color="light green", r=0.1, opacity=0.5)
-    return [robot_prediction_viz]
+    return robot_prediction_viz
 end
 
 function make_plan_components(po::ProbObstaclePolicy, planning_step::NamedTuple, human_pos::Pos)
@@ -482,7 +483,7 @@ struct HSViz{P<:Policy, H<:POMDPHistory, NT<:NamedTuple}
     show_info::Bool
 end
 
-render(m::HSModel, step::NamedTuple; po::Policy, sim_hist=nothing, show_info=false) = HSViz(po, step, sim_hist, show_info)
+render(m::HSModel, step::NamedTuple; po::Policy, sim_hist=nothing, show_info=false) = HSViz(unwrap(po), step, sim_hist, show_info)
 
 function Base.show(io::IO, mime::MIME"image/png", v::HSViz)
     frame_dimensions::Tuple{Float64, Float64} = (v.show_info ? 1600 : 800, 800)
