@@ -166,14 +166,6 @@ export
 include("utils.jl")
 
 export
-    Circle,
-    InfiniteCone,
-    ConicalFrustum,
-    LineSegment,
-    contains
-include("geometry.jl")
-
-export
     AgentPerformance
 include("agent_performance_metrics.jl")
 
