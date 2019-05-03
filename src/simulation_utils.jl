@@ -349,8 +349,7 @@ function parallel_sim(runs::UnitRange{Int}, solver_setup_key::String;
     # Queue of simulation instances to be filled with scenarios for different hbms and runs:
     sims = []
 
-    @info "Generating scenarios..."
-    @sync @showprogress for i_run in runs, pi_key in problem_instance_keys
+    @sync @showprogress "Generating scenarios..." for i_run in runs, pi_key in problem_instance_keys
         pi_entry = problem_instance_map()[pi_key]
         # check whether all keys are valid
         if isnothing(planner_hbm_keys)
