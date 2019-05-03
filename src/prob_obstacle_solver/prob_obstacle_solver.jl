@@ -167,7 +167,7 @@ function POMDPModelTools.action_info(po::ProbObstaclePolicy, b; debug=false)
 end
 
 function get_plan(po::ProbObstaclePolicy, belief)
-    a, info = action_info(policy, belief)
+    a, info = action_info(po, belief)
     planning_steps = []
     for i in 1:length(info.action_sequence)
         planning_step = (bp=info.belief_predictions[i],

@@ -333,14 +333,15 @@ This returns a Compose.Context that can be rendered to a variety of displays.
 
 Fields:
 
-- `m` the model/problem to be rendered (to extact the room size)
+- `po` the policy to be rendered (to extact the room size)
 - `step` the step to be rendered (containing the state, the belief, etc.)
 
 """
-function render_step_compose(m::HSModel, step::NamedTuple, base_aspectratio::Float64, sim_hist,
+function render_step_compose(po::Policy, step::NamedTuple, base_aspectratio::Float64, sim_hist,
                              show_info::Bool)::Context
     # extract the relevant information from the step
     sp = step[:sp]
+    m = problem(po)
 
     # extract the room prepresentation from the problem
     room_rep::Room = room(m)
@@ -413,7 +414,7 @@ function path_node(way_points::AbstractVector{Pos}; fill_color="black", opacity=
                                                      line([(wp[1], wp[2]) for wp in way_points]))
 end
 
-function render_plan_compose(po::StraightToGoal, planning_step::NamedTuple, 
+function render_plan_compose(po::Policy, planning_step::NamedTuple, 
 			     human_pos::Pos, robot_pos::Pos, base_aspectratio::Float64)
     # extract the room representation from the problem
     m = problem(po)
@@ -428,58 +429,18 @@ function render_plan_compose(po::StraightToGoal, planning_step::NamedTuple,
     else
         base_scale = context(0, 0, 1/room_rep.width/base_aspectratio, 1/room_rep.height)
     end
-
+    
     # the room background
     room_viz = room_node(room_rep)
 
     # the human and it's goal
     human_ground_truth_viz = agent_pos_viz = pos_node(human_pos, fill_color="tomato", opacity=1.0)
     # the robot and it's goal
-    robot_with_goal_viz =  agent_with_goal_node(robot_pos, robot_goal(m),
-                                                external_color="light green", curve_color="steelblue")
+    robot_with_goal_viz = agent_with_goal_node(robot_pos, robot_goal(m),
+                                               external_color="light green", curve_color="steelblue")
 
-    robot_prediction_viz = pos_node(planning_step[:robot_prediction], fill_color="light green", r=0.1, opacity=0.5)
-
-    # the info area
-    background = compose(context(), rectangle(0, 0, 1, 1), fill("white"))
-
-    compose(context(),
-        (mirror, (base_scale,
-                  robot_with_goal_viz,
-                  robot_prediction_viz,
-                  room_viz))
-       )
-end
-
-function render_plan_compose(po::ProbObstaclePolicy, planning_step::NamedTuple, 
-			     human_pos::Pos, robot_pos::Pos, base_aspectratio::Float64)
-    # extract the room representation from the problem
-    m = po.pomdp
-    room_rep::Room = room(m)
-
-    # place mirror all children along the middle axis of the unit context
-    mirror = context(mirror=Mirror(0, 0.5, 0.5))
-
-    # scale all children to fit into the mirrored unit context
-    if base_aspectratio < 1
-        base_scale = context(0, 0, 1/room_rep.width, 1/room_rep.height*base_aspectratio)
-    else
-        base_scale = context(0, 0, 1/room_rep.width/base_aspectratio, 1/room_rep.height)
-    end
-
-    # the room background
-    room_viz = room_node(room_rep)
-
-    # the human and it's goal
-    human_ground_truth_viz = agent_pos_viz = pos_node(human_pos, fill_color="tomato", opacity=1.0)
-    # the robot and it's goal
-    robot_with_goal_viz =  agent_with_goal_node(robot_pos, robot_goal(m),
-                                                external_color="light green", curve_color="steelblue")
-
-    human_prediction_viz = human_prediction_node(planning_step[:bp], m)
-
-    robot_prediction_viz = pos_node(planning_step[:robot_prediction], fill_color="light green", r=0.1, opacity=0.5)
-
+    context_components = make_plan_components(po, planning_step, human_pos)
+    
     # the info area
     background = compose(context(), rectangle(0, 0, 1, 1), fill("white"))
 
@@ -487,59 +448,46 @@ function render_plan_compose(po::ProbObstaclePolicy, planning_step::NamedTuple,
         (mirror, (base_scale,
                   robot_with_goal_viz,
                   human_ground_truth_viz,
-                  robot_prediction_viz,
-                  human_prediction_viz,
-                  room_viz))
+		  context_components,
+		  room_viz))
        )
 end
 
-function render_plan_compose(po::GapCheckingPolicy, planning_step::NamedTuple,
-			     human_pos::Pos, robot_pos::Pos, base_aspectratio::Float64)
+function make_plan_components(po::StraightToGoal, planning_step::NamedTuple, human_pos::Pos)
+    robot_prediction_viz = pos_node(planning_step[:robot_prediction], fill_color="light green", r=0.1, opacity=0.5)
+    return [robot_prediction_viz]
+end
 
+function make_plan_components(po::ProbObstaclePolicy, planning_step::NamedTuple, human_pos::Pos)
+    m = problem(po)
+    human_prediction_viz = human_prediction_node(planning_step[:bp], m)
+    robot_prediction_viz = pos_node(planning_step[:robot_prediction], fill_color="light green", r=0.1, opacity=0.5)
+    return [robot_prediction_viz, human_prediction_viz]
+end
 
-"""
-Same as above but rendering directly to an svg
-"""
-render_step_svg(m::HSModel, step::NamedTuple) = render_step_compose(m, step) |> SVG(14cm, 14cm)
-render_step_svg(m::HSModel, step::NamedTuple, filename::String) = render_step_compose(m, step) |> SVG(filename, 14cm, 14cm)
-"""
-Same as above but rendering directly to a (potentially provided) blink window.
-"""
-render_step_blink(m::HSModel, step::NamedTuple, win::Blink.Window) = blink!(render_step_compose(m, step), win)
-render_step_blink(m::HSModel, step::NamedTuple) = blink!(render_step_compose(m, step))
-
-"""
-blink!
-
-Is a workaround to render Compose.jl context to blink windows by:
-
-- first drawing the composition to an SVG object
-- then rendering this object in blink
-"""
-function blink!(c::Context, win::Blink.Window = Blink.Window())
-    s = SVG(600px, 600px, false)
-    draw(s, c)
-    # make sure that blink is used with options async=true and
-    # fade=false to make a better animation
-    body!(win, s, async=true, fade=false)
+function make_plan_components(po::GapCheckingPolicy, planning_step::NamedTuple, human_pos::Pos)
+    policy_components = make_plan_components(planning_step.policy_used, 
+					     planning_step.used_plan_step, human_pos)
+    FRS_circle_viz = pos_node(human_pos; r=planning_step.FRS_radius, stroke_color="red", opacity=0.2, show_marker=false)
+    return vcat(policy_components, FRS_circle_viz)
 end
 
 # Some interface code to use the POMDPGifs package.
 
 ### Whole-history visualization. ###
-struct HSViz{M<:HSModel, H<:POMDPHistory, NT<:NamedTuple}
-    m::M
+struct HSViz{P<:Policy, H<:POMDPHistory, NT<:NamedTuple}
+    po::P
     step::NT
     sim_hist::H
     show_info::Bool
 end
 
-render(m::HSModel, step::NamedTuple; sim_hist=nothing, show_info=false) = HSViz(m, step, sim_hist, show_info)
+render(m::HSModel, step::NamedTuple; po::Policy, sim_hist=nothing, show_info=false) = HSViz(po, step, sim_hist, show_info)
 
 function Base.show(io::IO, mime::MIME"image/png", v::HSViz)
     frame_dimensions::Tuple{Float64, Float64} = (v.show_info ? 1600 : 800, 800)
     surface = CairoRGBSurface(frame_dimensions...)
-    c = render_step_compose(v.m,
+    c = render_step_compose(v.po,
                             v.step,
                             frame_dimensions[1]/frame_dimensions[2],
                             v.sim_hist,

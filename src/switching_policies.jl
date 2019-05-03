@@ -62,14 +62,13 @@ function POMDPModelTools.action_info(gap_policy::GapCheckingPolicy, b::AbstractP
     return a, info
 end
 
-function visualize_plan(po::GapCheckingPolicy, info::NamedTuple, human_pos::Pos, robot_pos::Pos;
- 			fps::Int=Base.convert(Int, cld(1, dt)), filename::String="debug_gap_checking_plan")
-    visualize_plan(info.gap_policy, info, human_pos, robot_pos; fps, filename)
-end
-
 function get_plan(po::GapCheckingPolicy, belief)
-    a, info = action_info(policy, belief)
-    steps = get_plan(info.gap_policy, belief)
-    for step in steps
-		
+    a, info = action_info(po, belief)
+    steps = get_plan(info.policy_used, belief)
+    planning_steps = []
+    for (i, step) in enumerate(steps)
+	planning_step = (policy_used=info.policy_used, used_plan_step=step, FRS_radius=info.FRS_radii[i])
+	push!(planning_steps, planning_step)
+    end
+    return planning_steps
 end
