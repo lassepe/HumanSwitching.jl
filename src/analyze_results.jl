@@ -99,7 +99,6 @@ end
 
 filter_by_planner(data::DataFrame, s::String) = data[occursin.(s, data.planner_hbm_key), :]
 
-# TODO: Is this a correct cvar implementation??? Talk to Zach
 function tail_expectation(vals::Array, q::Float64)
     @assert 0 <= q <= 1
     n_lower_q_vals::Int = floor(q * length(vals))

@@ -1,6 +1,3 @@
-# TODO: run some straight to goal runs and make sure that the simulated reward is always below the free_space_estimate
-# - with custom reward model where there is no penalty for collision with humans or close to human
-# - and check only if solution was succesfull
 @testset "Estimate Value Policies" begin
     # check whether the free space estimate is actually optimistic
     n_samples = 10000

@@ -72,9 +72,11 @@ function reproduce_scenario(scenario_data::DataFrameRow;
         to ignore uncommited changes, set the corresponding kwarg.")
     end
 
-    sim = setup_test_scenario(scenario_data[:pi_key], scenario_data[:simulation_hbm_key],
-                              scenario_data[:planner_hbm_key], scenario_data[:solver_setup_key],
-                              scenario_data[:i_run])
+    i_run = scenario_data[:i_run]
+    pi_key = scenario_data[:pi_key]
+    simulation_hbm_key = scenario_data[:simulation_hbm_key]
+    simulation_model = setup_simulation_model(MersenneTwister(i_run), problem_instance_map()[pi_key], simulation_hbm_key, i_run)
+    sim = setup_test_scenario(pi_key, simulation_model, simulation_hbm_key, scenario_data[:planner_hbm_key], scenario_data[:solver_setup_key], i_run)
 
     # some sanity checks on the hist
     hist = simulate(sim)
@@ -99,23 +101,9 @@ function reproduce_scenario(scenario_data::DataFrameRow;
     return planner_model, hist, sim.policy
 end
 
-function construct_models(rng::AbstractRNG, problem_instance::ProblemInstance,
-                          simulation_hbm::HumanBehaviorModel, belief_updater_hbm::HumanBehaviorModel, planner_hbm::HumanBehaviorModel)
-    """
-    Function that constructs the simulation model, the belief updater model, and the planner model.
+function setup_simulation_model(rng::AbstractRNG, problem_instance::ProblemInstance, simulation_hbm_key::String, i_run::Int)
 
-    Params:
-        rng [AbstractRNG]: The random seed to be used for these models.
-        problem_instance [ProblemInstance]: defines the setup of the problem (e.g. initial conditionsa and goals for all agents)
-        simulation_hbm [HumanBehaviorModel]: The "true" human model used by the simulator.
-        belief_updater_hbm [HumanBehaviorModel]: The human model used by the belief updater.
-        planner_hbm [HumanBehaviorModel]: The human model used by the planner.
-
-    Returns:
-        simulation_model [HSModel]: The model of the world used by the simulator.
-        belief_updater_model [HSModel]: The model of the world used by the belief updater.
-        planner_model [HSModel]: The model of the world used by the planner.
-    """
+    simulation_hbm = simulation_hbm_map(problem_instance, i_run)[simulation_hbm_key]
 
     ptnm_cov = [0.01, 0.01]
     if problem_instance.force_nontrivial
@@ -137,9 +125,12 @@ function construct_models(rng::AbstractRNG, problem_instance::ProblemInstance,
                                   )
     end
 
+    return simulation_model
+end
 
+function construct_models(rng::AbstractRNG, simulation_model::HSModel, belief_updater_hbm::HumanBehaviorModel, planner_hbm::HumanBehaviorModel)
     belief_updater_model = generate_from_template(simulation_model, deepcopy(rng),
-                                                  sensor=NoisyPositionSensor(ptnm_cov*9),
+                                                  sensor=NoisyPositionSensor(physical_transition_noise_model(simulation_model).pos_cov*9),
                                                   human_behavior_model=belief_updater_hbm,
                                                   physical_transition_noise_model=HSIdentityPTNM())
 
@@ -148,7 +139,7 @@ function construct_models(rng::AbstractRNG, problem_instance::ProblemInstance,
                                            human_behavior_model=planner_hbm,
                                            physical_transition_noise_model=HSIdentityPTNM())
 
-    return simulation_model, belief_updater_model, planner_model
+    return belief_updater_model, planner_model
 end
 
 function belief_updater_from_planner_model(planner_setup::PlannerSetup{<:HumanConstVelBehavior})
@@ -170,20 +161,18 @@ function belief_updater_from_planner_model(planner_setup::PlannerSetup{<:HumanMu
                                    aspace=planner_setup.hbm.aspace)
 end
 
-function setup_test_scenario(pi_key::String, simulation_hbm_key::String, planner_hbm_key::String, solver_setup_key::String, i_run::Int)
+function setup_test_scenario(pi_key::String, simulation_model::HSModel, simulation_hbm_key::String, planner_hbm_key::String, solver_setup_key::String, i_run::Int)
     rng = MersenneTwister(i_run)
 
     # Load in the given instance keys.
     problem_instance = problem_instance_map()[pi_key]
     planner_setup = planner_hbm_map(problem_instance)[planner_hbm_key]
-    simulation_hbm = simulation_hbm_map(problem_instance, i_run)[simulation_hbm_key]
 
     # Construct belief updater.
     belief_updater_hbm = belief_updater_from_planner_model(planner_setup)
 
     # Construct models.
-    simulation_model, belief_updater_model, planner_model = construct_models(rng, problem_instance, simulation_hbm,
-                                                                             belief_updater_hbm, planner_setup.hbm)
+    belief_updater_model, planner_model = construct_models(deepcopy(rng), simulation_model, belief_updater_hbm, planner_setup.hbm)
     # the belief updater is run with a stochastic version of the world
     belief_updater = BasicParticleFilter(belief_updater_model, SharedExternalStateResampler(planner_setup.n_particles), planner_setup.n_particles, deepcopy(rng))
     solver = solver_setup_map(planner_setup, planner_model, deepcopy(rng))[solver_setup_key]
@@ -358,7 +347,6 @@ function parallel_sim(runs::UnitRange{Int}, solver_setup_key::String;
     end
 
     # Queue of simulation instances to be filled with scenarios for different hbms and runs:
-    # TODO: precompute size!
     sims = []
 
     @info "Generating scenarios..."
@@ -375,9 +363,11 @@ function parallel_sim(runs::UnitRange{Int}, solver_setup_key::String;
         else
             @assert all(in.(simulation_hbm_keys, (keys(simulation_hbm_map(pi_entry, i_run)),)))
         end
-        for simulation_hbm_key in simulation_hbm_keys, planner_hbm_key in planner_hbm_keys
-            # TODO: The scenario sampling should only be done once, not per human model!
-            @async push!(sims, @fetch setup_test_scenario(pi_key, simulation_hbm_key, planner_hbm_key, solver_setup_key, i_run))
+        for simulation_hbm_key in simulation_hbm_keys
+            simulation_model = setup_simulation_model(MersenneTwister(i_run), pi_entry, simulation_hbm_key, i_run)
+            for planner_hbm_key in planner_hbm_keys
+                @async push!(sims, @fetch setup_test_scenario(pi_key, simulation_model, simulation_hbm_key, planner_hbm_key, solver_setup_key, i_run))
+            end
         end
     end
     # Simulation is launched in parallel mode. In order for this to work, julia
