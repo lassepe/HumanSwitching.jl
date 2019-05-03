@@ -19,11 +19,11 @@ end
     max_search_depth::Int = length(prob_obstacle_trees)
 end
 
-GraphSearchLight.start_state(p::ProbObstacleSearchProblem) = p.start_state
+GraphSearchZero.start_state(p::ProbObstacleSearchProblem) = p.start_state
 # a goal state is reached if the robot reached it's target or the serach depth reached the planning horizon
-GraphSearchLight.is_goal_state(p::ProbObstacleSearchProblem, s::ProbObstacleSearchState) = at_robot_goal(p.model, s.rp) || s.t_idx == p.max_search_depth
+GraphSearchZero.is_goal_state(p::ProbObstacleSearchProblem, s::ProbObstacleSearchState) = at_robot_goal(p.model, s.rp) || s.t_idx == p.max_search_depth
 
-function GraphSearchLight.successors(p::ProbObstacleSearchProblem, s::ProbObstacleSearchState)
+function GraphSearchZero.successors(p::ProbObstacleSearchProblem, s::ProbObstacleSearchState)
     successors::Vector{Tuple{ProbObstacleSearchState, HSAction, Float64}} = []
     # if we have reached the max depth, we don't return successors
     # this should never happen because a state is said to be a goal state

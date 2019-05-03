@@ -312,11 +312,11 @@ git-tree-sha1 = "c72f1fcb7d17426de1e8af2e948dfb3de1116eed"
 uuid = "c27321d9-0574-5035-807b-f59d2c89b15c"
 version = "1.2.0"
 
-[[GraphSearchLight]]
+[[GraphSearchZero]]
 deps = ["DataStructures"]
-git-tree-sha1 = "7a9a87d5dacc515152354d1a67325bfcafcf0385"
+git-tree-sha1 = "76facebd1f9ffbf796c04f3da2b7c2e7cddf10ba"
 repo-rev = "master"
-repo-url = "https://github.com/lassepe/GraphSearchLight.jl"
+repo-url = "https://github.com/lassepe/GraphSearchZero.jl"
 uuid = "fb53e0a2-6b86-11e9-00f0-4309d342e282"
 version = "0.1.0"
 

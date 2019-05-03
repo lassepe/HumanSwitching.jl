@@ -36,7 +36,7 @@ using ARDESPOT
 using POMCPOW
 
 # used for graph search
-using GraphSearchLight
+using GraphSearchZero
 using NearestNeighbors
 using Reel
 import Base: ==
