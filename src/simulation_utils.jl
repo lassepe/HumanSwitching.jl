@@ -302,12 +302,12 @@ end
 function simulation_hbm_map(problem_instance::ProblemInstance, i_run::Int)
     simulation_rng = MersenneTwister(i_run + 1)
     return Dict{String, SimulationHBMEntry}(
-        # "HumanMultiGoalBoltzmann_all_goals" => HumanMultiGoalBoltzmann(goals=problem_instance.human_goals(problem_instance.room),
-        #                                                                beta_min=50, beta_max=50,
-        #                                                                goal_resample_sigma=0.05,
-        #                                                                beta_resample_sigma=0.0),
-        "HumanDeterministicPlanner" => HumanDeterministicPlanner(goals=problem_instance.human_goals(problem_instance.room),
-                                                                 obstacles=problem_instance.human_obstacles(problem_instance.room))
+        "HumanMultiGoalBoltzmann_all_goals" => HumanMultiGoalBoltzmann(goals=problem_instance.human_goals(problem_instance.room),
+                                                                       beta_min=50, beta_max=50,
+                                                                       goal_resample_sigma=0.05,
+                                                                       beta_resample_sigma=0.0),
+        # "HumanDeterministicPlanner" => HumanDeterministicPlanner(goals=problem_instance.human_goals(problem_instance.room),
+        #                                                          obstacles=problem_instance.human_obstacles(problem_instance.room))
        )
 end
 
