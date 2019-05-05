@@ -20,7 +20,7 @@ end
 end
 
 function main()
-    for solver_key in ["ProbObstacles", "GapChecking"]
+    for solver_key in ["POMCPOW"]
         @info "Running simulations..."
         data = parallel_sim(1:1000, solver_key; problem_instance_keys=["CornerGoalsNonTrivial"])
         @info "Writing data..."
