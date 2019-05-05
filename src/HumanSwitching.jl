@@ -43,14 +43,13 @@ using Reel
 import Base: ==
 
 # used for simulation utils
-using CPUTime
 using Distributed
 using POMDPGifs
 using D3Trees
 
 # packages that are extended by this module
 import ParticleFilters # modified in particle_fitler.jl
-import POMDPs # modified in particle_filter.jl and cpu_timing_wrappers.jl
+import POMDPs # modified in particle_filter.jl and timing_wrappers.jl
 import POMDPModelTools: render, action_info, update_info # modified in visualization.jl
 import MCTS: MCTS, node_tag
 
@@ -207,7 +206,7 @@ include("prob_obstacle_solver/belief_propagator.jl")
 export
     TimedPolicy,
     TimedUpdater
-include("cpu_timing_wrappers.jl")
+include("timing_wrappers.jl")
 
 include("switching_policies.jl")
 

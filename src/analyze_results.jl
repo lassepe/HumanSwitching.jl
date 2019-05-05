@@ -7,7 +7,7 @@ function plot_points(data::DataFrame)
 		for solver_type in unique(data.solver_setup_key)
 			common_rows = data[(data[:planner_hbm_key] .== planner_type).&(data[:solver_setup_key] .== solver_type), :]
 			value = common_rows[:normalized_discounted_reward]
-			compute = common_rows[:combined_median_cpu_time]
+			compute = common_rows[:combined_median_time]
 			push!(df, (planner_type.*solver_type, mean(value), std(value)/sqrt(size(common_rows,1)), mean(compute), std(compute)/sqrt(size(common_rows,1))))
 		end
 	end
@@ -17,7 +17,7 @@ function plot_points(data::DataFrame)
 		     	       ymin=(df.MeanValue - df.SEMValue), ymax=(df.MeanValue + df.SEMValue),
 		     	       color=df.Model, Geom.point, Geom.errorbar, Guide.xlabel("Compute"), Guide.ylabel("Value"))
 
-	scatter = plot(data, x=:combined_median_cpu_time, y=:normalized_discounted_reward, color=(data.planner_hbm_key.*data.solver_setup_key), Geom.point)
+	scatter = plot(data, x=:combined_median_time, y=:normalized_discounted_reward, color=(data.planner_hbm_key.*data.solver_setup_key), Geom.point)
 
 	success_rate =  plot(data, xgroup=:planner_hbm_key, x=:final_state_type, color=:planner_hbm_key, Geom.subplot_grid(Geom.histogram),
                          Gadfly.Theme(major_label_font_size=8pt, minor_label_font_size=8pt, key_position=:none))
@@ -81,7 +81,7 @@ function transform_data(data::DataFrame; shorten_names::Bool=true)
     modified_data = !shorten_names ? data : @linq data |> transform(planner_hbm_key=simplify_hbm_name.(:planner_hbm_key),
                                                                             simulation_hbm_key=simplify_hbm_name.(:simulation_hbm_key))
 
-    modified_data[:combined_median_cpu_time] = modified_data[:median_updater_time] .+ modified_data[:median_prediction_time] .+ modified_data[:median_planning_time]
+    modified_data[:combined_median_time] = modified_data[:median_updater_time] .+ modified_data[:median_prediction_time] .+ modified_data[:median_planning_time]
     modified_data[:normalized_discounted_reward] = modified_data[:discounted_reward] .- modified_data[:free_space_estimate]
 
     # sanity check the data

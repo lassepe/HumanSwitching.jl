@@ -122,50 +122,49 @@ function POMDPModelTools.action_info(po::ProbObstaclePolicy, b; debug=false)
     rp0 = robot_pos(e0)
     hp0 = human_pos(e0)
 
-    CPUtic()
-    belief_predictions[1] = ParticleCollection(predict(po.sol.belief_propagator, decoupled(b0)))
-    # recursive propagation of open loop predictions
-    for i in 2:po.sol.max_search_depth
-        belief_predictions[i] = ParticleCollection(predict(po.sol.belief_propagator, belief_predictions[i-1]))
-    end
-    prediction_cpu_time = CPUtoq()
-
-
-    CPUtic()
-    prob_obstacle_trees = [KDTree([first(p) for p in particles(bp)]) for bp in belief_predictions]
-    # setup the probabilistic search problem
-    heuristic = (s::ProbObstacleSearchState) -> begin
-        min_remaining_steps = remaining_step_estimate(po.pomdp, s.rp)
-        h = -min_remaining_steps * reward_model(po.pomdp).living_penalty
-        return h
-    end
-
-    prob_search_problem = ProbObstacleSearchProblem(prob_obstacle_trees=prob_obstacle_trees,
-                                                    start_state=ProbObstacleSearchState(rp0, 0),
-                                                    model=po.pomdp,
-                                                    collision_prob_thresh=po.sol.collision_prob_thresh,
-                                                    max_search_depth=po.sol.max_search_depth)
-
-    # solve the probabilistic obstacle avoidance problem using a-star
-    aseq::Vector{HSAction}, sseq::Vector{ProbObstacleSearchState} = try
-        weighted_astar_search(prob_search_problem, heuristic, 0.2)
-    catch e
-        if !(e isa InfeasibleSearchProblemError)
-            rethrow(e)
-        elseif debug
-            @warn("No Solution found. Using default action.")
+    prediction_time = @elapsed begin
+        belief_predictions[1] = ParticleCollection(predict(po.sol.belief_propagator, decoupled(b0)))
+        # recursive propagation of open loop predictions
+        for i in 2:po.sol.max_search_depth
+            belief_predictions[i] = ParticleCollection(predict(po.sol.belief_propagator, belief_predictions[i-1]))
         end
-        # use default action (no fault collision) instead
-        ([zero(HSAction)], [prob_search_problem.start_state])
     end
-    planning_cpu_time = CPUtoq()
+
+    planning_time  = @elapsed begin
+        prob_obstacle_trees = [KDTree([first(p) for p in particles(bp)]) for bp in belief_predictions]
+        # setup the probabilistic search problem
+        heuristic = (s::ProbObstacleSearchState) -> begin
+            min_remaining_steps = remaining_step_estimate(po.pomdp, s.rp)
+            h = -min_remaining_steps * reward_model(po.pomdp).living_penalty
+            return h
+        end
+
+        prob_search_problem = ProbObstacleSearchProblem(prob_obstacle_trees=prob_obstacle_trees,
+                                                        start_state=ProbObstacleSearchState(rp0, 0),
+        model=po.pomdp,
+        collision_prob_thresh=po.sol.collision_prob_thresh,
+        max_search_depth=po.sol.max_search_depth)
+
+        # solve the probabilistic obstacle avoidance problem using a-star
+        aseq::Vector{HSAction}, sseq::Vector{ProbObstacleSearchState} = try
+            weighted_astar_search(prob_search_problem, heuristic, 0.2)
+        catch e
+            if !(e isa InfeasibleSearchProblemError)
+                rethrow(e)
+            elseif debug
+                @warn("No Solution found. Using default action.")
+            end
+            # use default action (no fault collision) instead
+            ([zero(HSAction)], [prob_search_problem.start_state])
+        end
+    end
 
     info = (m=po.pomdp,
             belief_predictions=belief_predictions,
             action_sequence=aseq,
             state_sequence=sseq,
-            prediction_cpu_time=prediction_cpu_time,
-            planning_cpu_time=planning_cpu_time)
+            prediction_time=prediction_time,
+            planning_time=planning_time)
 
     return first(aseq), info
 end
