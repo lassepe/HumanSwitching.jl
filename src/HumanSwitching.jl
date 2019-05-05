@@ -203,12 +203,12 @@ export
     predict
 include("prob_obstacle_solver/belief_propagator.jl")
 
+include("switching_policies.jl")
+
 export
     TimedPolicy,
     TimedUpdater
 include("timing_wrappers.jl")
-
-include("switching_policies.jl")
 
 export
     ProbObstacleSolver,

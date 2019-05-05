@@ -22,8 +22,9 @@ function POMDPModelTools.action_info(tp::TimedPolicy, x; kwargs...)
     else
         # some policies don't distinguish between prediciton and planning
         # Thus, we fall back to 0.0
+        planning_time = get(i, :planning_time, nothing)
         info = merge(i, Dict(:prediction_time=>get(i, :prediction_time, 0.0),
-                             :planning_time=>get(i, :planning_time, planning_time_wrapped)))
+                             :planning_time=>(!isnothing(planning_time) ? planning_time : planning_time_wrapped)))
     end
     return action, info
 end

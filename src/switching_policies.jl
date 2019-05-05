@@ -29,7 +29,7 @@ function POMDPModelTools.action_info(gap_policy::GapCheckingPolicy, b::AbstractP
     end
 
     # simulate the future using the upper bound policy
-    has_gap = () -> begin
+    check_gap = () -> begin
         if is_human_reachable(rp0, 0)
             return true
         elseif at_robot_goal(gap_policy.problem, rp0)
@@ -50,15 +50,20 @@ function POMDPModelTools.action_info(gap_policy::GapCheckingPolicy, b::AbstractP
         return false
     end
 
+
+    gapchecking_time = @elapsed has_gap = check_gap()
+
     # there is no gap, we can skip the tedious computation
-    if !has_gap()
+    if !has_gap
         a, info = action_info(upper_bound_policy, rp0)
 	policy_used = upper_bound_policy
     else
     	a, info = action_info(gap_policy.smarter_policy, b)
 	policy_used = gap_policy.smarter_policy
     end
-    info = (policy_used=policy_used, policy_info=info, FRS_radii=FRS_radii)
+    info = (policy_used=policy_used, policy_info=info, FRS_radii=FRS_radii,
+            prediction_time=gapchecking_time+(!isnothing(info) ? get(info, :prediction_time, 0.0) : 0.0),
+            planning_time=!isnothing(info) ? get(info, :planning_time, nothing) : nothing)
     return a, info
 end
 
