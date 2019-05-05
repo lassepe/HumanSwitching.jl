@@ -3,7 +3,7 @@ using Dates
 using DataFrames
 using Distributed
 
-const desired_nworkers = 17
+const desired_nworkers = 10
 
 if nworkers() != desired_nworkers
     wait(rmprocs(workers()))
