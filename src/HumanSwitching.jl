@@ -1,5 +1,7 @@
 module HumanSwitching
 
+using Requires
+
 using ProgressMeter
 using LibGit2
 using Parameters
@@ -9,23 +11,6 @@ using Random
 using Distributions
 using Statistics
 using InteractiveUtils
-
-# visualization
-using Blink
-using Cairo:
-    CairoRGBSurface,
-    write_to_png
-using Compose
-using ColorSchemes, Colors
-using DataFrames
-using DataFramesMeta
-using CSV
-using Gadfly:
-    Gadfly,
-    Geom,
-    Guide,
-    Coord,
-    plot
 
 # POMDP libraries
 using POMDPs
@@ -46,6 +31,7 @@ import Base: ==
 using Distributed
 using POMDPGifs
 using D3Trees
+using DataFrames
 
 # packages that are extended by this module
 import ParticleFilters # modified in particle_fitler.jl
@@ -185,18 +171,6 @@ export
 include("estimate_value_policies.jl")
 
 export
-    plot_points,
-    plot_full,
-    plot_problem_instance,
-    extract_value_compute,
-    load_data,
-    check_data,
-    success_rate,
-    filter_by_planner,
-    tail_expectation
-include("analyze_results.jl")
-
-export
     BeliefPropagator,
     ParticleBeliefPropagator,
     predict!,
@@ -227,12 +201,42 @@ export
     debug_with_plan
 include("simulation_utils.jl")
 
-export
-    render_step_compose,
-    render_step_svg,
-    render_step_blink,
-    render,
-    render_plan
-include("visualize.jl")
+# If compose is loaded, also compile the visualzation code
+@require Compose="a81c6b42-2e10-5240-aca2-a61377ecd94b" @eval begin
+    using Blink
+    using Cairo:
+    CairoRGBSurface,
+    write_to_png
+    using ColorSchemes, Colors
+    using DataFrames
+    using DataFramesMeta
+    using CSV
+    using Gadfly:
+    Gadfly,
+    Geom,
+    Guide,
+    Coord,
+    plot
+
+    export
+        plot_points,
+        plot_full,
+        plot_problem_instance,
+        extract_value_compute,
+        load_data,
+        check_data,
+        success_rate,
+        filter_by_planner,
+        tail_expectation
+    include("analyze_results.jl")
+
+    export
+        render_step_compose,
+        render_step_svg,
+        render_step_blink,
+        render,
+        render_plan
+    include("visualize.jl")
+end
 
 end # module
