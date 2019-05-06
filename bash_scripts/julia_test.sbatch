@@ -1,7 +1,7 @@
 #!/bin/bash
 #
 #SBATCH --job-name=julia_test
-#SBATCH --output=slurm_output/slurm-%A_%a.out
+#SBATCH --output=slurm_output/slurm-%A_%a_%N.out
 #SBATCH --account=fc_hybrid
 
 #SBATCH --partition=savio2
