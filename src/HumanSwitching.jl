@@ -19,6 +19,7 @@ using POMDPPolicies
 using ParticleFilters
 using ARDESPOT
 using POMCPOW
+using BasicPOMCP
 
 # used for graph search
 using GraphSearchZero

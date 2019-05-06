@@ -258,16 +258,18 @@ end
 
 function solver_setup_map(planner_setup::PlannerSetup, planner_model::HSModel, rng::MersenneTwister)
     return Dict{String, Union{Solver, Policy}}(
-                                               # TODO: DESPOT needs value estimate at end to reduce rollout length!
+                                               "POMCP" => begin
+						       POMCPSolver(max_depth=20, c=1.0, tree_queries=1000, estimate_value=free_space_estimate, 
+								   max_time=Inf, rng=deepcopy(rng), tree_in_info=true)
+					       end,
+					       # TODO: DESPOT needs value estimate at end to reduce rollout length!
                                                "DESPOT" => begin
                                                    default_policy = StraightToGoal(planner_model)
-                                                   # alternative lower bound: DefaultPolicyLB(default_policy)
                                                    bounds = IndependentBounds(DefaultPolicyLB(default_policy), free_space_estimate, check_terminal=true)
 
                                                    DESPOTSolver(K=cld(planner_setup.n_particles, 10), D=70, max_trials=20, T_max=Inf, lambda=0.00001,
                                                                 bounds=bounds, rng=deepcopy(rng), tree_in_info=true)
                                                end,
-                                               "StraightToGoal" => StraightToGoal(planner_model),
                                                "POMCPOW" => begin
                                                    # TODO: use separate setting for tree quries
                                                    POMCPOWSolver(tree_queries=floor(planner_setup.n_particles*2.5), max_depth=70, criterion=MaxUCB(500),
@@ -286,7 +288,7 @@ function solver_setup_map(planner_setup::PlannerSetup, planner_model::HSModel, r
                                                    pbp = ParticleBeliefPropagator(human_predictor, n_particles, deepcopy(rng))
                                                    ProbObstacleSolver(belief_propagator=pbp)
                                                end,
-                                               "GapChecking" => begin
+					       "GapChecking" => begin
                                                    n_particles = 1000
                                                    human_predictor = PredictModel{HSHumanState}((hs::HSHumanState, rng::AbstractRNG) -> begin
                                                                                                     human_pos, hbs = hs
@@ -295,17 +297,18 @@ function solver_setup_map(planner_setup::PlannerSetup, planner_model::HSModel, r
                                                    pbp = ParticleBeliefPropagator(human_predictor, n_particles, deepcopy(rng))
                                                    prob_obstacle_policy = solve(ProbObstacleSolver(belief_propagator=pbp), planner_model)
                                                    GapCheckingPolicy(smarter_policy=prob_obstacle_policy, problem=planner_model)
-                                               end
+                                               end,
+					       "StraightToGoal" => StraightToGoal(planner_model)
                                               )
 end
 
 function simulation_hbm_map(problem_instance::ProblemInstance, i_run::Int)
     simulation_rng = MersenneTwister(i_run + 1)
     return Dict{String, SimulationHBMEntry}(
-        # "HumanMultiGoalBoltzmann_all_goals" => HumanMultiGoalBoltzmann(goals=problem_instance.human_goals(problem_instance.room),
-        #                                                                beta_min=50, beta_max=50,
-        #                                                                goal_resample_sigma=0.05,
-        #                                                                beta_resample_sigma=0.0),
+        "HumanMultiGoalBoltzmann_all_goals" => HumanMultiGoalBoltzmann(goals=problem_instance.human_goals(problem_instance.room),
+                                                                       beta_min=50, beta_max=50,
+                                                                       goal_resample_sigma=0.05,
+                                                                       beta_resample_sigma=0.0),
         "HumanDeterministicPlanner" => HumanDeterministicPlanner(goals=problem_instance.human_goals(problem_instance.room),
                                                                  obstacles=problem_instance.human_obstacles(problem_instance.room))
        )
@@ -374,9 +377,9 @@ function parallel_sim(runs::UnitRange{Int}, solver_setup_keys::Array{String};
         end
     end
     # Simulation is launched in parallel mode. In order for this to work, julia
-    # musst be started as: `julia -p n`, where n is the number of
+    # must be started as: `julia -p n`, where n is the number of
     # workers/processes
-    data = run_parallel(sims) do sim::Sim, hist::SimHistory
+    data = run(sims) do sim::Sim, hist::SimHistory
         return [:n_steps => n_steps(hist),
                 :discounted_reward => discounted_reward(hist),
                 :hist_validation_hash => validation_hash(hist),
