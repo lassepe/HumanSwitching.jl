@@ -31,9 +31,9 @@ end
 end
 
 function main()
-    solver_keys = ["POMCPOW"]
+    solver_keys = ["POMCPOW", "ProbObstacles", "GapChecking"]
     @info "Running simulations..."
-    data = parallel_sim(1:100, solver_keys; problem_instance_keys=["CornerGoalsNonTrivial"], ignore_uncommited_changes=true)
+    data = parallel_sim(1:1000, solver_keys; problem_instance_keys=["CornerGoalsNonTrivial"])
     @info "Writing data..."
     result_dir = realpath("$(@__DIR__)/../results/")
     file_name = "sim_results-$(gethostname())-$(now())-$(join(solver_keys, "_")).csv"
