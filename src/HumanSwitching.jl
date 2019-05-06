@@ -201,41 +201,44 @@ export
 include("simulation_utils.jl")
 
 # If compose is loaded, also compile the visualzation code
-@require Compose="a81c6b42-2e10-5240-aca2-a61377ecd94b" @eval begin
-    using Blink
-    using Cairo:
-    CairoRGBSurface,
-    write_to_png
-    using ColorSchemes, Colors
-    using DataFrames
-    using DataFramesMeta
-    using CSV
-    using Gadfly:
-    Gadfly,
-    Geom,
-    Guide,
-    Coord,
-    plot
+function __init__()
+    @require Compose="a81c6b42-2e10-5240-aca2-a61377ecd94b" @eval begin
+        using Compose
+        using Blink
+        using Cairo:
+        CairoRGBSurface,
+        write_to_png
+        using ColorSchemes, Colors
+        using DataFrames
+        using DataFramesMeta
+        using CSV
+        using Gadfly:
+        Gadfly,
+        Geom,
+        Guide,
+        Coord,
+        plot
 
-    export
-        plot_points,
-        plot_full,
-        plot_problem_instance,
-        extract_value_compute,
-        load_data,
-        check_data,
-        success_rate,
-        filter_by_planner,
-        tail_expectation
-    include("analyze_results.jl")
+        export
+            plot_points,
+            plot_full,
+            plot_problem_instance,
+            extract_value_compute,
+            load_data,
+            check_data,
+            success_rate,
+            filter_by_planner,
+            tail_expectation
+        include("analyze_results.jl")
 
-    export
-        render_step_compose,
-        render_step_svg,
-        render_step_blink,
-        render,
-        render_plan
-    include("visualize.jl")
+        export
+            render_step_compose,
+            render_step_svg,
+            render_step_blink,
+            render,
+            render_plan
+        include("visualize.jl")
+    end
 end
 
 end # module
