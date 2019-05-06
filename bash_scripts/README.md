@@ -58,7 +58,7 @@ Host SavioTransfer
     - connect to Savio via ssh using `ssh SavioLogin`
     - load the Julia module: `module load julia/1.1.0`
     - setup `POMDPs.jl`
-    ```
+    ```julia
     using Pkg
     Pkg.add("POMDPs")
     using POMDPs
@@ -70,7 +70,7 @@ Host SavioTransfer
     - connect to Savio via ssh using `ssh SavioLogin` and navigate to the project directory in `~/worktree/HumanSwitching.jl/` and
       start Julia in project mode `module load julia/1.1.0; julia --project`
     - from the Julia `REPL` run the following code (making sure that it finishes without errors)
-    ```
+    ```julia
     using Pkg
     Pkg.instantiate()
     ```

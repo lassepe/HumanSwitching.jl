@@ -12,13 +12,9 @@ Make use you have installed:
 
 First you need to setup the POMDPs.jl registry so that all dependencies can be found:
 
-To install POMDPs.jl, run the following from the Julia REPL: 
+To install `POMDPs.jl` and setup the registry, run the following from the Julia `REPL`:
 ```julia
 Pkg.add("POMDPs")
-```
-
-To install supported JuliaPOMDP packages including various solvers, first run:
-```julia
 using POMDPs
 POMDPs.add_registry()
 ```
@@ -43,3 +39,7 @@ This package comes with a bunch of unit tests that can be run to see whether the
 ```julia
 test
 ```
+
+# Scripts and Running Experiments on clusters
+
+Instructions can be found in `./bash_scripts/README.md`.
