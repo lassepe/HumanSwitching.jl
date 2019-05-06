@@ -25,7 +25,7 @@ function main()
     data = parallel_sim(1:1000, solver_keys; problem_instance_keys=["CornerGoalsNonTrivial"])
     @info "Writing data..."
     result_dir = realpath("$(@__DIR__)/../results/")
-    file_name = "sim_results-$(gethostname())-$(now())-$(join(solver_key, "_")).csv"
+    file_name = "sim_results-$(gethostname())-$(now())-$(join(solver_keys, "_")).csv"
     file = CSV.write(joinpath(result_dir, file_name), data)
     @info "All done! Wrote results to $file."
 end
