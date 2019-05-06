@@ -20,15 +20,14 @@ end
 end
 
 function main()
-    for solver_key in ["POMCPOW"]
-        @info "Running simulations..."
-        data = parallel_sim(1:1000, solver_key; problem_instance_keys=["CornerGoalsNonTrivial"])
-        @info "Writing data..."
-        result_dir = realpath("$(@__DIR__)/../results/")
-        file_name = "sim_results-$(gethostname())-$(now())-$(solver_key).csv"
-        file = CSV.write(joinpath(result_dir, file_name), data)
-        @info "All done! Wrote results to $file."
-    end
+    solver_keys = ["POMCPOW"]
+    @info "Running simulations..."
+    data = parallel_sim(1:1000, solver_keys; problem_instance_keys=["CornerGoalsNonTrivial"])
+    @info "Writing data..."
+    result_dir = realpath("$(@__DIR__)/../results/")
+    file_name = "sim_results-$(gethostname())-$(now())-$(join(solver_key, "_")).csv"
+    file = CSV.write(joinpath(result_dir, file_name), data)
+    @info "All done! Wrote results to $file."
 end
 
 main()

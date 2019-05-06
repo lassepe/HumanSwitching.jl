@@ -1,5 +1,5 @@
 @testset "Adversarial Sampling" begin
-    test_data = parallel_sim(1:50, "StraightToGoal";
+    test_data = parallel_sim(1:50, ["StraightToGoal"];
                              problem_instance_keys=["CornerGoalsNonTrivial"],
                              ignore_uncommited_changes=true)
     # any non-trivial scenario should not be solved succesfully with the straight to goal policy

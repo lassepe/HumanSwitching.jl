@@ -327,7 +327,7 @@ Fuction that runs experiments [runs] times.
 
 Note: If keyset is not specified, all entries of the corresponding maps will be used.
 """
-function parallel_sim(runs::UnitRange{Int}, solver_setup_key::String;
+function parallel_sim(runs::UnitRange{Int}, solver_setup_keys::Array{String};
                       problem_instance_keys::Union{Array{String}, Nothing} = nothing,
                       planner_hbm_keys::Union{Array{String}, Nothing} = nothing,
                       simulation_hbm_keys::Union{Array{String}, Nothing} = nothing,
@@ -363,10 +363,13 @@ function parallel_sim(runs::UnitRange{Int}, solver_setup_key::String;
             @assert all(in.(simulation_hbm_keys, (keys(simulation_hbm_map(pi_entry, i_run)),)))
         end
         for simulation_hbm_key in simulation_hbm_keys
-            simulation_model = setup_simulation_model(MersenneTwister(i_run), pi_entry, simulation_hbm_key, i_run)
-            for planner_hbm_key in planner_hbm_keys
-                @async push!(sims, @fetch setup_test_scenario(pi_key, simulation_model, simulation_hbm_key, planner_hbm_key, solver_setup_key, i_run))
-            end
+            # computing simultion_models might take a little longer (due to
+            # adversarial scenario generation). Thus, we perform this in an
+            # asynchronous fashion distributed over multiple workers.
+            @async append!(sims, @fetch begin
+                               simulation_model = setup_simulation_model(MersenneTwister(i_run), pi_entry, simulation_hbm_key, i_run)
+                               [setup_test_scenario(pi_key, simulation_model, simulation_hbm_key, planner_hbm_key, solver_setup_key, i_run) for planner_hbm_key in planner_hbm_keys, solver_setup_key in solver_setup_keys]
+                           end)
         end
     end
     # Simulation is launched in parallel mode. In order for this to work, julia
