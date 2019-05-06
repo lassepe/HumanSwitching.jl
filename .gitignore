@@ -9,6 +9,9 @@ renderings/*
 results/*
 !results/.gitkeep
 
+slurm_output/*
+!slurm_output/.gitkeep
+
 test/test_renderings/*
 !test/test_renderings/.gitkeep
 
