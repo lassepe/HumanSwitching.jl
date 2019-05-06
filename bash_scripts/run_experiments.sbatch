@@ -10,7 +10,7 @@
 #SBATCH --ntasks-per-node=24
 #SBATCH --mem=32G
 
-#SBATCH --time=00:10:00
+#SBATCH --time=03:00:00
 #SBATCH --mail-type=END,FAIL
 #SBATCH --mail-user=lasse.peters@berkeley.edu
 
