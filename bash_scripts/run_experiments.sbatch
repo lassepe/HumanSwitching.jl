@@ -1,12 +1,12 @@
 #!/bin/bash
 #
 #SBATCH --job-name=julia_test
-#SBATCH --output=slurm_output/slurm-%A_%a_%N.out
+#SBATCH --output=results/slurm-%A_%a_%N.out
 #SBATCH --account=fc_hybrid
 
 #SBATCH --partition=savio2
 #SBATCH --qos=savio_normal
-#SBATCH --nodes=1
+#SBATCH --nodes=2
 #SBATCH --ntasks-per-node=24
 #SBATCH --mem=32G
 
