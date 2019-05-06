@@ -20,7 +20,7 @@ Host Dragan-DGX-Station
 - `connect_dgx` connects to the `Dragan-DGX-Station` via ssh and attaches to the `tmux` session
     - avoid closing the session. Use the detach session of `tmux`.
 - `deploy_dgx` uses `rsync` to sync the local project folder to the `Dragan-DGX-Station`
-- `download_dgx` downloads the results from the remote machines `.../HumanSwitching.jl/resutls/` directory to the local machines `.../HumanSwitching.jl/results/`
+- `download_dgx` downloads the results from the remote machines `./resutls/` directory to the local machines `./results/`
 
 # Savio Cluster
 
@@ -43,7 +43,7 @@ Host SavioTransfer
   User <brc_user_name>
 ```
 
-2. Create a file called `savio_username` in `.../HumanSwitching/bash_scripts/savio_config/` containing only your cluster user name (same as in step 1 for `<brc_user_name>`)
+2. Create a file called `savio_username` in `./bash_scripts/savio_config/` containing only your cluster user name (same as in step 1 for `<brc_user_name>`)
 
 3. Configure `tmux` on your `brc` account
     - connect to your account via `ssh`. If you have completed `1.` this is as simple as typing `ssh SavioLogin`
@@ -66,7 +66,7 @@ Host SavioTransfer
     ```
 6. Instantiate dependencies
     - **Note:** Technically this would happen automatically when you launch your first job. However, there is no need to waste compute units/credits by running this in batch mode. Therefore, we do it manually.
-    - deploy the repository to Savio: On you local machine run the `./deploy_savio` script located in `.../HumanSwitching/bash_scripts/`
+    - deploy the repository to Savio: On you local machine run the `./deploy_savio` script located in `./bash_scripts/`
     - connect to Savio via ssh using `ssh SavioLogin` and navigate to the project directory in `~/worktree/HumanSwitching.jl/` and
       start Julia in project mode `module load julia/1.1.0; julia --project`
     - from the Julia `REPL` run the following code (making sure that it finishes without errors)
