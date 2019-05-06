@@ -1,9 +1,7 @@
 using Revise
+using Compose
 using HumanSwitching
 const HS=HumanSwitching
-using StaticArrays
-using LinearAlgebra
-
 
 function compare_models()
     data_switching = parallel_sim(1:3, "GapChecking"; ignore_uncommited_changes=true)
