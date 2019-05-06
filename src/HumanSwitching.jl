@@ -2,7 +2,6 @@ module HumanSwitching
 
 using Requires
 
-using ProgressMeter
 using LibGit2
 using Parameters
 using StaticArrays
