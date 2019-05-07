@@ -190,7 +190,8 @@ function POMDPs.actions(m::HSModel, obs_node::BeliefNode)
     return actions(m, robot_pos(e))
 end
 
-function POMDPs.actions(m::HSModel, b::AbstractParticleBelief)
+# TODO: continue here
+function POMDPs.actions(m::HSModel, b::Union{AbstractParticleBelief, ScenarioBelief})
     e::HSExternalState = b |> particles |> first |> external
     return actions(m, robot_pos(e))
 end
