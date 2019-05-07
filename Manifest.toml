@@ -43,7 +43,9 @@ uuid = "2a0f44e3-6c83-55bd-87e4-b1978d98bd5f"
 
 [[BasicPOMCP]]
 deps = ["BeliefUpdaters", "CPUTime", "Colors", "D3Trees", "MCTS", "POMDPModelTools", "POMDPPolicies", "POMDPSimulators", "POMDPs", "Parameters", "ParticleFilters", "Printf", "Random"]
-git-tree-sha1 = "e344c80226c8aaef0424c3b361a1be3099ccbf62"
+git-tree-sha1 = "6b7f97f8de8a5bf7c188316cc2a3432a2887328c"
+repo-rev = "master"
+repo-url = "https://github.com/lassepe/BasicPOMCP.jl"
 uuid = "d721219e-3fc6-5570-a8ef-e5402f47c49e"
 version = "0.2.1"
 
@@ -536,10 +538,10 @@ version = "0.4.0"
 uuid = "a63ad114-7e13-5084-954f-fe012c677804"
 
 [[Mustache]]
-deps = ["Printf", "Tables", "Test"]
-git-tree-sha1 = "3cc9a0b673519c5c39186e636d747facb12bf075"
+deps = ["Printf", "Tables"]
+git-tree-sha1 = "d27b8b8b99c052ea1fdd40c678bfb2dfaec4e96e"
 uuid = "ffc61752-8dc7-55ee-8c37-f3e9cdd09e70"
-version = "0.5.11"
+version = "0.5.12"
 
 [[Mux]]
 deps = ["AssetRegistry", "Base64", "HTTP", "Hiccup", "Lazy", "Pkg", "Sockets", "Test", "WebSockets"]
@@ -597,7 +599,9 @@ version = "0.9.7"
 
 [[POMCPOW]]
 deps = ["BasicPOMCP", "CPUTime", "Colors", "D3Trees", "MCTS", "POMDPModelTools", "POMDPPolicies", "POMDPs", "Parameters", "ParticleFilters", "Printf", "Random"]
-git-tree-sha1 = "ed65ce2f8ce2c7980e1bea5a84767b343c459015"
+git-tree-sha1 = "125d6431fb69126d6462a6d426fa688ea6f7cf3b"
+repo-rev = "master"
+repo-url = "https://github.com/lassepe/POMCPOW.jl"
 uuid = "4c53ee00-974c-466f-8fa5-8dd73959bbab"
 version = "0.2.2"
 

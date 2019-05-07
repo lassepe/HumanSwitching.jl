@@ -182,8 +182,16 @@ function POMDPs.actions(m::HSModel, robot_pos::Pos)
     return actions(m)
 end
 
-function POMDPs.actions(m::HSModel, obs_node::T) where T <: POWTreeObsNode
-    e::HSExternalState = isroot(obs_node) ? obs_node |> belief |> particles |> first |> external : current_obs(obs_node)
+function POMDPs.actions(m::HSModel, obs_node::BeliefNode)
+    if isroot(obs_node)
+        return actions(m, belief(obs_node))
+    end
+    e = current_obs(obs_node)::HSExternalState
+    return actions(m, robot_pos(e))
+end
+
+function POMDPs.actions(m::HSModel, b::AbstractParticleBelief)
+    e::HSExternalState = b |> particles |> first |> external
     return actions(m, robot_pos(e))
 end
 
@@ -192,6 +200,11 @@ POMDPs.discount(m::HSModel) = reward_model(m).discount_factor
 
 # this simple forwards to the different transition models
 function POMDPs.generate_s(m::HSModel, s::HSState, a::HSAction, rng::AbstractRNG)
+    #if !(a in actions(m, robot_pos(s)))
+    #    display(a)
+    #    display(actions(m, robot_pos(s)))
+    #    display(m.aspace)
+    #end
     @assert a in actions(m, robot_pos(s))
 
     human_pos_intent, hbs_p = human_transition(hbs(s), human_behavior_model(m), m, human_pos(s), rng)

@@ -259,10 +259,10 @@ end
 function solver_setup_map(planner_setup::PlannerSetup, planner_model::HSModel, rng::MersenneTwister)
     return Dict{String, Union{Solver, Policy}}(
                                                "POMCP" => begin
-						       POMCPSolver(max_depth=20, c=1.0, tree_queries=1000, estimate_value=free_space_estimate, 
-								   max_time=Inf, rng=deepcopy(rng), tree_in_info=true)
-					       end,
-					       # TODO: DESPOT needs value estimate at end to reduce rollout length!
+                                                   POMCPSolver(max_depth=20, c=1.0, tree_queries=1000, estimate_value=free_space_estimate,
+                                                       max_time=Inf, rng=deepcopy(rng), tree_in_info=true)
+                                               end,
+                                               # TODO: DESPOT needs value estimate at end to reduce rollout length!
                                                "DESPOT" => begin
                                                    default_policy = StraightToGoal(planner_model)
                                                    bounds = IndependentBounds(DefaultPolicyLB(default_policy), free_space_estimate, check_terminal=true)
@@ -288,7 +288,7 @@ function solver_setup_map(planner_setup::PlannerSetup, planner_model::HSModel, r
                                                    pbp = ParticleBeliefPropagator(human_predictor, n_particles, deepcopy(rng))
                                                    ProbObstacleSolver(belief_propagator=pbp)
                                                end,
-					       "GapChecking" => begin
+					                           "GapChecking" => begin
                                                    n_particles = 1000
                                                    human_predictor = PredictModel{HSHumanState}((hs::HSHumanState, rng::AbstractRNG) -> begin
                                                                                                     human_pos, hbs = hs
@@ -298,7 +298,7 @@ function solver_setup_map(planner_setup::PlannerSetup, planner_model::HSModel, r
                                                    prob_obstacle_policy = solve(ProbObstacleSolver(belief_propagator=pbp), planner_model)
                                                    GapCheckingPolicy(smarter_policy=prob_obstacle_policy, problem=planner_model)
                                                end,
-					       "StraightToGoal" => StraightToGoal(planner_model)
+					                           "StraightToGoal" => StraightToGoal(planner_model)
                                               )
 end
 
