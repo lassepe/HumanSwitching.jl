@@ -20,9 +20,9 @@ end
 
 """
 Define three dictionaries that:
-    1. Maps a key to a corresponding problem instance.
-    2. Maps a key to a corresponding model instance for the planner.
-    3. Maps a key to a corresponding true model instance for the simulator.
+1. Maps a key to a corresponding problem instance.
+2. Maps a key to a corresponding model instance for the planner.
+3. Maps a key to a corresponding true model instance for the simulator.
 """
 # order (human_start_pos, robot_start_pos, human_goal_pos, robot_goal_pos)
 const SimulationHBMEntry = HumanBehaviorModel
@@ -63,13 +63,13 @@ function reproduce_scenario(scenario_data::DataFrameRow;
     # might have changed)
     if !ignore_commit_id && current_commit_id() != scenario_data.git_commit_id
         throw("Reproducing scenario with wrong commit ID!.
-        If you are sure that this is still a good idea to do this, pass
-        `ignore_commit_id=true` as kwarg to the call of `reproduce_scenario`.")
+               If you are sure that this is still a good idea to do this, pass
+              `ignore_commit_id=true` as kwarg to the call of `reproduce_scenario`.")
     end
 
     if !ignore_uncommited_changes && has_uncommited_changes()
         throw("There are uncommited changes. The stored commit-id might not be meaning full.
-        to ignore uncommited changes, set the corresponding kwarg.")
+               to ignore uncommited changes, set the corresponding kwarg.")
     end
 
     i_run = scenario_data[:i_run]
@@ -200,34 +200,35 @@ end
 
 function problem_instance_map()
     room = Room()
-    return Dict{String, ProblemInstance}(
-    # "DiagonalAcross" => ProblemInstance(human_start_pos=Pos(1/10 * room.width, 1/10 * room.height),
-    #                                     robot_start_pos=Pos(8/10 * room.width, 4/10 * room.height),
-    #                                     robot_goal_pos=Pos(1/10 * room.width, 9/10 * room.height),
-    #                                     room=room),
-    # "FrontalCollision" => ProblemInstance(human_start_pos=Pos(1/2 * room.width, 1/10 * room.height),
-    #                                       robot_start_pos=Pos(1/2 * room.width, 9/10 * room.height),
-    #                                       robot_goal_pos=Pos(1/2 * room.width, 1/10 * room.height),
-    #                                       room=room),
-    # "RandomNontrivial" => ProblemInstance(force_nontrivial=true,
-    #                                       room=room,
-    #                                       human_goals=symmetric_goals),
-    # "DiningHallNontrivial" => ProblemInstance(force_nontrivial=true,
-    #                                           room=room,
-    #                                           human_goals=dining_hall_goals),
-    "CornerGoalsNonTrivial" => ProblemInstance(force_nontrivial=true,
-                                               room=room,
-                                               human_goals=corner_positions,
-                                               human_obstacles=outer_obstacles)
-   )
+    problem_instances = [
+                         # "DiagonalAcross" => ProblemInstance(human_start_pos=Pos(1/10 * room.width, 1/10 * room.height),
+                         #                                     robot_start_pos=Pos(8/10 * room.width, 4/10 * room.height),
+                         #                                     robot_goal_pos=Pos(1/10 * room.width, 9/10 * room.height),
+                         #                                     room=room),
+                         # "FrontalCollision" => ProblemInstance(human_start_pos=Pos(1/2 * room.width, 1/10 * room.height),
+                         #                                       robot_start_pos=Pos(1/2 * room.width, 9/10 * room.height),
+                         #                                       robot_goal_pos=Pos(1/2 * room.width, 1/10 * room.height),
+                         #                                       room=room),
+                         # "RandomNontrivial" => ProblemInstance(force_nontrivial=true,
+                         #                                       room=room,
+                         #                                       human_goals=symmetric_goals),
+                         # "DiningHallNontrivial" => ProblemInstance(force_nontrivial=true,
+                         #                                           room=room,
+                         #                                           human_goals=dining_hall_goals),
+                         "CornerGoalsNonTrivial" => ProblemInstance(force_nontrivial=true,
+                                                                    room=room,
+                                                                    human_goals=corner_positions,
+                                                                    human_obstacles=outer_obstacles)
+                        ]
+    return Dict(problem_instances)
 end
 
 abs_pos(rel_pos::Pos, room::Room) = Pos(rel_pos.x*room.width, rel_pos.y*room.height)
 
 symmetric_goals(room::Room) = vcat(corner_positions(room),
-                                    [abs_pos(p, room) for p in [Pos(0.5, 0.5),
-                                                                Pos(0.5, 0.1), Pos(0.5, 0.9),
-                                                                Pos(0.1, 0.5), Pos(0.9, 0.5)]])
+                                   [abs_pos(p, room) for p in [Pos(0.5, 0.5),
+                                                               Pos(0.5, 0.1), Pos(0.5, 0.9),
+                                                               Pos(0.1, 0.5), Pos(0.9, 0.5)]])
 
 dining_hall_goals(room::Room) = vcat([abs_pos(p, room) for p in [Pos(0.2, 0.7), Pos(0.5, 0.7), Pos(0.8, 0.7),
                                                                  Pos(0.2, 0.3), Pos(0.5, 0.3), Pos(0.8, 0.3)]])
@@ -237,77 +238,82 @@ outer_obstacles(room::Room) = vcat([Circle(abs_pos(p, room), 1.2) for p in [Pos(
                                                                             Pos(0.5, 0.2), Pos(0.5, 0.8)]])
 
 function planner_hbm_map(problem_instance::ProblemInstance)
-    return Dict{String, PlannerSetup}(
-        "HumanMultiGoalBoltzmann_all_goals" => PlannerSetup(hbm=HumanMultiGoalBoltzmann(goals=problem_instance.human_goals(problem_instance.room),
-                                                                                        beta_min=0.1, beta_max=50,
-                                                                                        goal_resample_sigma=0.05,
-                                                                                        beta_resample_sigma=0.0),
-                                                            epsilon=0.02,
-                                                            n_particles=8000),
-        "HumanMultiGoalBoltzmann_half_goals" => PlannerSetup(hbm=HumanMultiGoalBoltzmann(goals=problem_instance.human_goals(problem_instance.room)[1:cld(length(problem_instance.human_goals(problem_instance.room)), 2)],
-                                                                                        beta_min=0.1, beta_max=50,
-                                                                                        goal_resample_sigma=0.05,
-                                                                                        beta_resample_sigma=0.0),
-                                                            epsilon=0.02,
-                                                            n_particles=5000),
-        "HumanConstVelBehavior" => PlannerSetup(hbm=HumanConstVelBehavior(vel_resample_sigma=0.0),
-                                                epsilon=0.1,
-                                                n_particles=2000)
-       )
+    planner_setups = [
+                      "HumanMultiGoalBoltzmann_all_goals" => PlannerSetup(hbm=HumanMultiGoalBoltzmann(goals=problem_instance.human_goals(problem_instance.room),
+                                                                                                      beta_min=0.1, beta_max=50,
+                                                                                                      goal_resample_sigma=0.05,
+                                                                                                      beta_resample_sigma=0.0),
+                                                                          epsilon=0.02,
+                                                                          n_particles=8000),
+                      "HumanMultiGoalBoltzmann_half_goals" => PlannerSetup(hbm=HumanMultiGoalBoltzmann(goals=problem_instance.human_goals(problem_instance.room)[1:cld(length(problem_instance.human_goals(problem_instance.room)), 2)],
+                                                                                                       beta_min=0.1, beta_max=50,
+                                                                                                       goal_resample_sigma=0.05,
+                                                                                                       beta_resample_sigma=0.0),
+                                                                           epsilon=0.02,
+                                                                           n_particles=5000),
+                      "HumanConstVelBehavior" => PlannerSetup(hbm=HumanConstVelBehavior(vel_resample_sigma=0.0),
+                                                              epsilon=0.1,
+                                                              n_particles=2000)
+                     ]
+    return Dict(planner_setups)
 end
 
+
 function solver_setup_map(planner_setup::PlannerSetup, planner_model::HSModel, rng::MersenneTwister)
-    return Dict{String, Union{Solver, Policy}}(
-                                               "DESPOT" => begin
-                                                   default_policy = StraightToGoal(planner_model)
-                                                   bounds = IndependentBounds(DefaultPolicyLB(default_policy, final_value=free_space_estimate), free_space_estimate,
-                                                                              check_terminal=true, consistency_fix_thresh=1e-8)
-                                                   DESPOTSolver(K=20, D=60, max_trials=typemax(Int), T_max=0.15, lambda=0.1,
-                                                                bounds=bounds, rng=deepcopy(rng), tree_in_info=true,
-                                                                default_action=default_policy)
-                                               end,
-                                               "StraightToGoal" => StraightToGoal(planner_model),
-                                               "POMCPOW" => begin
-                                                   # TODO: use separate setting for tree quries
-                                                   POMCPOWSolver(tree_queries=floor(planner_setup.n_particles*2.5), max_depth=70, criterion=MaxUCB(500),
-                                                                 k_observation=5, alpha_observation=1.0/30.0,
-                                                                 enable_action_pw=false,
-                                                                 check_repeat_obs=!(planner_setup.hbm isa HumanConstVelBehavior),
-                                                                 check_repeat_act=true,
-                                                                 estimate_value=free_space_estimate, rng=deepcopy(rng))
-                                               end,
-                                               "ProbObstacles" => begin
-                                                   n_particles = 1000
-                                                   human_predictor = PredictModel{HSHumanState}((hs::HSHumanState, rng::AbstractRNG) -> begin
-                                                                                                    human_pos, hbs = hs
-                                                                                                    human_transition(hbs, human_behavior_model(planner_model), planner_model, human_pos, rng)
-                                                                                                end)
-                                                   pbp = ParticleBeliefPropagator(human_predictor, n_particles, deepcopy(rng))
-                                                   ProbObstacleSolver(belief_propagator=pbp)
-                                               end,
-                                               "GapChecking" => begin
-                                                   n_particles = 1000
-                                                   human_predictor = PredictModel{HSHumanState}((hs::HSHumanState, rng::AbstractRNG) -> begin
-                                                                                                    human_pos, hbs = hs
-                                                                                                    human_transition(hbs, human_behavior_model(planner_model), planner_model, human_pos, rng)
-                                                                                                end)
-                                                   pbp = ParticleBeliefPropagator(human_predictor, n_particles, deepcopy(rng))
-                                                   prob_obstacle_policy = solve(ProbObstacleSolver(belief_propagator=pbp), planner_model)
-                                                   GapCheckingPolicy(smarter_policy=prob_obstacle_policy, problem=planner_model)
-                                               end
-                                              )
+    solvers = [
+               # TODO: DESPOT needs value estimate at end to reduce rollout length!
+               "DESPOT" => begin
+                   default_policy = StraightToGoal(planner_model)
+                   # alternative lower bound: DefaultPolicyLB(default_policy)
+                   bounds = IndependentBounds(DefaultPolicyLB(default_policy), free_space_estimate, check_terminal=true)
+
+                   DESPOTSolver(K=cld(planner_setup.n_particles, 10), D=70, max_trials=20, T_max=Inf, lambda=0.00001,
+                                bounds=bounds, rng=deepcopy(rng), tree_in_info=true)
+               end,
+               "StraightToGoal" => StraightToGoal(planner_model),
+               "POMCPOW" => begin
+                   # TODO: use separate setting for tree quries
+                   POMCPOWSolver(tree_queries=floor(planner_setup.n_particles*2.5), max_depth=70, criterion=MaxUCB(500),
+                                 k_observation=5, alpha_observation=1.0/30.0,
+                                 enable_action_pw=false,
+                                 check_repeat_obs=!(planner_setup.hbm isa HumanConstVelBehavior),
+                                 check_repeat_act=true,
+                                 estimate_value=free_space_estimate, rng=deepcopy(rng))
+               end,
+               "ProbObstacles" => begin
+                   n_particles = 1000
+                   human_predictor = PredictModel{HSHumanState}((hs::HSHumanState, rng::AbstractRNG) -> begin
+                                                                    human_pos, hbs = hs
+                                                                    human_transition(hbs, human_behavior_model(planner_model), planner_model, human_pos, rng)
+                                                                end)
+                   pbp = ParticleBeliefPropagator(human_predictor, n_particles, deepcopy(rng))
+                   ProbObstacleSolver(belief_propagator=pbp)
+               end,
+               "GapChecking" => begin
+                   n_particles = 1000
+                   human_predictor = PredictModel{HSHumanState}((hs::HSHumanState, rng::AbstractRNG) -> begin
+                                                                    human_pos, hbs = hs
+                                                                    human_transition(hbs, human_behavior_model(planner_model), planner_model, human_pos, rng)
+                                                                end)
+                   pbp = ParticleBeliefPropagator(human_predictor, n_particles, deepcopy(rng))
+                   prob_obstacle_policy = solve(ProbObstacleSolver(belief_propagator=pbp), planner_model)
+                   GapCheckingPolicy(smarter_policy=prob_obstacle_policy, problem=planner_model)
+               end
+              ]
+    return Dict(solvers)
 end
 
 function simulation_hbm_map(problem_instance::ProblemInstance, i_run::Int)
     simulation_rng = MersenneTwister(i_run + 1)
-    return Dict{String, SimulationHBMEntry}(
-        "HumanMultiGoalBoltzmann_all_goals" => HumanMultiGoalBoltzmann(goals=problem_instance.human_goals(problem_instance.room),
-                                                                       beta_min=50, beta_max=50,
-                                                                       goal_resample_sigma=0.05,
-                                                                       beta_resample_sigma=0.0),
-        # "HumanDeterministicPlanner" => HumanDeterministicPlanner(goals=problem_instance.human_goals(problem_instance.room),
-        #                                                          obstacles=problem_instance.human_obstacles(problem_instance.room))
-       )
+    simultion_models = [
+                        "HumanMultiGoalBoltzmann_all_goals" => HumanMultiGoalBoltzmann(goals=problem_instance.human_goals(problem_instance.room),
+                                                                                       beta_min=50, beta_max=50,
+                                                                                       goal_resample_sigma=0.05,
+                                                                                       beta_resample_sigma=0.0),
+                        # "HumanDeterministicPlanner" => HumanDeterministicPlanner(goals=problem_instance.human_goals(problem_instance.room),
+                        #                                                          obstacles=problem_instance.human_obstacles(problem_instance.room))
+                       ]
+    return Dict(simultion_models)
 end
 
 function noisy_waypoints(start_p::Pos, end_p::Pos, n_waypoints::Int, rng::AbstractRNG, sigma::Float64)
@@ -368,7 +374,9 @@ function parallel_sim(runs::UnitRange{Int}, solver_setup_keys::Array{String};
             # asynchronous fashion distributed over multiple workers.
             @async append!(sims, @fetch begin
                                simulation_model = setup_simulation_model(MersenneTwister(i_run), pi_entry, simulation_hbm_key, i_run)
-                               [setup_test_scenario(pi_key, simulation_model, simulation_hbm_key, planner_hbm_key, solver_setup_key, i_run) for planner_hbm_key in planner_hbm_keys, solver_setup_key in solver_setup_keys]
+                               [setup_test_scenario(pi_key, simulation_model, simulation_hbm_key, planner_hbm_key, solver_setup_key, i_run)
+                                for planner_hbm_key in planner_hbm_keys, solver_setup_key in solver_setup_keys]
+
                            end)
         end
     end
@@ -391,13 +399,13 @@ end
 function visualize(planner_model, hist, policy; filename::String="visualize_debug")
     makegif(planner_model, hist, filename=joinpath(from_base_dir("renderings"), "$filename.gif"),
             extra_initial=true, show_progress=true,
-	    render_kwargs=(po=policy, sim_hist=hist, show_info=true),
-	    fps=Base.convert(Int, cld(1, dt)))
+            render_kwargs=(po=policy, sim_hist=hist, show_info=true),
+    fps=Base.convert(Int, cld(1, dt)))
 end
 
 function visualize_plan(planner_model, hist::SimHistory, policy::Policy, step::Int;
-		        fps::Int=Base.convert(Int, cld(1, dt)),
-			filename::String="plan")
+                        fps::Int=Base.convert(Int, cld(1, dt)),
+    filename::String="plan")
     policy = unwrap(policy)
     beliefs = collect(eachstep(hist, "b"))
     a, info = action_info(policy, beliefs[step])
@@ -409,7 +417,7 @@ function visualize_plan(planner_model, hist::SimHistory, policy::Policy, step::I
 
     frames = Frames(MIME("image/png"), fps=fps)
     for planning_step in plan
-	push!(frames, render_plan(policy, planner_model, planning_step, hp, rp))
+        push!(frames, render_plan(policy, planner_model, planning_step, hp, rp))
     end
     simplified_policy_name = first(split(string(typeof(policy)), "{"))
     filename = "$simplified_policy_name-$filename-$(lpad(step, 3, "0"))"
