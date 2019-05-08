@@ -76,7 +76,8 @@ function reproduce_scenario(scenario_data::DataFrameRow;
     pi_key = scenario_data[:pi_key]
     simulation_hbm_key = scenario_data[:simulation_hbm_key]
     simulation_model = setup_simulation_model(MersenneTwister(i_run), problem_instance_map()[pi_key], simulation_hbm_key, i_run)
-    sim = setup_test_scenario(pi_key, simulation_model, simulation_hbm_key, scenario_data[:planner_hbm_key], scenario_data[:solver_setup_key], i_run)
+    pi_map, planner_map, solver_map = construct_maps(pi_key, simulation_model, scenario_data[:planner_hbm_key], i_run)
+    sim = setup_test_scenario(pi_key, simulation_model, simulation_hbm_key, scenario_data[:planner_hbm_key], scenario_data[:solver_setup_key], i_run, pi_map, planner_map, solver_map)
 
     # some sanity checks on the hist
     hist = simulate(sim)
@@ -161,12 +162,13 @@ function belief_updater_from_planner_model(planner_setup::PlannerSetup{<:HumanMu
                                    aspace=planner_setup.hbm.aspace)
 end
 
-function setup_test_scenario(pi_key::String, simulation_model::HSModel, simulation_hbm_key::String, planner_hbm_key::String, solver_setup_key::String, i_run::Int)
+function setup_test_scenario(pi_key::String, simulation_model::HSModel, simulation_hbm_key::String, planner_hbm_key::String, solver_setup_key::String, i_run::Int,
+                             pi_map, planner_map, solver_map)
     rng = MersenneTwister(i_run)
 
     # Load in the given instance keys.
-    problem_instance = problem_instance_map()[pi_key]
-    planner_setup = planner_hbm_map(problem_instance)[planner_hbm_key]
+    problem_instance = pi_map[pi_key]
+    planner_setup = planner_map[planner_hbm_key]
 
     # Construct belief updater.
     belief_updater_hbm = belief_updater_from_planner_model(planner_setup)
@@ -175,7 +177,7 @@ function setup_test_scenario(pi_key::String, simulation_model::HSModel, simulati
     belief_updater_model, planner_model = construct_models(deepcopy(rng), simulation_model, belief_updater_hbm, planner_setup.hbm)
     # the belief updater is run with a stochastic version of the world
     belief_updater = BasicParticleFilter(belief_updater_model, SharedExternalStateResampler(planner_setup.n_particles), planner_setup.n_particles, deepcopy(rng))
-    solver = solver_setup_span_map(planner_setup, planner_model, deepcopy(rng))[solver_setup_key]
+    solver = solver_map[solver_setup_key]
     planner = solver isa Policy ? solver : solve(solver, planner_model)
 
     # compose metadata
@@ -196,6 +198,25 @@ function setup_test_scenario(pi_key::String, simulation_model::HSModel, simulati
                rng=deepcopy(rng),
                max_steps=200,
                metadata=md)
+end
+
+function construct_maps(pi_key::String, simulation_model::HSModel, planner_hbm_key::String, i_run::Int)
+    rng = MersenneTwister(i_run)
+
+    # Problem Instance map
+    pi_map = problem_instance_map()
+
+    # Planner map
+    problem_instance = pi_map[pi_key]
+    planner_map = planner_hbm_map(problem_instance)
+
+    # Solver map
+    planner_setup = planner_map[planner_hbm_key]
+    belief_updater_hbm = belief_updater_from_planner_model(planner_setup)
+    belief_updater_model, planner_model = construct_models(deepcopy(rng), simulation_model, belief_updater_hbm, planner_setup.hbm)
+    solver_map = solver_setup_span_map(planner_setup, planner_model, deepcopy(rng))
+
+    return pi_map, planner_map, solver_map
 end
 
 function problem_instance_map()
@@ -411,12 +432,17 @@ function parallel_sim(runs::UnitRange{Int}, solver_setup_keys::Array{String};
             @assert all(in.(simulation_hbm_keys, (keys(simulation_hbm_map(pi_entry, i_run)),)))
         end
         for simulation_hbm_key in simulation_hbm_keys
-            # computing simultion_models might take a little longer (due to
+            # computing simulaition_models might take a little longer (due to
             # adversarial scenario generation). Thus, we perform this in an
             # asynchronous fashion distributed over multiple workers.
             @async append!(sims, @fetch begin
                     simulation_model = setup_simulation_model(MersenneTwister(i_run), pi_entry, simulation_hbm_key, i_run)
-                    [setup_test_scenario(pi_key, simulation_model, simulation_hbm_key, planner_hbm_key, solver_setup_key, i_run) for planner_hbm_key in planner_hbm_keys, solver_setup_key in solver_setup_keys]
+                    test_scenarios = []
+                    for planner_hbm_key in planner_hbm_keys
+                        pi_map, planner_map, solver_map = construct_maps(pi_key, simulation_model, planner_hbm_key, i_run)
+                        append!(test_scenarios, [setup_test_scenario(pi_key, simulation_model, simulation_hbm_key, planner_hbm_key, solver_setup_key, i_run, pi_map, planner_map, solver_map) for solver_setup_key in solver_setup_keys])
+                    end
+                    return test_scenarios
                     end)
         end
     end
