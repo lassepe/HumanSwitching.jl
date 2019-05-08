@@ -222,6 +222,7 @@ function __init__()
         plot
 
         export
+            plot_solver_comparison,
             plot_points,
             plot_full,
             plot_problem_instance,
