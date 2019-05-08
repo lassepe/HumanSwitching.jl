@@ -8,7 +8,6 @@
 #SBATCH --qos=savio_normal
 #SBATCH --nodes=4
 #SBATCH --ntasks-per-node=24
-#SBATCH --mem=64G
 
 #SBATCH --time=20:00:00
 #SBATCH --mail-type=END,FAIL
