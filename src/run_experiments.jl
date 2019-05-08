@@ -5,7 +5,7 @@ using Distributed
 using Pkg
 Pkg.instantiate()
 
-const desired_nworkers = 10
+const desired_nworkers = 30
 
 const IN_SLURM = "SLURM_JOBID" in keys(ENV)
 IN_SLURM && using ClusterManagers
