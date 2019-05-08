@@ -173,13 +173,13 @@ goal_reached_distance(m::HSModel) = mdp(m).goal_reached_distance
 """
 # Implementation of main POMDP Interface
 """
-POMDPs.actions(m::HSModel) = mdp(m).aspace
+POMDPs.actions(m::HSModel) = @assert false
 
 function POMDPs.actions(m::HSModel, robot_pos::Pos)
     robot_to_goal = vec_from_to(robot_pos, robot_goal(m))
     # replace the first action with the current "straight to goal" action
-    actions(m)[1] = HSAction(first(actions(m)).d, atan(robot_to_goal[2], robot_to_goal[1]))
-    return actions(m)
+    mdp(m).aspace[1] = HSAction(first(mdp(m).aspace).d, atan(robot_to_goal[2], robot_to_goal[1]))
+    return mdp(m).aspace
 end
 
 function POMDPs.actions(m::HSModel, obs_node::BeliefNode)

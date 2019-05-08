@@ -24,7 +24,7 @@ snap_to_finite_resolution(p::Pos, digits::Int=5) = Pos(round(p.x, digits=digits)
 function remaining_step_estimate(pos::Pos, goal::Pos, max_step_size::Float64, goal_reached_distance::Float64)
     return clamp(dist_to_pos(pos, goal) - goal_reached_distance, 0, Inf) / max_step_size
 end
-remaining_step_estimate(model::HSModel, rp::Pos) = remaining_step_estimate(rp, robot_goal(model), robot_max_step(actions(model)), goal_reached_distance(model))
+remaining_step_estimate(model::HSModel, rp::Pos) = remaining_step_estimate(rp, robot_goal(model), robot_max_step(mdp(model).aspace), goal_reached_distance(model))
 
 # modifying copy constructors for immutable types
 construct_with(x, p; type_hint=typeof(x)) = type_hint(((f == p.first ? p.second : getfield(x, f)) for f in fieldnames(typeof(x)))...)

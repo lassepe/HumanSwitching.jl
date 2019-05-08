@@ -259,21 +259,19 @@ end
 function solver_setup_map(planner_setup::PlannerSetup, planner_model::HSModel, rng::MersenneTwister)
     return Dict{String, Union{Solver, Policy}}(
                                                "POMCP" => begin
-                                                   POMCPSolver(max_depth=20, c=1.0, tree_queries=1000, estimate_value=free_space_estimate,
-                                                       max_time=Inf, rng=deepcopy(rng), tree_in_info=true)
+                                                   POMCPSolver(max_depth=20, c=1.0, tree_queries=100000, estimate_value=free_space_estimate,
+                                                       max_time=1.0, rng=deepcopy(rng), tree_in_info=true)
                                                end,
-                                               # TODO: DESPOT needs value estimate at end to reduce rollout length!
                                                "DESPOT" => begin
                                                    default_policy = StraightToGoal(planner_model)
-                                                   bounds = IndependentBounds(DefaultPolicyLB(default_policy), free_space_estimate, check_terminal=true)
+                                                   bounds = IndependentBounds(DefaultPolicyLB(default_policy), 0.0, check_terminal=true)
 
-                                                   DESPOTSolver(K=cld(planner_setup.n_particles, 10), D=70, max_trials=20, T_max=Inf, lambda=0.00001,
+                                                   DESPOTSolver(K=cld(planner_setup.n_particles, 10), D=70, T_max=1.0, lambda=0.01,
                                                                 bounds=bounds, rng=deepcopy(rng), tree_in_info=true)
                                                end,
                                                "POMCPOW" => begin
-                                                   # TODO: use separate setting for tree quries
-                                                   POMCPOWSolver(tree_queries=floor(planner_setup.n_particles*2.5), max_depth=70, criterion=MaxUCB(500),
-                                                                 k_observation=5, alpha_observation=1.0/30.0,
+                                                   POMCPOWSolver(tree_queries=100000, max_depth=70, criterion=MaxUCB(500),
+                                                                 k_observation=5, alpha_observation=1.0/30.0, max_time=1.0,
                                                                  enable_action_pw=false,
                                                                  check_repeat_obs=!(planner_setup.hbm isa HumanConstVelBehavior),
                                                                  check_repeat_act=true,
