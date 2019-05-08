@@ -167,18 +167,18 @@ reward_model(m::HSModel) = mdp(m).reward_model
 physical_transition_noise_model(m::HSModel) = mdp(m).physical_transition_noise_model
 room(m::HSModel) = mdp(m).room
 agent_min_distance(m::HSModel) = mdp(m).agent_min_distance
-robot_max_step(as::A) where A <: AbstractVector{HSAction} = first(as).d
+robot_max_step(as::A) where A <: AbstractVector{HSAction} = last(as).d
 goal_reached_distance(m::HSModel) = mdp(m).goal_reached_distance
 
 """
 # Implementation of main POMDP Interface
 """
-POMDPs.actions(m::HSModel) = mdp(m).aspace
+POMDPs.actions(m::HSModel) = mdp(m).aspace[2:end]
 
 function POMDPs.actions(m::HSModel, robot_pos::Pos)
     robot_to_goal = vec_from_to(robot_pos, robot_goal(m))
     # replace the first action with the current "straight to goal" action
-    actions(m)[1] = HSAction(first(actions(m)).d, atan(robot_to_goal[2], robot_to_goal[1]))
+    # actions(m)[1] = HSAction(first(actions(m)).d, atan(robot_to_goal[2], robot_to_goal[1]))
     return actions(m)
 end
 

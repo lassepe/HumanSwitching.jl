@@ -2,9 +2,7 @@
 
 [[ARDESPOT]]
 deps = ["BasicPOMCP", "BeliefUpdaters", "CPUTime", "D3Trees", "POMDPModelTools", "POMDPs", "Parameters", "ParticleFilters", "Printf", "Random"]
-git-tree-sha1 = "a9c99c68e51d1b5b43235c85aea16bddbb8729fc"
-repo-rev = "master"
-repo-url = "https://github.com/JuliaPOMDP/ARDESPOT.jl"
+path = "/home/zach/.julia/dev/ARDESPOT"
 uuid = "d96c9ae4-3372-47d5-8a88-316ae77be8cf"
 version = "0.2.1"
 
@@ -536,10 +534,10 @@ version = "0.4.0"
 uuid = "a63ad114-7e13-5084-954f-fe012c677804"
 
 [[Mustache]]
-deps = ["Printf", "Tables", "Test"]
-git-tree-sha1 = "3cc9a0b673519c5c39186e636d747facb12bf075"
+deps = ["Printf", "Tables"]
+git-tree-sha1 = "d27b8b8b99c052ea1fdd40c678bfb2dfaec4e96e"
 uuid = "ffc61752-8dc7-55ee-8c37-f3e9cdd09e70"
-version = "0.5.11"
+version = "0.5.12"
 
 [[Mux]]
 deps = ["AssetRegistry", "Base64", "HTTP", "Hiccup", "Lazy", "Pkg", "Sockets", "Test", "WebSockets"]
