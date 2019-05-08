@@ -47,7 +47,7 @@ Host SavioTransfer
 
 3. Configure `tmux` on your `brc` account
     - connect to your account via `ssh`. If you have completed `1.` this is as simple as typing `ssh SavioLogin`
-    - if none existing: create a file called `.tmux.conf` and the configuration `new-session` in a separate line.
+    - if none existing: create a file called `.tmux.conf` and add the configuration `new-session` in a separate line.
         This will make sure that upon login with `tmux`, a new session is created, if none exists yet.
 
 4. Create the directory layout on the remote machine
@@ -62,7 +62,7 @@ Host SavioTransfer
     using Pkg
     Pkg.add("POMDPs")
     using POMDPs
-    POMDPs.addregistry()
+    POMDPs.add_registry()
     ```
 6. Instantiate dependencies
     - **Note:** Technically this would happen automatically when you launch your first job. However, there is no need to waste compute units/credits by running this in batch mode. Therefore, we do it manually.
@@ -94,8 +94,8 @@ As soon as the job has finished you will receive an email if setup in
 All of the following commands must be executed while being logged into Savio
 
 - check usage of compute credits:
-    - singe user: `checkUsage.sh`
-    - whole group: `checkUsage -E -a fc_hybrid`
+    - singe user: `check_usage.sh`
+    - whole group: `check_usage -E -a fc_hybrid`
 - view list of submitted jobs: `squeue -u $USER`
 - cancelling a submitted job: `scancel <job-id>`
 - check load on node to see whether your code uses all resources available:
