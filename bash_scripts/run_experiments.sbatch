@@ -6,13 +6,13 @@
 
 #SBATCH --partition=savio2
 #SBATCH --qos=savio_normal
-#SBATCH --nodes=2
+#SBATCH --nodes=5
 #SBATCH --ntasks-per-node=24
 #SBATCH --mem=32G
 
-#SBATCH --time=03:00:00
+#SBATCH --time=20:00:00
 #SBATCH --mail-type=END,FAIL
-#SBATCH --mail-user=lasse.peters@berkeley.edu
+#SBATCH --mail-user=abobu@berkeley.edu
 
 ## Run the actual job
 # unload all modules, just to make sure we have a clean environment

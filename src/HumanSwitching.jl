@@ -194,6 +194,7 @@ export
     validation_hash,
     final_state_type,
     reproduce_scenario,
+    solver_setup_span_map,
     parallel_sim,
     visualize,
     tree,

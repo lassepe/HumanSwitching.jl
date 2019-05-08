@@ -38,7 +38,7 @@ function free_space_estimate(mdp::HSMDP, s::HSState, steps::Int=0)::Float64
     return reward_estimate
 end
 
-function free_space_estimate(pomdp::HSPOMDP, s::HSState, b::Any, ::Int)
+function free_space_estimate(pomdp::HSPOMDP, s::HSState, b::Any=Nothing, ::Int=0)
     return free_space_estimate(mdp(pomdp), s)
 end
 

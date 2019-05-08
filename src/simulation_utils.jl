@@ -175,7 +175,7 @@ function setup_test_scenario(pi_key::String, simulation_model::HSModel, simulati
     belief_updater_model, planner_model = construct_models(deepcopy(rng), simulation_model, belief_updater_hbm, planner_setup.hbm)
     # the belief updater is run with a stochastic version of the world
     belief_updater = BasicParticleFilter(belief_updater_model, SharedExternalStateResampler(planner_setup.n_particles), planner_setup.n_particles, deepcopy(rng))
-    solver = solver_setup_map(planner_setup, planner_model, deepcopy(rng))[solver_setup_key]
+    solver = solver_setup_span_map(planner_setup, planner_model, deepcopy(rng))[solver_setup_key]
     planner = solver isa Policy ? solver : solve(solver, planner_model)
 
     # compose metadata
@@ -264,10 +264,11 @@ function solver_setup_map(planner_setup::PlannerSetup, planner_model::HSModel, r
                                                end,
                                                "DESPOT" => begin
                                                    default_policy = StraightToGoal(planner_model)
-                                                   bounds = IndependentBounds(DefaultPolicyLB(default_policy), 0.0, check_terminal=true)
+                                                   bounds = IndependentBounds(DefaultPolicyLB(default_policy, terminal_value=free_space_estimate), free_space_estimate, check_terminal=true)
 
-                                                   DESPOTSolver(K=cld(planner_setup.n_particles, 10), D=70, T_max=1.0, lambda=0.01,
-                                                                bounds=bounds, rng=deepcopy(rng), tree_in_info=true)
+                                                   DESPOTSolver(K=cld(planner_setup.n_particles, 10), D=20, T_max=0.01, lambda=0.01,
+                                                                bounds=bounds, rng=deepcopy(rng), default_action=default_policy,
+                                                                bounds_warnings=false, tree_in_info=true)
                                                end,
                                                "POMCPOW" => begin
                                                    POMCPOWSolver(tree_queries=100000, max_depth=70, criterion=MaxUCB(500),
@@ -298,6 +299,51 @@ function solver_setup_map(planner_setup::PlannerSetup, planner_model::HSModel, r
                                                end,
 					                           "StraightToGoal" => StraightToGoal(planner_model)
                                               )
+end
+
+function solver_setup_span_map(planner_setup::Union{PlannerSetup, Nothing}=nothing, planner_model::Union{HSModel, Nothing}=nothing, rng::Union{MersenneTwister,Nothing}=nothing; keys_only::Bool=false)
+    Ds = [20, 40, 60, 80]
+    Ts = [0.01, 0.05, 0.1, 0.5, 1.0]
+    cs = [0.0, 10.0, 100.0, 500.0, 1000.0]
+    Ks = [10, 50, 200, 500]
+    lambdas = [0.01, 0.05, 0.1, 1.0]
+
+    pomcp_setup_map = []
+    for d in Ds for c in cs for t in Ts
+                push!(pomcp_setup_map, "POMCP_$(d)_$(c)_$(t)" => begin
+                    keys_only ? nothing :
+                    POMCPSolver(max_depth=d, c=c, tree_queries=100000, estimate_value=free_space_estimate, max_time=t, rng=deepcopy(rng))
+                end
+                )
+    end end end
+    despot_setup_map = []
+    for k in Ks for d in Ds for l in lambdas for t in Ts
+                    push!(despot_setup_map, "DESPOT_$(d)_$(k)_$(l)_$(t)" => begin
+                              keys_only ? nothing : begin
+                                  default_policy = StraightToGoal(planner_model)
+                                  bounds = IndependentBounds(DefaultPolicyLB(default_policy, terminal_value=free_space_estimate), free_space_estimate, check_terminal=true)
+
+                                  DESPOTSolver(K=k, D=d, T_max=t, lambda=l,
+                                               bounds=bounds, rng=deepcopy(rng), default_action=default_policy,
+                                               bounds_warnings=false, tree_in_info=true)
+                              end
+                          end
+                         )
+    end end end end
+
+    pomcpow_setup_map = []
+    for d in Ds for c in cs for t in Ts
+                push!(pomcpow_setup_map, "POMCPOW_$(d)_$(c)_$(t)" => begin
+                    keys_only ? nothing :
+                    POMCPOWSolver(tree_queries=100000, max_depth=d, criterion=MaxUCB(c),
+                                  k_observation=5, alpha_observation=1.0/30.0, max_time=t,
+                                  enable_action_pw=false, check_repeat_act=true, 
+                                  check_repeat_obs=!(planner_setup.hbm isa HumanConstVelBehavior),
+                                  estimate_value=free_space_estimate, rng=deepcopy(rng))
+                end
+                )
+    end end end
+    return Dict(vcat(pomcp_setup_map, despot_setup_map, pomcpow_setup_map))
 end
 
 function simulation_hbm_map(problem_instance::ProblemInstance, i_run::Int)
@@ -369,15 +415,15 @@ function parallel_sim(runs::UnitRange{Int}, solver_setup_keys::Array{String};
             # adversarial scenario generation). Thus, we perform this in an
             # asynchronous fashion distributed over multiple workers.
             @async append!(sims, @fetch begin
-                               simulation_model = setup_simulation_model(MersenneTwister(i_run), pi_entry, simulation_hbm_key, i_run)
-                               [setup_test_scenario(pi_key, simulation_model, simulation_hbm_key, planner_hbm_key, solver_setup_key, i_run) for planner_hbm_key in planner_hbm_keys, solver_setup_key in solver_setup_keys]
-                           end)
+                    simulation_model = setup_simulation_model(MersenneTwister(i_run), pi_entry, simulation_hbm_key, i_run)
+                    [setup_test_scenario(pi_key, simulation_model, simulation_hbm_key, planner_hbm_key, solver_setup_key, i_run) for planner_hbm_key in planner_hbm_keys, solver_setup_key in solver_setup_keys]
+                    end)
         end
     end
     # Simulation is launched in parallel mode. In order for this to work, julia
     # must be started as: `julia -p n`, where n is the number of
-    # workers/processes
-    data = run(sims) do sim::Sim, hist::SimHistory
+    #{ workers/processes
+    data = run_parallel(sims) do sim::Sim, hist::SimHistory
         return [:n_steps => n_steps(hist),
                 :discounted_reward => discounted_reward(hist),
                 :hist_validation_hash => validation_hash(hist),

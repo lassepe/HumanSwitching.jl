@@ -201,13 +201,8 @@ POMDPs.discount(m::HSModel) = reward_model(m).discount_factor
 
 # this simple forwards to the different transition models
 function POMDPs.generate_s(m::HSModel, s::HSState, a::HSAction, rng::AbstractRNG)
-    #if !(a in actions(m, robot_pos(s)))
-    #    display(a)
-    #    display(actions(m, robot_pos(s)))
-    #    display(m.aspace)
-    #end
     @assert a in actions(m, robot_pos(s))
-
+    
     human_pos_intent, hbs_p = human_transition(hbs(s), human_behavior_model(m), m, human_pos(s), rng)
     robot_pos_intent = apply_robot_action(robot_pos(s), a)
     external_intent::HSExternalState = HSExternalState(human_pos_intent, robot_pos_intent)
