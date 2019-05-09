@@ -4,10 +4,16 @@ end
 
 function POMDPs.action(p::StraightToGoal, rp::Pos)
     # take the action that moves me closest to goal as a rollout
+    @assert length(actions(problem(p), rp)) == 6
+
+    # NOTE: now that there is the special action, we don't actually need to optimize here.
+    #=
     best_action = reduce((a1, a2) -> dist_to_pos(apply_robot_action(rp, a1), robot_goal(problem(p)))
                          < dist_to_pos(apply_robot_action(rp, a2), robot_goal(problem(p))) ?
                          a1 : a2,
                          actions(problem(p), rp))
+    =#
+    return first(actions(problem(p), rp))
 end
 
 POMDPs.action(p::StraightToGoal, e::HSExternalState) = action(p, robot_pos(e))
