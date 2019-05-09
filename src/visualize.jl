@@ -72,34 +72,34 @@ Fields:
 - `r` the visual radius of the agent
 """
 function start_goal_line_node(start_pos::Pos, goal::Pos;
-                                 r::Float64=0.5,
-                                 stroke_color="green", opacity::Float64=1.0)::Context
+                              r::Float64=0.5,
+                              stroke_color="green", opacity::Float64=1.0)::Context
 
     # the start and end anchor point for the bezier curve
     p_start = [Tuple(start_pos[1:2])]
     p_end = [Tuple(goal[1:2])]
 
     compose(context(), (context(), line([p_start..., p_end...]),
-			stroke(stroke_color), strokeopacity(opacity)))
+                        stroke(stroke_color), strokeopacity(opacity)))
 end
 
 function agent_with_goal_node(agent_pos::Pos, goal::Pos;
-                                annotation::String="",
-                                goal_size::Float64=0.2,
-                                external_color="tomato", curve_color="green",
-                                goal_color="light green", opacity::Float64=1.0)::Context
+                              annotation::String="",
+                              goal_size::Float64=0.2,
+                              external_color="tomato", curve_color="green",
+                              goal_color="light green", opacity::Float64=1.0)::Context
     # the actual goal of the human
     current_goal_viz = goal_node(goal,
-                                     annotation=annotation,
-                                     size=goal_size,
-                                     fill_color=goal_color,
-                                     opacity=opacity)
+                                 annotation=annotation,
+                                 size=goal_size,
+                                 fill_color=goal_color,
+                                 opacity=opacity)
     # the current pos of the human
     agent_pos_viz = pos_node(agent_pos,
-                               fill_color=external_color, opacity=opacity)
+                             fill_color=external_color, opacity=opacity)
     # a connection line between the human and the goal
     goal_curve_viz = start_goal_line_node(agent_pos, goal,
-                                               stroke_color=curve_color, opacity=opacity)
+                                          stroke_color=curve_color, opacity=opacity)
 
     compose(context(), agent_pos_viz, current_goal_viz, goal_curve_viz)
 end
@@ -109,13 +109,13 @@ function human_particle_node(human_pos::Pos, hbm::HumanPIDBehavior, hbs::HumanPI
                              annotation::String="", opacity::Float64=1.0)
 
     return agent_with_goal_node(human_pos,
-                                  human_goal(hbm, hbs),
-                                  external_color=external_color,
-                                  curve_color=internal_color,
-                                  annotation=annotation,
-                                  goal_color=internal_color,
-                                  goal_size=0.4,
-                                  opacity=opacity)
+                                human_goal(hbm, hbs),
+                                external_color=external_color,
+                                curve_color=internal_color,
+                                annotation=annotation,
+                                goal_color=internal_color,
+                                goal_size=0.4,
+                                opacity=opacity)
 end
 
 function human_particle_node(human_pos::Pos, hbm::HumanMultiGoalBoltzmann, hbs::HumanBoltzmannToGoalBState;
@@ -152,12 +152,12 @@ function human_particle_node(human_pos::Pos, hbm::HumanConstVelBehavior, hbs::Hu
     end
 
     return agent_with_goal_node(human_pos,
-                                  predicted_future_pos,
-                                  external_color=external_color,
-                                  curve_color=internal_color,
-                                  goal_color=internal_color,
-                                  goal_size=0.4,
-                                  opacity=opacity)
+                                predicted_future_pos,
+                                external_color=external_color,
+                                curve_color=internal_color,
+                                goal_color=internal_color,
+                                goal_size=0.4,
+                                opacity=opacity)
 end
 
 plot_compose(args...; kwargs...) = Gadfly.render(plot(args...; kwargs...))
@@ -233,13 +233,13 @@ function bstate_subplot_node(::Type{HumanConstVelBState},
     vy = [(hbs.vy) for hbs in unfiltered_hbs_data if hbs isa HumanConstVelBState]
     # compose histogram
     return hstack(parameter_histogram_node(vx, hbsColors[HumanConstVelBState], 30,
-                                    Coord.Cartesian(xmin=-hbm.speed_max, xmax=hbm.speed_max),
-                                    Guide.title("Constant Velocity Belief"),
-                                    Guide.xlabel("Vel X")),
-                 parameter_histogram_node(vy, hbsColors[HumanConstVelBState], 30,
-                                    Coord.Cartesian(xmin=-hbm.speed_max, xmax=hbm.speed_max),
-                                    Guide.title("Constant Velocity Belief"),
-                                    Guide.xlabel("Vel Y")))
+                                           Coord.Cartesian(xmin=-hbm.speed_max, xmax=hbm.speed_max),
+                                           Guide.title("Constant Velocity Belief"),
+                                           Guide.xlabel("Vel X")),
+                  parameter_histogram_node(vy, hbsColors[HumanConstVelBState], 30,
+                                           Coord.Cartesian(xmin=-hbm.speed_max, xmax=hbm.speed_max),
+                                           Guide.title("Constant Velocity Belief"),
+                                           Guide.xlabel("Vel Y")))
 end
 
 function bstate_subplot_node(::Type{HumanBoltzmannBState},
@@ -274,7 +274,7 @@ function belief_node(b::ParticleCollection{H}, m::HSPOMDP) where H <: HSState
                        for (idx, (p, state_count)) in enumerate(state_belief_counter) if idx < max_visualized_particles]
 
     robot_particles = [pos_node(robot_pos(p),
-                                 fill_color="light green")
+                                fill_color="light green")
                        for (idx, (p, state_count)) in enumerate(state_belief_counter) if idx < max_visualized_particles]
 
     belief_viz = compose(context(), robot_particles, human_particles)
@@ -380,14 +380,14 @@ function render_step_compose(po::Policy, m::HSModel, step::NamedTuple, base_aspe
     context_components = haskey(step,:ai) ? make_step_components(po, step[:ai], human_pos(sp)) : context()
 
     compose(context(),
-           (context(), info_viz),
-           (mirror, (base_scale,
-                     robot_with_goal_viz,
-                     human_ground_truth_viz,
-                     belief_viz,
-		     context_components,
-	   	     room_viz))
-           )
+            (context(), info_viz),
+            (mirror, (base_scale,
+                      robot_with_goal_viz,
+                      human_ground_truth_viz,
+                      belief_viz,
+                      context_components,
+                      room_viz))
+    )
 end
 
 make_step_components(po::Policy, step::Union{NamedTuple, Dict{Symbol, Any}, Nothing}, human_pos::Pos) = context()
@@ -413,7 +413,7 @@ function path_node(way_points::AbstractVector{Pos}; fill_color="black", opacity=
 end
 
 function render_plan_compose(po::Policy, m::HSModel, planning_step::NamedTuple,
-			     human_pos::Pos, robot_pos::Pos, base_aspectratio::Float64)
+                             human_pos::Pos, robot_pos::Pos, base_aspectratio::Float64)
     # extract the room representation from the problem
     room_rep::Room = room(m)
 
@@ -442,12 +442,12 @@ function render_plan_compose(po::Policy, m::HSModel, planning_step::NamedTuple,
     background = compose(context(), rectangle(0, 0, 1, 1), fill("white"))
 
     compose(context(),
-        (mirror, (base_scale,
-                  robot_with_goal_viz,
-                  human_ground_truth_viz,
-		  context_components,
-		  room_viz))
-       )
+            (mirror, (base_scale,
+                      robot_with_goal_viz,
+                      human_ground_truth_viz,
+                      context_components,
+                      room_viz))
+    )
 end
 
 make_plan_components(po::Policy, planning_step::NamedTuple, human_pos::Pos) = context()
@@ -466,7 +466,7 @@ end
 
 function make_plan_components(po::GapCheckingPolicy, planning_step::NamedTuple, human_pos::Pos)
     policy_components = make_plan_components(planning_step.policy_used,
-					     planning_step.used_plan_step, human_pos)
+                                             planning_step.used_plan_step, human_pos)
     FRS_circle_viz = pos_node(human_pos; r=planning_step.FRS_radius, stroke_color="red", opacity=0.2, show_marker=false)
     return vcat(policy_components, FRS_circle_viz)
 end
@@ -488,7 +488,7 @@ function Base.show(io::IO, mime::MIME"image/png", v::HSViz)
     frame_dimensions::Tuple{Float64, Float64} = (v.show_info ? 1600 : 800, 800)
     surface = CairoRGBSurface(frame_dimensions...)
     c = render_step_compose(v.po,
-			    v.m,
+                            v.m,
                             v.step,
                             frame_dimensions[1]/frame_dimensions[2],
                             v.sim_hist,
@@ -513,10 +513,10 @@ function Base.show(io::IO, mime::MIME"image/png", v::PlanViz)
     frame_dimensions::Tuple{Float64, Float64} = (800, 800)
     surface = CairoRGBSurface(frame_dimensions...)
     c = render_plan_compose(v.po,
-			    v.m,
+                            v.m,
                             v.planning_step,
-			    v.human_pos,
-			    v.robot_pos,
+                            v.human_pos,
+                            v.robot_pos,
                             frame_dimensions[1]/frame_dimensions[2])
     draw(PNG(surface), c)
     write_to_png(surface, io)
