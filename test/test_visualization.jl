@@ -12,4 +12,3 @@
     @test_nowarn makegif(pomdp, sim_hist, filename=joinpath(@__DIR__, "test_renderings", "makegif_test.gif"),
                          extra_initial=true, show_progress=false, render_kwargs=(po=policy, sim_hist=sim_hist, show_info=true))
 end;
-

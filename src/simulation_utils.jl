@@ -258,14 +258,13 @@ end
 
 function solver_setup_map(planner_setup::PlannerSetup, planner_model::HSModel, rng::MersenneTwister)
     return Dict{String, Union{Solver, Policy}}(
-                                               # TODO: DESPOT needs value estimate at end to reduce rollout length!
                                                "DESPOT" => begin
                                                    default_policy = StraightToGoal(planner_model)
-                                                   # alternative lower bound: DefaultPolicyLB(default_policy)
-                                                   bounds = IndependentBounds(DefaultPolicyLB(default_policy), free_space_estimate, check_terminal=true)
-
-                                                   DESPOTSolver(K=cld(planner_setup.n_particles, 10), D=70, max_trials=20, T_max=Inf, lambda=0.00001,
-                                                                bounds=bounds, rng=deepcopy(rng), tree_in_info=true)
+                                                   bounds = IndependentBounds(DefaultPolicyLB(default_policy, final_value=free_space_estimate), free_space_estimate,
+                                                                              check_terminal=true, consistency_fix_thresh=1e-8)
+                                                   DESPOTSolver(K=cld(planner_setup.n_particles, 50), D=20, max_trials=20, T_max=Inf, lambda=0.00001,
+                                                                bounds=bounds, rng=deepcopy(rng), tree_in_info=true,
+                                                                default_action=default_policy)
                                                end,
                                                "StraightToGoal" => StraightToGoal(planner_model),
                                                "POMCPOW" => begin

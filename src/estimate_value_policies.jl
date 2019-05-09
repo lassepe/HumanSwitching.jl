@@ -44,11 +44,11 @@ function free_space_estimate(mdp::HSMDP, s::HSState, steps::Int=0)::Float64
     return reward_estimate
 end
 
-function free_space_estimate(pomdp::HSPOMDP, s::HSState, b::Any, ::Int)
+function free_space_estimate(pomdp::HSPOMDP, s::HSState, b::Any=nothing, ::Int=0)
     return free_space_estimate(mdp(pomdp), s)
 end
 
-function free_space_estimate(pomdp::HSPOMDP, b::ScenarioBelief)
+function free_space_estimate(pomdp::HSPOMDP, b::AbstractParticleBelief)
     # for the free space
     s = first(particles(b))
     return free_space_estimate(mdp(pomdp), s)

@@ -182,10 +182,11 @@ function POMDPs.actions(m::HSModel, robot_pos::Pos)
     return mdp(m).aspace
 end
 
-function POMDPs.actions(m::HSModel, obs_node::T) where T <: POWTreeObsNode
-    e::HSExternalState = isroot(obs_node) ? obs_node |> belief |> particles |> first |> external : current_obs(obs_node)
-    return actions(m, robot_pos(e))
+function POMDPs.actions(m::HSModel, obs_node::POWTreeObsNode)
+    return actions(m, (isroot(obs_node) ?
+                       belief(obs_node) : robot_pos(current_obs(obs_node))))
 end
+POMDPs.actions(m::HSPOMDP, b::AbstractParticleBelief) = actions(m, b |> particles |> first |> robot_pos)
 
 POMDPs.n_actions(m::HSModel) = length(mdp(m).aspace)
 POMDPs.discount(m::HSModel) = reward_model(m).discount_factor

@@ -390,7 +390,7 @@ function render_step_compose(po::Policy, m::HSModel, step::NamedTuple, base_aspe
            )
 end
 
-make_step_components(po::Policy, step::Union{NamedTuple,Nothing}, human_pos::Pos) = context()
+make_step_components(po::Policy, step::Union{NamedTuple, Dict{Symbol, Any}, Nothing}, human_pos::Pos) = context()
 
 function make_step_components(po::ProbObstaclePolicy, step::NamedTuple, human_pos::Pos)
     planner_state_sequence = step[:state_sequence]
