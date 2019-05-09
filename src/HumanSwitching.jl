@@ -234,9 +234,10 @@ function __init__()
         include("analyze_results.jl")
 
         export
+            process_data_span,
             best_parameters,
-            plot_solver_comparison
-            include("analyze_parameter_span.jl")
+            plot_param_comparison
+        include("analyze_parameter_span.jl")
         
         export
             render_step_compose,

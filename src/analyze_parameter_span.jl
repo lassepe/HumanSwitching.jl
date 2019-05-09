@@ -5,102 +5,19 @@ solver_parameter_map = Dict{String, Array{String}}(
                                                   )
 
 function process_data_span(data::DataFrame)
-    # Postprocess dataframes
-    data_POMCP = data[occursin.("POMCP_", data[:solver_setup_key]), :]
-    data_POMCPOW = data[occursin.("POMCPOW_", data[:solver_setup_key]), :]
-    data_DESPOT = data[occursin.("DESPOT_", data[:solver_setup_key]), :]
-    
-    md_POMCP = DataFrame(Depth=Int64[], UCB_criterion=Float64[], Time=Float64[])
-    for i in 1:size(data_POMCP,1)
-        solver_type = data_POMCP[:solver_setup_key][i]
-        solver_pars = split(solver_type, "_")
-        push!(md_POMCP, (parse(Int64, solver_pars[2]), parse(Float64, solver_pars[3]), parse(Float64, solver_pars[4])))
+    function get_solver_params(solver_name::String)
+        solver_pars = [parse(Float64, x) for x in split(solver_name, "_")[2:end]]
     end
-    md_POMCPOW = DataFrame(Depth=Int64[], UCB_criterion=Float64[], Time=Float64[])
-    for i in 1:size(data_POMCPOW,1)
-        solver_type = data_POMCPOW[:solver_setup_key][i]
-        solver_pars = split(solver_type, "_")
-        push!(md_POMCPOW,(parse(Int64, solver_pars[2]), parse(Float64, solver_pars[3]), parse(Float64, solver_pars[4])))
-    end
-    md_DESPOT = DataFrame(Depth=Int64[], Scenarios=Int64[], Lambda=Float64[], Time=Float64[])
-    for i in 1:size(data_DESPOT,1)
-        solver_type = data_DESPOT[:solver_setup_key][i]
-        solver_pars = split(solver_type, "_")
-        push!(md_DESPOT, (parse(Int64, solver_pars[2]), parse(Int64, solver_pars[3]), parse(Float64, solver_pars[4]), parse(Float64, solver_pars[5])))
-    end
-
-    data_POMCP = hcat(data_POMCP, md_POMCP)
-    data_POMCPOW = hcat(data_POMCPOW, md_POMCPOW)
-    data_DESPOT = hcat(data_DESPOT, md_DESPOT)
-    return data_POMCP, data_POMCPOW, data_DESPOT
-end
-
-function plot_POMCP(data::DataFrame)
-    Gadfly.set_default_plot_size(30cm,30cm)
-	detailed_theme = Gadfly.Theme(minor_label_font_size=8pt, key_position=:none)
     
-    # Plot D/C/T vs Value
-    depth = plot_value_SEM(data, "Depth", "Depth of Search Tree", static_fields=true)
-    c = plot_value_SEM(data, "UCB_criterion", "UCB_criterion", static_fields=true)
-    time = plot_value_SEM(data, "Time", "Maximum planning time", static_fields=true)
-
-    final_plot = Gadfly.title(hstack(depth, c, time), 
-                             """
-                        	 Problem Instance: $(first(data[:pi_key]))
-                         	 True Human Model: $(first(data[:simulation_hbm_key]))
-                             Planner Model: $(first(data[:planner_hbm_key]))
-                             Solver: POMCP
-                             """)
-    display(final_plot)
-end
-
-function plot_POMCPOW(data::DataFrame)
-    Gadfly.set_default_plot_size(30cm,30cm)
-	detailed_theme = Gadfly.Theme(minor_label_font_size=8pt, key_position=:none)
-    
-    # Plot D/C/T vs Value
-    depth = plot_value_SEM(data, "Depth", "Depth of Search Tree", static_fields=true)
-    c = plot_value_SEM(data, "UCB_criterion", "UCB_criterion", static_fields=true)
-    time = plot_value_SEM(data, "Time", "Maximum planning time", static_fields=true)
-
-    final_plot = Gadfly.title(hstack(depth, c, time), 
-                             """
-                        	 Problem Instance: $(first(data[:pi_key]))
-                         	 True Human Model: $(first(data[:simulation_hbm_key]))
-                             Planner Model: $(first(data[:planner_hbm_key]))
-                             Solver: POMCPOW
-                             """)
-    display(final_plot)
-end
-
-function plot_DESPOT(data::DataFrame)
-    Gadfly.set_default_plot_size(30cm,30cm)
-	detailed_theme = Gadfly.Theme(minor_label_font_size=8pt, key_position=:none)
-   
-    # Plot K/D/L/T vs Value
-    k = plot_value_SEM(data, "Scenarios", "Number of Sampled Scenarios", static_fields=true)
-    depth = plot_value_SEM(data, "Depth", "Depth of Search Tree", static_fields=true)
-    lambda = plot_value_SEM(data, "Lambda", "Regularization", static_fields=true)
-    time = plot_value_SEM(data, "Time", "Maximum planning time", static_fields=true)
-
-    final_plot = Gadfly.title(hstack(k, depth, lambda, time), 
-                             """
-                        	 Problem Instance: $(first(data[:pi_key]))
-                         	 True Human Model: $(first(data[:simulation_hbm_key]))
-                             Planner Model: $(first(data[:planner_hbm_key]))
-                             Solver: DESPOT
-                             """)
-    display(final_plot)
-end
-
-function plot_solver_comparison(data::DataFrame)
-    data_POMCP, data_POMCPOW, data_DESPOT = process_data_span(data)
-    plot_POMCP(data_POMCP)
-    plot_POMCPOW(data_POMCPOW)
-    plot_DESPOT(data_DESPOT)
-    #plot_POMCP_comparison(data_POMCP)
-    #plot_POMCPOW_comparison(data_POMCPOW)
-    #plot_DESPOT_comparison(data_DESPOT)
+    data_solvers = []
+    for solver in keys(solver_parameter_map)
+        solver_data = data[occursin.("$(solver)_", data[:solver_setup_key]), :]
+        for (i,field) in enumerate(solver_parameter_map[solver])
+            solver_data[Symbol(field)] = getindex.(get_solver_params.(solver_data[:solver_setup_key]), i)
+        end
+        push!(data_solvers, solver_data)
+    end
+    return data_solvers
 end
 
 function best_parameters(data::DataFrame)
@@ -116,7 +33,83 @@ function best_parameters(data::DataFrame)
     return best_solver
 end
 
-function plot_value_SEM(data::DataFrame, plotting_field, xlabel::String; static_fields::Bool=false)
+function plot_param_comparison(data::DataFrame; static_fields::Bool=false)
+    # Split data per solver
+    data_per_solver = process_data_span(data)
+
+    # Plot within-solver parameter comparison
+    # Per solver Value vs Field plots
+    for solver_data in data_per_solver
+        plot_solver(solver_data, static_fields=static_fields)
+    end
+
+    # Plot overall solver parameter comparison
+    # One Value vs Field plot with all solvers on the same plot
+    # The Field must exist for all solvers
+    for field in ["Time", "Depth"]
+        plot_all_solvers(data_per_solver, field; static_fields=static_fields)
+    end
+end
+
+function plot_all_solvers(data_per_solver, plotting_field::String; static_fields::Bool=false)
+    Gadfly.set_default_plot_size(30cm,30cm)
+	detailed_theme = Gadfly.Theme(minor_label_font_size=8pt, key_position=:none)
+    
+    plots = []
+    for field in ["Time", "Depth"]
+        push!(plots, plot_all_solver_field(data_per_solver, field, static_fields=static_fields))
+    end
+    
+    final_plot = Gadfly.title(vstack(plots...), 
+                             """
+                             Problem Instance: $(first(first(data_per_solver)[:pi_key]))
+                             True Human Model: $(first(first(data_per_solver)[:simulation_hbm_key]))
+                             Planner Model: $(first(first(data_per_solver)[:planner_hbm_key]))
+                             Solver Comparison
+                             """)
+    display(final_plot)
+end
+
+function plot_all_solver_field(data_per_solver, plotting_field::String; static_fields::Bool=false)
+    df = DataFrame()
+    for solver_data in data_per_solver
+        solver_type = first(split(first(solver_data[:solver_setup_key]), "_"))
+        solver_df = create_value_SEM(solver_data, plotting_field)
+        solver_df[:Solver] = solver_type
+        df = [df; solver_df]
+    end
+    return plot(x=df.ParameterValue, y=df.MeanValue, ymin=(df.MeanValue - df.SEMValue), ymax=(df.MeanValue + df.SEMValue),
+                color=df.Solver, Geom.point, Geom.errorbar, 
+                Guide.xlabel(plotting_field), Guide.ylabel("Value"))
+end
+
+function plot_solver(data::DataFrame; static_fields::Bool=false)
+    Gadfly.set_default_plot_size(30cm,30cm)
+	detailed_theme = Gadfly.Theme(minor_label_font_size=8pt, key_position=:none)
+
+    solver_type = first(split(first(data[:solver_setup_key]), "_"))
+    plots = []
+    for field in solver_parameter_map[solver_type]
+        push!(plots, plot_solver_field(data, field, static_fields=static_fields))
+    end
+
+    final_plot = Gadfly.title(hstack(plots...), 
+                             """
+                        	 Problem Instance: $(first(data[:pi_key]))
+                         	 True Human Model: $(first(data[:simulation_hbm_key]))
+                             Planner Model: $(first(data[:planner_hbm_key]))
+                             Solver: $(solver_type)
+                             """)
+    display(final_plot)
+end
+
+function plot_solver_field(data::DataFrame, plotting_field::String; static_fields::Bool=false)
+    df = create_value_SEM(data, plotting_field, static_fields=static_fields)
+    return plot(x=df.ParameterValue, y=df.MeanValue, ymin=(df.MeanValue - df.SEMValue), ymax=(df.MeanValue + df.SEMValue),
+                Geom.point, Geom.errorbar, Guide.xlabel(plotting_field), Guide.ylabel("Value"))
+end
+
+function create_value_SEM(data::DataFrame, plotting_field::String; static_fields::Bool=false)
     dt = typeof(first(data[Symbol(plotting_field)]))
     df = DataFrame(ParameterValue=dt[], MeanValue=Float64[], SEMValue=Float64[])
     if static_fields
@@ -135,35 +128,6 @@ function plot_value_SEM(data::DataFrame, plotting_field, xlabel::String; static_
         value = filtered_data[:normalized_discounted_reward]
         push!(df, (field_type, mean(value), std(value)/sqrt(size(filtered_data,1))))
     end
-    
-    return plot(x=df.ParameterValue, y=df.MeanValue, ymin=(df.MeanValue - df.SEMValue), ymax=(df.MeanValue + df.SEMValue),
-                color=df.ParameterValue, Geom.point, Geom.errorbar, 
-                Guide.xlabel(xlabel), Guide.ylabel("Value"))
+    return df
 end
-
-function plot_value_SEM(data::DataFrame, xfield, yfield)
-    xtype = typeof(first(data[Symbol(xfield)]))
-    ytype = typeof(first(data[Symbol(yfield)]))
     
-    best_params = split(best_parameters(data), "_")
-    solver_fields = solver_parameter_map[best_params[1]]
-    for (i, field) in enumerate(solver_fields)
-        field_type = typeof(first(data[Symbol(field)]))
-        if !(field == xfield) && !(field == yfield)
-            data = data[data[Symbol(field)] .== parse(field_type, best_params[i+1]), :] 
-        end
-    end
-
-    for field1 in unique(data[Symbol(xfield)])
-        for field2 in unique(data[Symbol(yfield)])
-            filtered_data = data[(data[Symbol(xfield)] .== field1).&(data[Symbol(yfield)] .== field2), :]
-            value = filtered_data[:normalized_discounted_reward]
-            push!(df, (field1.*field2, mean(value), std(value)/sqrt(size(filtered_data,1))))
-        end
-    end
-    
-    return plot(x=df.ParameterValue, y=df.MeanValue, ymin=(df.MeanValue - df.SEMValue), ymax=(df.MeanValue + df.SEMValue),
-                color=df.ParameterValue, Geom.point, Geom.errorbar, 
-                Guide.xlabel(xlabel), Guide.ylabel("Value"))
-
-end
