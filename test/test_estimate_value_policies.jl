@@ -9,7 +9,7 @@
         s = initialstate(mdp, rng)
 
         # take a random action
-        a = rand(rng, actions(mdp))
+        a = rand(rng, actions(mdp, robot_pos(s)))
         # propagate the state according to this action
         sp, r = generate_sr(mdp, s, a, rng)
 

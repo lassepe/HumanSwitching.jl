@@ -1,5 +1,4 @@
 using Test
-using Suppressor
 
 using HumanSwitching
 const HS = HumanSwitching
@@ -15,6 +14,7 @@ using POMDPModelTools
 using POMDPPolicies
 using POMDPSimulators
 using POMDPGifs
+using Compose
 
 macro testblock(ex)
     quote
