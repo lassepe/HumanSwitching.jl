@@ -262,7 +262,7 @@ function solver_setup_map(planner_setup::PlannerSetup, planner_model::HSModel, r
                                                    default_policy = StraightToGoal(planner_model)
                                                    bounds = IndependentBounds(DefaultPolicyLB(default_policy, final_value=free_space_estimate), free_space_estimate,
                                                                               check_terminal=true, consistency_fix_thresh=1e-8)
-                                                   DESPOTSolver(K=cld(planner_setup.n_particles, 50), D=20, max_trials=20, T_max=Inf, lambda=0.00001,
+                                                   DESPOTSolver(K=cld(planner_setup.n_particles, 200), D=45, max_trials=10, T_max=Inf, lambda=1,
                                                                 bounds=bounds, rng=deepcopy(rng), tree_in_info=true,
                                                                 default_action=default_policy)
                                                end,
@@ -301,12 +301,12 @@ end
 function simulation_hbm_map(problem_instance::ProblemInstance, i_run::Int)
     simulation_rng = MersenneTwister(i_run + 1)
     return Dict{String, SimulationHBMEntry}(
-        # "HumanMultiGoalBoltzmann_all_goals" => HumanMultiGoalBoltzmann(goals=problem_instance.human_goals(problem_instance.room),
-        #                                                                beta_min=50, beta_max=50,
-        #                                                                goal_resample_sigma=0.05,
-        #                                                                beta_resample_sigma=0.0),
-        "HumanDeterministicPlanner" => HumanDeterministicPlanner(goals=problem_instance.human_goals(problem_instance.room),
-                                                                 obstacles=problem_instance.human_obstacles(problem_instance.room))
+        "HumanMultiGoalBoltzmann_all_goals" => HumanMultiGoalBoltzmann(goals=problem_instance.human_goals(problem_instance.room),
+                                                                       beta_min=50, beta_max=50,
+                                                                       goal_resample_sigma=0.05,
+                                                                       beta_resample_sigma=0.0),
+        # "HumanDeterministicPlanner" => HumanDeterministicPlanner(goals=problem_instance.human_goals(problem_instance.room),
+        #                                                          obstacles=problem_instance.human_obstacles(problem_instance.room))
        )
 end
 
