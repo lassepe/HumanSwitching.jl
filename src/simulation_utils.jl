@@ -142,6 +142,13 @@ function construct_models(rng::AbstractRNG, simulation_model::HSModel, belief_up
     return belief_updater_model, planner_model
 end
 
+function belief_updater_from_planner_model(planner_setup::PlannerSetup{<:HumanUniformModelMix})
+    # apply belief updater transformation to all submodels
+    # TODO: this can not be left like this! We somehow also need access to sub-configurations, which makes sense!
+    submodels = [belief_updater_from_planner_model(PlannerSetup(sm, 0, sm isa HumanConstVelBehavior ? 0.1 : 0.02)) for sm in planner_setup.hbm.submodels]
+    return HumanUniformModelMix(submodels...; bstate_change_likelihood=planner_setup.epsilon)
+end
+
 function belief_updater_from_planner_model(planner_setup::PlannerSetup{<:HumanConstVelBehavior})
     # clone the model but set the new epsilon
     return HumanConstVelBehavior(speed_max=planner_setup.hbm.speed_max,
@@ -239,21 +246,29 @@ outer_obstacles(room::Room) = vcat([Circle(abs_pos(p, room), 1.2) for p in [Pos(
 
 function planner_hbm_map(problem_instance::ProblemInstance)
     planner_setups = [
-                      "HumanMultiGoalBoltzmann_all_goals" => PlannerSetup(hbm=HumanMultiGoalBoltzmann(goals=problem_instance.human_goals(problem_instance.room),
+                     # "HumanMultiGoalBoltzmann_all_goals" => PlannerSetup(hbm=HumanMultiGoalBoltzmann(goals=problem_instance.human_goals(problem_instance.room),
+                     #                                                                                 beta_min=0.1, beta_max=50,
+                     #                                                                                 goal_resample_sigma=0.05,
+                     #                                                                                 beta_resample_sigma=0.0),
+                     #                                                     epsilon=0.02,
+                     #                                                     n_particles=8000),
+                     # "HumanMultiGoalBoltzmann_half_goals" => PlannerSetup(hbm=HumanMultiGoalBoltzmann(goals=problem_instance.human_goals(problem_instance.room)[1:cld(length(problem_instance.human_goals(problem_instance.room)), 2)],
+                     #                                                                                  beta_min=0.1, beta_max=50,
+                     #                                                                                  goal_resample_sigma=0.05,
+                     #                                                                                  beta_resample_sigma=0.0),
+                     #                                                      epsilon=0.02,
+                     #                                                      n_particles=5000),
+                     # "HumanConstVelBehavior" => PlannerSetup(hbm=HumanConstVelBehavior(vel_resample_sigma=0.0),
+                     #                                         epsilon=0.1,
+                     #                                         n_particles=2000),
+                      "HumanUniformModelMix" => PlannerSetup(hbm=HumanUniformModelMix(HumanConstVelBehavior(vel_resample_sigma=0.0),
+                                                                                      HumanMultiGoalBoltzmann(goals=problem_instance.human_goals(problem_instance.room),
                                                                                                       beta_min=0.1, beta_max=50,
                                                                                                       goal_resample_sigma=0.05,
-                                                                                                      beta_resample_sigma=0.0),
-                                                                          epsilon=0.02,
-                                                                          n_particles=8000),
-                      "HumanMultiGoalBoltzmann_half_goals" => PlannerSetup(hbm=HumanMultiGoalBoltzmann(goals=problem_instance.human_goals(problem_instance.room)[1:cld(length(problem_instance.human_goals(problem_instance.room)), 2)],
-                                                                                                       beta_min=0.1, beta_max=50,
-                                                                                                       goal_resample_sigma=0.05,
-                                                                                                       beta_resample_sigma=0.0),
-                                                                           epsilon=0.02,
-                                                                           n_particles=5000),
-                      "HumanConstVelBehavior" => PlannerSetup(hbm=HumanConstVelBehavior(vel_resample_sigma=0.0),
-                                                              epsilon=0.1,
-                                                              n_particles=2000)
+                                                                                                      beta_resample_sigma=0.0)
+                                                                                      ; bstate_change_likelihood=0.0),
+                                                             epsilon=0.01,
+                                                             n_particles=8000)
                      ]
     return Dict(planner_setups)
 end

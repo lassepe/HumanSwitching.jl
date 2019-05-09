@@ -31,7 +31,7 @@ end
 end
 
 function main()
-    solver_keys = ["DESPOT"]
+    solver_keys = ["ProbObstacles"]
     @info "Running simulations..."
     data = parallel_sim(1:1000, solver_keys; problem_instance_keys=["CornerGoalsNonTrivial"])
     @info "Writing data..."
