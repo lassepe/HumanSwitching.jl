@@ -222,7 +222,6 @@ function __init__()
         plot
 
         export
-            plot_solver_comparison,
             plot_points,
             plot_full,
             plot_problem_instance,
@@ -234,6 +233,11 @@ function __init__()
             tail_expectation
         include("analyze_results.jl")
 
+        export
+            best_parameters,
+            plot_solver_comparison
+            include("analyze_parameter_span.jl")
+        
         export
             render_step_compose,
             render_step_svg,
