@@ -258,11 +258,27 @@ end
 
 function solver_setup_map(planner_setup::PlannerSetup, planner_model::HSModel, rng::MersenneTwister)
     return Dict{String, Union{Solver, Policy}}(
-                                               "DESPOT" => begin
+                                               "DESPOT20" => begin
                                                    default_policy = StraightToGoal(planner_model)
                                                    bounds = IndependentBounds(DefaultPolicyLB(default_policy, final_value=free_space_estimate), free_space_estimate,
                                                                               check_terminal=true, consistency_fix_thresh=1e-8)
-                                                   DESPOTSolver(K=200, D=20, max_trials=typemax(Int), T_max=0.5,
+                                                   DESPOTSolver(K=200, D=20, max_trials=typemax(Int), T_max=0.8,
+                                                                bounds=bounds, rng=deepcopy(rng), tree_in_info=true,
+                                                                default_action=default_policy)
+                                               end,
+                                               "DESPOT40" => begin
+                                                   default_policy = StraightToGoal(planner_model)
+                                                   bounds = IndependentBounds(DefaultPolicyLB(default_policy, final_value=free_space_estimate), free_space_estimate,
+                                                                              check_terminal=true, consistency_fix_thresh=1e-8)
+                                                   DESPOTSolver(K=200, D=40, max_trials=typemax(Int), T_max=0.8,
+                                                                bounds=bounds, rng=deepcopy(rng), tree_in_info=true,
+                                                                default_action=default_policy)
+                                               end,
+                                               "DESPOT60" => begin
+                                                   default_policy = StraightToGoal(planner_model)
+                                                   bounds = IndependentBounds(DefaultPolicyLB(default_policy, final_value=free_space_estimate), free_space_estimate,
+                                                                              check_terminal=true, consistency_fix_thresh=1e-8)
+                                                   DESPOTSolver(K=200, D=60, max_trials=typemax(Int), T_max=0.8,
                                                                 bounds=bounds, rng=deepcopy(rng), tree_in_info=true,
                                                                 default_action=default_policy)
                                                end,
