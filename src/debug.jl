@@ -3,6 +3,9 @@ using Compose
 using HumanSwitching
 const HS=HumanSwitching
 
+# maybe fix Require/Revise interaction bug
+Revise.track(HumanSwitching, "src/analyze_results.jl")
+
 function compare_models()
     data_switching = parallel_sim(1:3, "GapChecking"; ignore_uncommited_changes=true)
     data_probObstacle = parallel_sim(1:3, "ProbObstacles"; ignore_uncommited_changes=true)
