@@ -261,6 +261,7 @@ function planner_hbm_map(problem_instance::ProblemInstance)
                      # "HumanConstVelBehavior" => PlannerSetup(hbm=HumanConstVelBehavior(vel_resample_sigma=0.0),
                      #                                         epsilon=0.1,
                      #                                         n_particles=2000),
+                     # TODO: this should just point to subkeys for submodel-setups
                       "HumanUniformModelMix" => PlannerSetup(hbm=HumanUniformModelMix(HumanConstVelBehavior(vel_resample_sigma=0.0),
                                                                                       HumanMultiGoalBoltzmann(goals=problem_instance.human_goals(problem_instance.room),
                                                                                                       beta_min=0.1, beta_max=50,
