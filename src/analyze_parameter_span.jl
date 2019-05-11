@@ -78,9 +78,16 @@ function plot_all_solver_field(data_per_solver, plotting_field::String; static_f
         solver_df[:Solver] = solver_type
         df = [df; solver_df]
     end
-    return plot(x=df.ParameterValue, y=df.MeanValue, ymin=(df.MeanValue - df.SEMValue), ymax=(df.MeanValue + df.SEMValue),
-                color=df.Solver, Geom.point, Geom.errorbar, 
-                Guide.xlabel(plotting_field), Guide.ylabel("Value"))
+    p = plot(x=df.ParameterValue, y=df.MeanValue, ymin=(df.MeanValue - df.SEMValue), ymax=(df.MeanValue + df.SEMValue),
+                color=df.Solver, Geom.point, Geom.ribbon, Guide.title("All Solvers Comparison"),
+                Guide.xlabel(plotting_field), Guide.ylabel("Value"),
+                Guide.Theme(major_label_font="CMU Serif", major_label_font_size=26pt,
+                      minor_label_font="CMU Serif", minor_label_font_size=24pt,
+                      key_title_font="CMU Serif", key_title_font_size=22pt,
+                      key_label_font="CMU Serif", key_label_font_size=20pt))
+    filename = "figures/all_solvers_$(plotting_field).png"
+    draw(PNG(filename, 10inch, 6inch), p)
+    return p
 end
 
 function plot_solver(data::DataFrame; static_fields::Bool=false)
@@ -105,8 +112,17 @@ end
 
 function plot_solver_field(data::DataFrame, plotting_field::String; static_fields::Bool=false)
     df = create_value_SEM(data, plotting_field, static_fields=static_fields)
-    return plot(x=df.ParameterValue, y=df.MeanValue, ymin=(df.MeanValue - df.SEMValue), ymax=(df.MeanValue + df.SEMValue),
-                Geom.point, Geom.errorbar, Guide.xlabel(plotting_field), Guide.ylabel("Value"))
+    solver_name = first(split(first(data[:solver_setup_key]), "_"))
+
+    p = plot(x=df.ParameterValue, y=df.MeanValue, ymin=(df.MeanValue - df.SEMValue), ymax=(df.MeanValue + df.SEMValue),
+             Geom.point, Geom.errorbar, Guide.xlabel(plotting_field), Guide.ylabel("Value"), Guide.title(solver_name),
+             Guide.Theme(major_label_font="CMU Serif", major_label_font_size=26pt,
+                   minor_label_font="CMU Serif", minor_label_font_size=24pt,
+                   key_title_font="CMU Serif", key_title_font_size=22pt,
+                   key_label_font="CMU Serif", key_label_font_size=20pt))
+    filename = "figures/$(solver_name)_$(plotting_field).png"
+    draw(PNG(filename, 10inch, 6inch), p)
+    return p
 end
 
 function create_value_SEM(data::DataFrame, plotting_field::String; static_fields::Bool=false)
