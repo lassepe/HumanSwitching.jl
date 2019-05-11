@@ -258,27 +258,11 @@ end
 
 function solver_setup_map(planner_setup::PlannerSetup, planner_model::HSModel, rng::MersenneTwister)
     return Dict{String, Union{Solver, Policy}}(
-                                               "DESPOTScaledLB" => begin
-                                                   default_policy = StraightToGoal(planner_model)
-                                                   bounds = IndependentBounds((m, b)->(free_space_estimate(m, b)*100), free_space_estimate,
-                                                                              check_terminal=true, consistency_fix_thresh=1e-8)
-                                                   DESPOTSolver(K=200, D=60, max_trials=typemax(Int), T_max=0.3,
-                                                                bounds=bounds, rng=deepcopy(rng), tree_in_info=true,
-                                                                default_action=default_policy)
-                                               end,
                                                "DESPOTOffsetLB" => begin
                                                    default_policy = StraightToGoal(planner_model)
                                                    bounds = IndependentBounds((m, b)->(free_space_estimate(m, b) - 500), free_space_estimate,
                                                                               check_terminal=true, consistency_fix_thresh=1e-8)
-                                                   DESPOTSolver(K=200, D=60, max_trials=typemax(Int), T_max=0.3,
-                                                                bounds=bounds, rng=deepcopy(rng), tree_in_info=true,
-                                                                default_action=default_policy)
-                                               end,
-                                               "DESPOTScaledOffsetLB" => begin
-                                                   default_policy = StraightToGoal(planner_model)
-                                                   bounds = IndependentBounds((m, b)->(free_space_estimate(m, b)*10 - 100), free_space_estimate,
-                                                                              check_terminal=true, consistency_fix_thresh=1e-8)
-                                                   DESPOTSolver(K=200, D=60, max_trials=typemax(Int), T_max=0.3,
+                                                   DESPOTSolver(K=100, D=60, max_trials=typemax(Int), T_max=0.3,
                                                                 bounds=bounds, rng=deepcopy(rng), tree_in_info=true,
                                                                 default_action=default_policy)
                                                end,
@@ -286,7 +270,7 @@ function solver_setup_map(planner_setup::PlannerSetup, planner_model::HSModel, r
                                                    default_policy = StraightToGoal(planner_model)
                                                    bounds = IndependentBounds(-1000, free_space_estimate,
                                                                               check_terminal=true, consistency_fix_thresh=1e-8)
-                                                   DESPOTSolver(K=200, D=60, max_trials=typemax(Int), T_max=0.3,
+                                                   DESPOTSolver(K=100, D=60, max_trials=typemax(Int), T_max=0.3,
                                                                 bounds=bounds, rng=deepcopy(rng), tree_in_info=true,
                                                                 default_action=default_policy)
                                                end,
