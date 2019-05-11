@@ -9,7 +9,7 @@
 #SBATCH --nodes=2
 #SBATCH --ntasks-per-node=24
 
-#SBATCH --time=03:00:00
+#SBATCH --time=05:00:00
 #SBATCH --mail-type=END,FAIL
 #SBATCH --mail-user=lasse.peters@berkeley.edu
 
