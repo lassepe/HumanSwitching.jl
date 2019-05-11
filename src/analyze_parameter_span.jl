@@ -46,12 +46,10 @@ function plot_param_comparison(data::DataFrame; static_fields::Bool=false)
     # Plot overall solver parameter comparison
     # One Value vs Field plot with all solvers on the same plot
     # The Field must exist for all solvers
-    for field in ["Time", "Depth"]
-        plot_all_solvers(data_per_solver, field; static_fields=static_fields)
-    end
+    plot_all_solvers(data_per_solver; static_fields=static_fields)
 end
 
-function plot_all_solvers(data_per_solver, plotting_field::String; static_fields::Bool=false)
+function plot_all_solvers(data_per_solver; static_fields::Bool=false)
     Gadfly.set_default_plot_size(30cm,30cm)
 	detailed_theme = Gadfly.Theme(minor_label_font_size=8pt, key_position=:none)
     
@@ -91,7 +89,7 @@ function plot_all_solver_field(data_per_solver, plotting_field::String; static_f
 end
 
 function plot_solver(data::DataFrame; static_fields::Bool=false)
-    Gadfly.set_default_plot_size(30cm,30cm)
+    Gadfly.set_default_plot_size(50cm,30cm)
 	detailed_theme = Gadfly.Theme(minor_label_font_size=8pt, key_position=:none)
 
     solver_type = first(split(first(data[:solver_setup_key]), "_"))
