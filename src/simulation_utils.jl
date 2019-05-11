@@ -258,20 +258,12 @@ end
 
 function solver_setup_map(planner_setup::PlannerSetup, planner_model::HSModel, rng::MersenneTwister)
     return Dict{String, Union{Solver, Policy}}(
-                                               "DESPOTOffsetLBK50" => begin
+                                               "DESPOTConstLBK20" => begin
                                                    default_policy = StraightToGoal(planner_model)
-                                                   bounds = IndependentBounds((m, b)->(free_space_estimate(m, b) - 800), free_space_estimate,
+                                                   bounds = IndependentBounds(-900, free_space_estimate,
                                                                               check_terminal=true, consistency_fix_thresh=1e-8)
-                                                   DESPOTSolver(K=50, D=60, max_trials=typemax(Int), T_max=0.3,
-                                                                bounds=bounds, rng=deepcopy(rng), tree_in_info=true,
-                                                                default_action=default_policy)
-                                               end,
-                                               "DESPOTConstLBK50" => begin
-                                                   default_policy = StraightToGoal(planner_model)
-                                                   bounds = IndependentBounds(-1000, free_space_estimate,
-                                                                              check_terminal=true, consistency_fix_thresh=1e-8)
-                                                   DESPOTSolver(K=50, D=60, max_trials=typemax(Int), T_max=0.3,
-                                                                bounds=bounds, rng=deepcopy(rng), tree_in_info=true,
+                                                   DESPOTSolver(K=20, D=70, max_trials=typemax(Int), T_max=0.3,
+                                                                bounds=bounds, rng=deepcopy(rng), tree_in_info=false,
                                                                 default_action=default_policy)
                                                end,
                                                "StraightToGoal" => StraightToGoal(planner_model),
