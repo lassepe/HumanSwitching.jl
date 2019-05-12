@@ -262,7 +262,7 @@ function solver_setup_map(planner_setup::PlannerSetup, planner_model::HSModel, r
                                                    default_policy = StraightToGoal(planner_model)
                                                    bounds = IndependentBounds(-900, free_space_estimate,
                                                                               check_terminal=true, consistency_fix_thresh=1e-8)
-                                                   DESPOTSolver(K=15, D=70, max_trials=typemax(Int), T_max=0.4,
+                                                   DESPOTSolver(K=cld(planner_setup.n_particles, 500), D=70, max_trials=200, T_max=Inf,
                                                                 bounds=bounds, rng=deepcopy(rng), tree_in_info=false,
                                                                 default_action=default_policy)
                                                end,
