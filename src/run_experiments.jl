@@ -5,7 +5,7 @@ using Distributed
 using Pkg
 Pkg.instantiate()
 
-const desired_nworkers = 17
+const desired_nworkers = 30
 
 const IN_SLURM = "SLURM_JOBID" in keys(ENV)
 IN_SLURM && using ClusterManagers
@@ -34,7 +34,7 @@ function main()
     solver_keys = ["POMCPOW", "ProbObstacles", "GapChecking"]
     @info "Running simulations..."
     #data = parallel_sim(1:1000, solver_keys; problem_instance_keys=["CornerGoalsNonTrivial"])
-    data = parallel_sim(101:500, [k for k in keys(solver_setup_span_map(keys_only=true))], simulation_hbm_keys=["HumanMultiGoalBoltzmann_all_goals"], planner_hbm_keys=["HumanMultiGoalBoltzmann_all_goals"])
+    data = parallel_sim(1:500, [k for k in keys(solver_setup_span_map(keys_only=true))], simulation_hbm_keys=["HumanMultiGoalBoltzmann_all_goals"], planner_hbm_keys=["HumanMultiGoalBoltzmann_all_goals"])
     @info "Writing data..."
     result_dir = realpath("$(@__DIR__)/../results/")
     file_name = "sim_results-$(gethostname())-$(now())-$(join(solver_keys, "_")).csv"
