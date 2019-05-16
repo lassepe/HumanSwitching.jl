@@ -324,7 +324,7 @@ end
 
 function solver_setup_span_map(planner_setup::Union{PlannerSetup, Nothing}=nothing, planner_model::Union{HSModel, Nothing}=nothing, rng::Union{MersenneTwister,Nothing}=nothing; keys_only::Bool=false)
     Ds = [10, 20, 40, 60]
-    Ts = [0.1, 0.5]
+    Ts = [1.0]
     cs = [10.0, 100.0, 500.0, 1000.0]
     Ks = [10, 50, 100, 200]
     lambdas = [0.01, 0.1, 1.0]
