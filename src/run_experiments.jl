@@ -2,10 +2,8 @@ using CSV
 using Dates
 using DataFrames
 using Distributed
-using Pkg
-Pkg.instantiate()
 
-const desired_nworkers = 35
+const desired_nworkers = 20
 
 const IN_SLURM = "SLURM_JOBID" in keys(ENV)
 IN_SLURM && using ClusterManagers
@@ -33,7 +31,7 @@ end
 function main()
     solver_keys = ["POMCPOW", "ProbObstacles"]
     @info "Running simulations..."
-    data = parallel_sim(1:1000, solver_keys; problem_instance_keys=["CornerGoalsNonTrivial"], planner_hbm_keys=["HumanMultiGoalBoltzmann_half_goals"])
+    data = parallel_sim(1:5000, solver_keys; problem_instance_keys=["CornerGoalsNonTrivial"], planner_hbm_keys=["HumanMultiGoalBoltzmann_half_goals"])
     @info "Writing data..."
     result_dir = realpath("$(@__DIR__)/../results/")
     file_name = "sim_results-$(gethostname())-$(now())-$(join(solver_keys, "_")).csv"
