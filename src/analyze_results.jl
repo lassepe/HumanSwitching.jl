@@ -189,25 +189,25 @@ function generate_eval_plots(data=nothing;
 
     # value-compute Scatter
     dims = (14.5cm, 10cm)
-    draw(PDF(joinpath(outdir, "lp_value_compute_scatter_plot.pdf"), dims...), value_compute_scatter)
+    draw(PDF(joinpath(outdir, "hri_value_compute_scatter_plot.pdf"), dims...), value_compute_scatter)
 
     # value SEM
     dims = (14.5cm, 10cm)
-    draw(PDF(joinpath(outdir, "lp_value_sem_plot.pdf"), dims...), value_sem)
+    draw(PDF(joinpath(outdir, "hri_value_sem_plot.pdf"), dims...), value_sem)
 
     # value density
     dims = (14.5cm, 10cm)
-    draw(PDF(joinpath(outdir, "lp_value_density_plot.pdf"), dims...), value_density)
+    draw(PDF(joinpath(outdir, "hri_value_density_plot.pdf"), dims...), value_density)
 
     # nstep SEM
     dims = (14.5cm, 10cm)
-    draw(PDF(joinpath(outdir, "lp_nstep_sem_plot.pdf"), dims...), nstep_sem)
+    draw(PDF(joinpath(outdir, "hri_nstep_sem_plot.pdf"), dims...), nstep_sem)
 
     # nstep density
     dims = (14.5cm, 10cm)
-    draw(PDF(joinpath(outdir, "lp_nstep_density_plot.pdf"), dims...), nstep_density)
+    draw(PDF(joinpath(outdir, "hri_nstep_density_plot.pdf"), dims...), nstep_density)
 
     # compute density
     dims = (14.5cm, 10cm)
-    draw(PDF(joinpath(outdir, "lp_compute_density_plot.pdf"), dims...), compute_density)
+    draw(PDF(joinpath(outdir, "hri_compute_density_plot.pdf"), dims...), compute_density)
 end
