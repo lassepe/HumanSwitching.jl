@@ -231,4 +231,8 @@ function generate_eval_plots(data=nothing;
     # compute density
     dims = (14.5cm, 10cm)
     draw(PDF(joinpath(outdir, "hri_compute_density_plot.pdf"), dims...), compute_density)
+
+    # compute density
+    dims = (14.5cm, 10cm)
+    draw(PDF(joinpath(outdir, "hri_outcome_histogram_plot.pdf"), dims...), outcome_histogram)
 end
