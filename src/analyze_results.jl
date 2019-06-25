@@ -2,22 +2,33 @@ sem(v::AbstractVector) = std(v)/sqrt(length(v))
 
 
 function get_result_plot_stack(data::DataFrame)
-    Gadfly.set_default_plot_size(15cm,70cm)
+    Gadfly.set_default_plot_size(15cm,80cm)
     legend_guide = Guide.colorkey(title="Legend")
     xticks_guide = Guide.xticks(orientation=:horizontal)
     default_font = "cmr10"
     plot_stack = []
     default_theme = Gadfly.Theme(key_max_columns=2,
-                             plot_padding=[0mm],
-                             key_title_font=default_font,
-                             key_title_font_size=0mm,
-                             key_label_font=default_font,
-                             major_label_font=default_font,
-                             minor_label_font=default_font,
-                             major_label_font_size=10pt,
-                             minor_label_font_size=8pt, key_position=:top)
+                                 plot_padding=[0mm],
+                                 key_title_font=default_font,
+                                 key_title_font_size=0mm,
+                                 key_label_font=default_font,
+                                 key_label_font_size=10pt,
+                                 major_label_font=default_font,
+                                 minor_label_font=default_font,
+                                 major_label_font_size=10pt,
+                                 minor_label_font_size=8pt, key_position=:top)
 
-    Gadfly.push_theme(default_theme)
+    # and some more for the remaining plots
+    for i in 1:20
+        Gadfly.push_theme(default_theme)
+    end
+    # the theme for the first plot
+    first_plot_theme = copy(default_theme)
+    first_plot_theme.key_position=:top
+    Gadfly.push_theme(first_plot_theme)
+
+    fst_theme = copy(first_plot_theme)
+    fst_theme.major_label_font_size=8pt
 
     # compute relevant statistics on data
     data_stats = DataFrame(Model=String[], MeanValue=Float64[], SEMValue=Float64[], MeanCompute=Float64[], SEMCompute=Float64[], MeanNSteps=Float64[], SEMNSteps=Float64[])
@@ -38,35 +49,45 @@ function get_result_plot_stack(data::DataFrame)
 
     # Value vs. Compute (Scatter)
 	value_v_compute_scatter = plot(data, x=:combined_median_time, y=:discounted_reward, color=:solver_setup_key, Geom.point,
-                                   Guide.xlabel("CPU-Time per Decision [s]"), Guide.ylabel("Cumulative Discoutned Reward"), Gadfly.Scale.x_log10)
+                                   Guide.xlabel("CPU-Time per Decision [s]"), Guide.ylabel("Cumulative Discoutned Reward"), Gadfly.Scale.x_log10,
+                                   legend_guide, xticks_guide)
     push!(plot_stack, value_v_compute_scatter)
+    Gadfly.pop_theme()
 
     # Value - Cumulative Discoutned Reward:
     value_v_solver_sem = plot(x=data_stats.Model, y=data_stats.MeanValue,
                               ymin=(data_stats.MeanValue - data_stats.SEMValue), ymax=(data_stats.MeanValue + data_stats.SEMValue),
                               color=data_stats.Model, Geom.point, Geom.errorbar,
-                              Guide.xlabel("Policy"), Guide.ylabel("Cumulative Discoutned Reward (SEM)"))
+                              Guide.xlabel("Policy"), Guide.ylabel("Cumulative Discoutned Reward (SEM)"),
+                              legend_guide, xticks_guide)
     push!(plot_stack, value_v_solver_sem)
+    Gadfly.pop_theme()
     value_v_solver_density = plot(data, x=:discounted_reward, color=:solver_setup_key, Geom.density,
-                                  Guide.xlabel("Cumulative Discoutned Reward"))
+                                  Guide.xlabel("Cumulative Discoutned Reward"),
+                                  legend_guide, xticks_guide)
     push!(plot_stack, value_v_solver_density)
+    Gadfly.pop_theme()
 
     # Efficiency - NSteps (TODO: not fair because POMCPOW makes it more often. How to count N-Steps for policies that did not make it?):
     nstep_v_solver_sem = plot(x=data_stats.Model, y=data_stats.MeanNSteps,
                               ymin=(data_stats.MeanNSteps - data_stats.SEMNSteps), ymax=(data_stats.MeanNSteps + data_stats.SEMNSteps),
-                              color=data_stats.Model, Geom.point, Geom.errorbar, Guide.xlabel("Policy"), Guide.ylabel("Number of Steps (SEM)"))
+                              color=data_stats.Model, Geom.point, Geom.errorbar, Guide.xlabel("Policy"), Guide.ylabel("Number of Steps (SEM)"),
+                              legend_guide, xticks_guide)
     push!(plot_stack, nstep_v_solver_sem)
-    nstep_v_solver_histogram = plot(data, x=:n_steps, color=:solver_setup_key, Geom.histogram, Guide.xlabel("Number of Steps"))
+    nstep_v_solver_histogram = plot(data, x=:n_steps, color=:solver_setup_key, Geom.histogram, Guide.xlabel("Number of Steps"),
+                                    legend_guide, xticks_guide)
     push!(plot_stack, nstep_v_solver_histogram)
 
     # Compute
     compute_v_solver_density = plot(data, x=:combined_median_time, color=:solver_setup_key, Geom.density,
-                                    Guide.xlabel("CPU-Time per Decision [s]"))
+                                    Guide.xlabel("CPU-Time per Decision [s]"),
+                                    legend_guide, xticks_guide)
     push!(plot_stack, compute_v_solver_density)
 
     # Outcome (Success / Failure)
 	outcome_histogram =  plot(data, xgroup=:solver_setup_key, x=:final_state_type, color=:solver_setup_key, Geom.subplot_grid(Geom.histogram),
-                         Guide.xlabel("Outcome 𝐛𝐲 Policy"))
+                              fst_theme, Guide.xlabel("Outcome 𝐛𝐲 Policy"),
+                              legend_guide)
     push!(plot_stack, outcome_histogram)
 
     return plot_stack
