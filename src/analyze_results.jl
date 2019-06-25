@@ -1,32 +1,75 @@
-function plot_points(data::DataFrame)
-	Gadfly.set_default_plot_size(30cm,30cm)
-	detailed_theme = Gadfly.Theme(minor_label_font_size=8pt, key_position=:none)
+sem(v::AbstractVector) = std(v)/sqrt(length(v))
 
-	df = DataFrame(Model=String[], MeanValue=Float64[], SEMValue=Float64[], MeanCompute=Float64[], SEMCompute=Float64[])
+function plot_results(data::DataFrame)
+    Gadfly.set_default_plot_size(15cm,70cm)
+    legend_guide = Guide.colorkey(title="Legend")
+    xticks_guide = Guide.xticks(orientation=:horizontal)
+    default_font = "cmr10"
+    plot_stack = []
+    default_theme = Gadfly.Theme(key_max_columns=6,
+                             plot_padding=[0mm],
+                             key_title_font=default_font,
+                             key_title_font_size=0mm,
+                             key_label_font=default_font,
+                             major_label_font=default_font,
+                             minor_label_font=default_font,
+                             major_label_font_size=10pt,
+                             minor_label_font_size=8pt, key_position=:top)
+
+    Gadfly.push_theme(default_theme)
+
+    # compute relevant statistics on data
+    data_stats = DataFrame(Model=String[], MeanValue=Float64[], SEMValue=Float64[], MeanCompute=Float64[], SEMCompute=Float64[], MeanNSteps=Float64[], SEMNSteps=Float64[])
 	for planner_type in unique(data.planner_hbm_key)
 		for solver_type in unique(data.solver_setup_key)
 			common_rows = data[(data[:planner_hbm_key] .== planner_type).&(data[:solver_setup_key] .== solver_type), :]
-			value = common_rows[:normalized_discounted_reward]
+			value = common_rows[:discounted_reward]
 			compute = common_rows[:combined_median_time]
-			push!(df, (planner_type.*solver_type, mean(value), std(value)/sqrt(size(common_rows,1)), mean(compute), std(compute)/sqrt(size(common_rows,1))))
+            n_steps = common_rows[:n_steps]
+            N = size(common_rows,1)
+			push!(data_stats, (solver_type,
+                               mean(value), sem(value),
+                               mean(compute), sem(compute),
+                               mean(n_steps), sem(n_steps)
+                              ))
 		end
 	end
 
-	value_v_compute = plot(x=df.MeanCompute, y=df.MeanValue,
-		     	       xmin=(df.MeanCompute - df.SEMCompute), xmax=(df.MeanCompute + df.SEMCompute),
-		     	       ymin=(df.MeanValue - df.SEMValue), ymax=(df.MeanValue + df.SEMValue),
-		     	       color=df.Model, Geom.point, Geom.errorbar, Guide.xlabel("Compute"), Guide.ylabel("Value"))
 
-	scatter = plot(data, x=:combined_median_time, y=:normalized_discounted_reward, color=(data.planner_hbm_key.*data.solver_setup_key), Geom.point, Gadfly.Scale.x_log10)
+    # Value vs. Compute (Scatter)
+	value_v_compute_scatter = plot(data, x=:combined_median_time, y=:discounted_reward, color=:solver_setup_key, Geom.point,
+                                   Guide.xlabel("CPU-Time per Decision [s]"), Guide.ylabel("Cumulative Discoutned Reward"), Gadfly.Scale.x_log10)
+    push!(plot_stack, value_v_compute_scatter)
 
-	success_rate =  plot(data, xgroup=:planner_hbm_key, x=:final_state_type, color=:planner_hbm_key, Geom.subplot_grid(Geom.histogram),
-                         Gadfly.Theme(major_label_font_size=8pt, minor_label_font_size=8pt, key_position=:none))
+    # Value - Cumulative Discoutned Reward:
+    value_v_solver_sem = plot(x=data_stats.Model, y=data_stats.MeanValue,
+                              ymin=(data_stats.MeanValue - data_stats.SEMValue), ymax=(data_stats.MeanValue + data_stats.SEMValue),
+                              color=data_stats.Model, Geom.point, Geom.errorbar,
+                              Guide.xlabel("Policy"), Guide.ylabel("Cumulative Discoutned Reward (SEM)"))
+    push!(plot_stack, value_v_solver_sem)
+    value_v_solver_density = plot(data, x=:discounted_reward, color=:solver_setup_key, Geom.density,
+                                  Guide.xlabel("Cumulative Discoutned Reward"))
+    push!(plot_stack, value_v_solver_density)
 
-	final_plot = Gadfly.title(vstack(value_v_compute, scatter),
-                         	  """
-                         	  Problem Instance: $(first(data[:pi_key]))
-                         	  True Human Model: $(first(data[:simulation_hbm_key]))
-                         	  """)
+    # Efficiency - NSteps (TODO: not fair because POMCPOW makes it more often. How to count N-Steps for policies that did not make it?):
+    nstep_v_solver_sem = plot(x=data_stats.Model, y=data_stats.MeanNSteps,
+                              ymin=(data_stats.MeanNSteps - data_stats.SEMNSteps), ymax=(data_stats.MeanNSteps + data_stats.SEMNSteps),
+                              color=data_stats.Model, Geom.point, Geom.errorbar, Guide.xlabel("Policy"), Guide.ylabel("Number of Steps (SEM)"))
+    push!(plot_stack, nstep_v_solver_sem)
+    nstep_v_solver_histogram = plot(data, x=:n_steps, color=:solver_setup_key, Geom.histogram, Guide.xlabel("Number of Steps"))
+    push!(plot_stack, nstep_v_solver_histogram)
+
+    # Compute
+    compute_v_solver_density = plot(data, x=:combined_median_time, color=:solver_setup_key, Geom.density,
+                                    Guide.xlabel("CPU-Time per Decision [s]"))
+    push!(plot_stack, compute_v_solver_density)
+
+    # Outcome (Success / Failure)
+	outcome_histogram =  plot(data, xgroup=:solver_setup_key, x=:final_state_type, color=:solver_setup_key, Geom.subplot_grid(Geom.histogram),
+                         Guide.xlabel("Outcome 𝐛𝐲 Policy"))
+    push!(plot_stack, outcome_histogram)
+
+    final_plot = vstack(plot_stack...)
 
 	display(final_plot)
 end
@@ -45,7 +88,7 @@ function plot_problem_instance(data::DataFrame)
 	simulation_models = unique(data[:simulation_hbm_key])
 	for simulation_type in simulation_models
 		println("Plotting simulation type: $simulation_type")
-		plot_points(data[data[:simulation_hbm_key] .== simulation_type, :])
+		plot_results(data[data[:simulation_hbm_key] .== simulation_type, :])
 	end
 end
 
@@ -80,7 +123,6 @@ end
 function transform_data(data::DataFrame; shorten_names::Bool=true)
     modified_data = !shorten_names ? data : @linq data |> transform(planner_hbm_key=simplify_hbm_name.(:planner_hbm_key),
                                                                             simulation_hbm_key=simplify_hbm_name.(:simulation_hbm_key))
-
     modified_data[:combined_median_time] = modified_data[:median_updater_time] .+ modified_data[:median_prediction_time] .+ modified_data[:median_planning_time]
     modified_data[:normalized_discounted_reward] = modified_data[:discounted_reward] .- modified_data[:free_space_estimate]
 
@@ -113,9 +155,9 @@ function statistics(data::DataFrame)
 
                 Planner: $p
 
-                tail_expectation: $(tail_expectation(planner_data.normalized_discounted_reward, 0.20))
-                mean: $(mean(planner_data.normalized_discounted_reward))
-                lcb: $(mean(planner_data.normalized_discounted_reward) - std(planner_data.normalized_discounted_reward))
+                tail_expectation: $(tail_expectation(planner_data.discounted_reward, 0.20))
+                mean: $(mean(planner_data.discounted_reward))
+                lcb: $(mean(planner_data.discounted_reward) - std(planner_data.discounted_reward))
                 """)
     end
 end
