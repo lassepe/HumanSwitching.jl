@@ -269,7 +269,7 @@ function solver_setup_map(planner_setup::PlannerSetup, planner_model::HSModel, r
                                                "StraightToGoal" => StraightToGoal(planner_model),
                                                "POMCPOW" => begin
                                                    # TODO: use separate setting for tree quries
-                                                   POMCPOWSolver(tree_queries=floor(planner_setup.n_particles*2.5), max_depth=70, criterion=MaxUCB(500),
+                                                   POMCPOWSolver(tree_queries=floor(planner_setup.n_particles*2.5), max_depth=10, criterion=MaxUCB(500),
                                                                  k_observation=5, alpha_observation=1.0/30.0,
                                                                  enable_action_pw=false,
                                                                  check_repeat_obs=!(planner_setup.hbm isa HumanConstVelBehavior),
