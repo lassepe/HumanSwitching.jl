@@ -1,12 +1,13 @@
 sem(v::AbstractVector) = std(v)/sqrt(length(v))
 
-function plot_results(data::DataFrame)
+
+function get_result_plot_stack(data::DataFrame)
     Gadfly.set_default_plot_size(15cm,70cm)
     legend_guide = Guide.colorkey(title="Legend")
     xticks_guide = Guide.xticks(orientation=:horizontal)
     default_font = "cmr10"
     plot_stack = []
-    default_theme = Gadfly.Theme(key_max_columns=6,
+    default_theme = Gadfly.Theme(key_max_columns=2,
                              plot_padding=[0mm],
                              key_title_font=default_font,
                              key_title_font_size=0mm,
@@ -34,7 +35,6 @@ function plot_results(data::DataFrame)
                               ))
 		end
 	end
-
 
     # Value vs. Compute (Scatter)
 	value_v_compute_scatter = plot(data, x=:combined_median_time, y=:discounted_reward, color=:solver_setup_key, Geom.point,
@@ -69,10 +69,9 @@ function plot_results(data::DataFrame)
                          Guide.xlabel("Outcome 𝐛𝐲 Policy"))
     push!(plot_stack, outcome_histogram)
 
-    final_plot = vstack(plot_stack...)
-
-	display(final_plot)
+    return plot_stack
 end
+plot_results(args...) = display(vstack(get_result_plot_stack(args...)...))
 
 simplify_hbm_name(s::String) = string(split(s, "HumanMultiGoalBoltzmann")...)
 
@@ -160,4 +159,55 @@ function statistics(data::DataFrame)
                 lcb: $(mean(planner_data.discounted_reward) - std(planner_data.discounted_reward))
                 """)
     end
+end
+
+# Rename:
+#
+# using CSV, DataFramesMeta
+# rename(s::String, old::String="MostLikelyStateController", new::String="MLRA") = return s == old ? new : s;
+# data = CSV.read(...)
+#
+# d = HS.transform_data(data)
+# d = @transform(d, solver_setup_key=rename.(:solver_setup_key, "ProbObstacles", "PSRP"))
+#
+# CSV.write("path/to/file.csv", d)
+
+function generate_eval_plots(data=nothing;
+                             filename::String="$(@__DIR__)/../results/final_results/data_POMCPOW_PSRP.csv",
+                             outdir::String="$(@__DIR__)/../results/final_results/plots/")
+
+    if isnothing(data)
+        data = CSV.read(filename)
+    end
+
+    plot_stack = get_result_plot_stack(data);
+    (value_compute_scatter,
+     value_sem, value_density,
+     nstep_sem, nstep_density,
+     compute_density,
+     outcome_histogram) = plot_stack
+
+    # value-compute Scatter
+    dims = (14.5cm, 10cm)
+    draw(PDF(joinpath(outdir, "lp_value_compute_scatter_plot.pdf"), dims...), value_compute_scatter)
+
+    # value SEM
+    dims = (14.5cm, 10cm)
+    draw(PDF(joinpath(outdir, "lp_value_sem_plot.pdf"), dims...), value_sem)
+
+    # value density
+    dims = (14.5cm, 10cm)
+    draw(PDF(joinpath(outdir, "lp_value_density_plot.pdf"), dims...), value_density)
+
+    # nstep SEM
+    dims = (14.5cm, 10cm)
+    draw(PDF(joinpath(outdir, "lp_nstep_sem_plot.pdf"), dims...), nstep_sem)
+
+    # nstep density
+    dims = (14.5cm, 10cm)
+    draw(PDF(joinpath(outdir, "lp_nstep_density_plot.pdf"), dims...), nstep_density)
+
+    # compute density
+    dims = (14.5cm, 10cm)
+    draw(PDF(joinpath(outdir, "lp_compute_density_plot.pdf"), dims...), compute_density)
 end

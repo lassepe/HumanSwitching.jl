@@ -290,6 +290,12 @@ git-tree-sha1 = "d14a6fa5890ea3a7e5dcab6811114f132fec2b4b"
 uuid = "53c48c17-4a7d-5ca2-90c5-79b7896eea93"
 version = "0.6.1"
 
+[[Fontconfig]]
+deps = ["BinDeps", "Compat", "Homebrew", "Libdl", "WinRPM"]
+git-tree-sha1 = "d1fd629ca493abd85cde2ee59e60bceb4146f113"
+uuid = "186bb1d3-e1f7-5a2c-a377-96d770f13627"
+version = "0.2.0"
+
 [[ForwardDiff]]
 deps = ["CommonSubexpressions", "DiffResults", "DiffRules", "InteractiveUtils", "LinearAlgebra", "NaNMath", "Random", "SparseArrays", "SpecialFunctions", "StaticArrays", "Test"]
 git-tree-sha1 = "4c4d727f1b7e0092134fabfab6396b8945c1ea5b"

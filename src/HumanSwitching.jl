@@ -220,10 +220,9 @@ function __init__()
         plot
 
         export
-            plot_points,
+            plot_results,
             plot_full,
             plot_problem_instance,
-            extract_value_compute,
             load_data,
             check_data,
             success_rate,
@@ -233,8 +232,6 @@ function __init__()
 
         export
             render_step_compose,
-            render_step_svg,
-            render_step_blink,
             render,
             render_plan
         include("visualize.jl")
