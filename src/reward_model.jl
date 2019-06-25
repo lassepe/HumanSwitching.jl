@@ -26,8 +26,8 @@ function POMDPs.reward(m::HSModel, s::HSState, a::HSAction, sp::HSState)::Float6
         step_reward += rm.left_room_penalty
     end
 
-    # being close to humans is asymptotically bad
-    if dist_to_pos(robot_pos(sp), human_pos(sp); p=2) < 2 * agent_min_distance(m)
+    # being close to the human is bad (relying on the human to avoid collisions)
+    if ishumanclose(m, sp)
         step_reward += rm.dist_to_human_penalty
     end
 

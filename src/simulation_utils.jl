@@ -379,6 +379,7 @@ function parallel_sim(runs::UnitRange{Int}, solver_setup_keys::Array{String};
         return [:n_steps => n_steps(hist),
                 :discounted_reward => discounted_reward(hist),
                 :undiscounted_reward => undiscounted_reward(hist),
+                :n_close => count([ishumanclose(problem(sim), sp) for sp in eachstep(hist, "sp")]),
                 :hist_validation_hash => validation_hash(hist),
                 :median_updater_time => median(ui[:updater_time] for ui in eachstep(hist, "ui")),
                 :median_prediction_time => median(ai[:prediction_time] for ai in eachstep(hist, "ai")),
