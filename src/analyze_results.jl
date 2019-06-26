@@ -79,6 +79,12 @@ function get_result_plot_stack(data::DataFrame)
     push!(plot_stack, nstep_v_solver_histogram)
 
     # Compute
+    compute_v_solver_sem = plot(x=data_stats.Model, y=data_stats.MeanCompute,
+                                ymin=(data_stats.MeanCompute - data_stats.SEMCompute), ymax=(data_stats.MeanCompute + data_stats.SEMCompute),
+                                color=data_stats.Model, Geom.point, Geom.errorbar,
+                                Guide.xlabel("Policy"), Guide.ylabel("Cumulative Discoutned Reward (SEM)"),
+                                legend_guide, xticks_guide)
+    push!(plot_stack, compute_v_solver_sem)
     compute_v_solver_density = plot(data, x=:combined_median_time, color=:solver_setup_key, Geom.density,
                                     Guide.xlabel("CPU-Time per Decision [s]"),
                                     legend_guide, xticks_guide)
@@ -205,7 +211,7 @@ function generate_eval_plots(data=nothing;
     (value_compute_scatter,
      value_sem, value_density,
      nstep_sem, nstep_density,
-     compute_density,
+     compute_violin, compute_density,
      outcome_histogram) = plot_stack
 
     # value-compute Scatter
