@@ -269,7 +269,6 @@ function belief_node(b::ParticleCollection{H}, m::HSPOMDP) where H <: HSState
 
     max_visualized_particles = 100
     human_particles = [human_particle_node(human_pos(p), select_submodel(hbm, hbs(p)), hbs(p);
-                                           annotation=string(round(state_count/weight_sum, digits=3)),
                                            opacity=map_to_opacity(state_count, weight_sum))
                        for (idx, (p, state_count)) in enumerate(state_belief_counter) if idx < max_visualized_particles]
 
@@ -297,7 +296,6 @@ function human_prediction_node(b::ParticleCollection{H}, m::HSPOMDP) where H <: 
 
     max_visualized_particles = Inf
     human_particles = [human_particle_node(hp, select_submodel(hbm, hbs), hbs;
-                                           annotation=string(round(state_count/weight_sum, digits=3)),
                                            opacity=map_to_opacity(state_count, weight_sum))
                        for (idx, ((hp, hbs), state_count)) in enumerate(state_belief_counter) if idx < max_visualized_particles]
 
