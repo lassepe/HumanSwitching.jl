@@ -8,6 +8,8 @@ renderings/*
 
 results/*
 !results/.gitkeep
+!results/final_results/*.csv
+!results/final_results/plots/.gitkeep
 
 test/test_renderings/*
 !test/test_renderings/.gitkeep
