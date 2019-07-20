@@ -49,7 +49,7 @@ function get_result_plot_stack(data::DataFrame)
 
     # Value vs. Compute (Scatter)
 	value_v_compute_scatter = plot(data, x=:combined_median_time, y=:discounted_reward, color=:solver_setup_key, Geom.point,
-                                   Guide.xlabel("CPU-Time per Decision [s]"), Guide.ylabel("Cumulative Discoutned Reward"), Gadfly.Scale.x_log10,
+                                   Guide.xlabel("CPU-Time per Decision [s]"), Guide.ylabel("Cumulative Discoutned Reward", orientation=:vertical), Gadfly.Scale.x_log10,
                                    legend_guide, xticks_guide)
     push!(plot_stack, value_v_compute_scatter)
     Gadfly.pop_theme()
@@ -58,7 +58,7 @@ function get_result_plot_stack(data::DataFrame)
     value_v_solver_sem = plot(x=data_stats.Model, y=data_stats.MeanValue,
                               ymin=(data_stats.MeanValue - data_stats.SEMValue), ymax=(data_stats.MeanValue + data_stats.SEMValue),
                               color=data_stats.Model, Geom.point, Geom.errorbar,
-                              Guide.xlabel("Policy"), Guide.ylabel("Cumulative Discoutned Reward (SEM)"),
+                              Guide.xlabel("Policy"), Guide.ylabel("Cumulative Discoutned Reward (SEM)", orientation=:vertical),
                               legend_guide, xticks_guide)
     push!(plot_stack, value_v_solver_sem)
     Gadfly.pop_theme()
@@ -71,7 +71,7 @@ function get_result_plot_stack(data::DataFrame)
     # Efficiency - NSteps (TODO: not fair because POMCPOW makes it more often. How to count N-Steps for policies that did not make it?):
     nstep_v_solver_sem = plot(x=data_stats.Model, y=data_stats.MeanNSteps,
                               ymin=(data_stats.MeanNSteps - data_stats.SEMNSteps), ymax=(data_stats.MeanNSteps + data_stats.SEMNSteps),
-                              color=data_stats.Model, Geom.point, Geom.errorbar, Guide.xlabel("Policy"), Guide.ylabel("Number of Steps (SEM)"),
+                              color=data_stats.Model, Geom.point, Geom.errorbar, Guide.xlabel("Policy"), Guide.ylabel("Number of Steps (SEM)", orientation=:vertical),
                               legend_guide, xticks_guide)
     push!(plot_stack, nstep_v_solver_sem)
     nstep_v_solver_histogram = plot(data, x=:n_steps, color=:solver_setup_key, Geom.histogram, Guide.xlabel("Number of Steps"),
@@ -82,7 +82,7 @@ function get_result_plot_stack(data::DataFrame)
     compute_v_solver_sem = plot(x=data_stats.Model, y=data_stats.MeanCompute,
                                 ymin=(data_stats.MeanCompute - data_stats.SEMCompute), ymax=(data_stats.MeanCompute + data_stats.SEMCompute),
                                 color=data_stats.Model, Geom.point, Geom.errorbar,
-                                Guide.xlabel("Policy"), Guide.ylabel("Cumulative Discoutned Reward (SEM)"),
+                                Guide.xlabel("Policy"), Guide.ylabel("Cumulative Discoutned Reward (SEM)", orientation=:vertical),
                                 legend_guide, xticks_guide)
     push!(plot_stack, compute_v_solver_sem)
     compute_v_solver_density = plot(data, x=:combined_median_time, color=:solver_setup_key, Geom.density,
@@ -215,30 +215,30 @@ function generate_eval_plots(data=nothing;
      outcome_histogram) = plot_stack
 
     # value-compute Scatter
-    dims = (14.5cm, 10cm)
+    dims = (14.5cm, 8cm)
     draw(PDF(joinpath(outdir, "hri_value_compute_scatter_plot.pdf"), dims...), value_compute_scatter)
 
     # value SEM
-    dims = (14.5cm, 10cm)
+    dims = (14.5cm, 8cm)
     draw(PDF(joinpath(outdir, "hri_value_sem_plot.pdf"), dims...), value_sem)
 
     # value density
-    dims = (14.5cm, 10cm)
+    dims = (14.5cm, 8cm)
     draw(PDF(joinpath(outdir, "hri_value_density_plot.pdf"), dims...), value_density)
 
     # nstep SEM
-    dims = (14.5cm, 10cm)
+    dims = (14.5cm, 8cm)
     draw(PDF(joinpath(outdir, "hri_nstep_sem_plot.pdf"), dims...), nstep_sem)
 
     # nstep density
-    dims = (14.5cm, 10cm)
+    dims = (14.5cm, 8cm)
     draw(PDF(joinpath(outdir, "hri_nstep_density_plot.pdf"), dims...), nstep_density)
 
     # compute density
-    dims = (14.5cm, 10cm)
+    dims = (14.5cm, 8cm)
     draw(PDF(joinpath(outdir, "hri_compute_density_plot.pdf"), dims...), compute_density)
 
     # compute density
-    dims = (14.5cm, 10cm)
+    dims = (14.5cm, 8cm)
     draw(PDF(joinpath(outdir, "hri_outcome_histogram_plot.pdf"), dims...), outcome_histogram)
 end
