@@ -4,7 +4,7 @@
 
 1. generate an `ssh-key` pair using `ssh-keygen` on you local machine
 2. add the key *public* key to `~/.ssh/authorized_keys` on the `Dragan-DGX-Station`
-3. configure the host in your local ssh by adding this to your `~/.ssh/config` (on your own/local machine).  
+3. configure the host in your local ssh by adding this to your `~/.ssh/config` (on your own/local machine).
    **Note:** Replace the placeholder `<ssh_key_idrsa>` with the file name of the private key whose public counterpart you have placed on the host.
 ```
 Host Dragan-DGX-Station
@@ -31,7 +31,7 @@ Host Dragan-DGX-Station
 
 ## Configuration to Make Scripts Work With Savio
 
-1. configure the host in your local ssh by adding this to your `~/.ssh/config` (on your own/local machine).  
+1. configure the host in your local ssh by adding this to your `~/.ssh/config` (on your own/local machine).
    **Note:** Replace the placeholder `<brc_user_name>` with your cluster user name (NOT the group name `fc_hybrid`)
 ```
 Host SavioLogin
